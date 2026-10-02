@@ -122,3 +122,8 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 掲載情報は tools/asc_listing.py(API): カテゴリ 教育/医療・年齢区分(医療/治療の情報 あり・健康の話題 あり)・著作権の申告(第三者のコンテンツを使用)・名前/サブタイトル/説明文/キーワード/URL・画面写真5枚・ビルド・審査の連絡先とメモ・無料・日本だけで販売・承認後に自動で公開
 - アプリのプライバシー(画面): ユーザID と 購入履歴、どちらも「アプリの機能」・個人に結びつけない・追跡しない
 - 最初の非消耗型の課金は API では提出できない(FIRST_NON_CONSUMABLE_MUST_BE_SUBMITTED_ON_VERSION)。API で束を作ってバージョンを入れ、課金の画面の「審査用に追加」でその束を選び、API で submitted: true
+
+## 告知(承認後に出す)
+- 画像: promo/ニガテ帳_告知_X.png(ChatGPT の背景+実物の画面を scripts/fix_promo.py で貼った。ChatGPT が描いた画面は架空の UI だったので使わない)
+- 投稿文: promo/X_post_draft.txt(X の重み 273/280)。アカウントは @apkderete(持ち主の決定)
+- 承認されたら: nigatecho-site の入口に3本の App Store のリンクを載せる → 文面と宛先を持ち主に1回見せてから投稿
