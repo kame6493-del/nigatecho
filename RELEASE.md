@@ -71,3 +71,8 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 画面写真: ホーム・予想点・年度別は普通の見本データ、解いた直後と結果だけ warm=1 で撮る(warm=1 で全部撮ると正答率100%・満点に見えた)
 - 元のデータ: 管理栄養士 Downloads/管理栄養士国試アプリ_2026-10-01/data、臨床検査技師 Downloads/臨床検査技師国試アプリ_2026-10-02/data
 - iOS のワークフローは ../_pending/ios-testflight.yml(exam を選べる形)。gh に workflow 権限が付いたら .github/workflows/ へ戻して push
+
+## iOS(2026-10-02)
+- gh に workflow 権限を足し、.github/workflows/ios-testflight.yml を push した(exam を選んで実行)
+- compile_only を2本とも実行: 管理栄養士 run 37014231286 / 臨床検査技師 run 37014237357、どちらも ** BUILD SUCCEEDED **・単体テスト17件 OK
+- TestFlight へ送るには: App Store Connect にアプリ2本を作る + シークレット ASC_ISSUER_ID と APPLE_TEAM_ID を入れる → compile_only=false で実行
