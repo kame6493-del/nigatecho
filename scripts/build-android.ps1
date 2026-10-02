@@ -1,8 +1,10 @@
-﻿# ニガテ帳(管理栄養士)の Android 公開用ビルド(署名済み AAB と APK)。
+﻿# ニガテ帳の Android 公開用ビルド(署名済み AAB と APK)。powershell -File scripts/build-android.ps1 -Exam kanri
+# 先に node scripts/use-exam.mjs <試験> と npm run build・npx cap sync を済ませておく。
 # - JDK と SDK は DIAMOND NINE 用に入っている物を読むだけで使う
 # - 署名鍵はニガテ帳専用。%LOCALAPPDATA%\NigatechoBuild\signing に置き、パスワードは DPAPI(このWindowsユーザーだけが復号できる)で保存
 # - 鍵を上書き・作り直ししない。無くしたら Play Console で「アップロード鍵のリセット」を申請することになる
 # - プロジェクトのパスに日本語があると Gradle が止まるので、一時ドライブ(subst)で英字のパスに見せる
+param([Parameter(Mandatory = $true)][string]$Exam)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $tools = Join-Path $env:LOCALAPPDATA 'Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\DiamondNineBuild'
@@ -12,6 +14,7 @@ $env:ANDROID_HOME = "$tools\android-sdk"
 if (!(Test-Path "$env:JAVA_HOME\bin\java.exe")) { throw 'JDK が見つかりません' }
 
 $secretDir = Join-Path $env:LOCALAPPDATA 'NigatechoBuild\signing'
+if ($Exam -ne 'kanri') { $secretDir = Join-Path $secretDir $Exam }
 New-Item -ItemType Directory -Force $secretDir | Out-Null
 $store = Join-Path $secretDir 'nigatecho-upload.jks'
 $passFile = Join-Path $secretDir 'upload-password.dpapi'
@@ -39,14 +42,14 @@ $drive = 'K:'
 if (Test-Path "$drive\") { throw "$drive は使用中です" }
 subst $drive (Split-Path $repo -Parent)
 try {
-  $proj = "$drive\$(Split-Path $repo -Leaf)\android"
+  $proj = "$drive\$(Split-Path $repo -Leaf)\exams\$Exam\android"
   "sdk.dir=$($env:ANDROID_HOME -replace '\\','/')" | Out-File -Encoding ascii "$proj\local.properties"
   $p = Start-Process -FilePath "$proj\gradlew.bat" -ArgumentList ':app:assembleRelease', ':app:bundleRelease', '--no-daemon', '-q' -WorkingDirectory $proj -NoNewWindow -Wait -PassThru -RedirectStandardError "$env:TEMP\ng_release_err.txt"
   if ($p.ExitCode -ne 0) { Get-Content "$env:TEMP\ng_release_err.txt" -Tail 30; throw "Gradle が失敗しました (exit $($p.ExitCode))" }
   $out = Join-Path $repo 'releases'
   New-Item -ItemType Directory -Force $out | Out-Null
-  Copy-Item "$proj\app\build\outputs\bundle\release\app-release.aab" "$out\nigatecho-kanri-release.aab" -Force
-  Copy-Item "$proj\app\build\outputs\apk\release\app-release.apk" "$out\nigatecho-kanri-release.apk" -Force
+  Copy-Item "$proj\app\build\outputs\bundle\release\app-release.aab" "$out\nigatecho-$Exam-release.aab" -Force
+  Copy-Item "$proj\app\build\outputs\apk\release\app-release.apk" "$out\nigatecho-$Exam-release.apk" -Force
   Write-Output "出力: $out"
 } finally {
   subst $drive /D

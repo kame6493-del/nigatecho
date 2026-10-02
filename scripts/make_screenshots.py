@@ -8,7 +8,9 @@ from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5191/"
 HERE = os.path.dirname(os.path.abspath(__file__))
-STORE = os.path.join(os.path.dirname(HERE), "store")
+import json as _json
+EXAM = _json.load(open(os.path.join(os.path.dirname(HERE), "src", "exam.current.json"), encoding="utf-8"))
+STORE = os.path.join(os.path.dirname(HERE), "exams", EXAM["dir"], "store")
 RAW = os.path.join(STORE, "raw")
 os.makedirs(RAW, exist_ok=True)
 
@@ -135,5 +137,5 @@ if __name__ == "__main__":
     compose(2, os.path.join(RAW, "2_answer.png"), "全問に、\nなぜ違うかの解説。", "正答の理由と、ほかの選択肢の誤りを1つずつ")
     compose(3, os.path.join(RAW, "3_forecast.png"), "本番なら何点か、\n毎日わかる。", "合格基準の6割と並べて、科目ごとの正答率も")
     compose(4, os.path.join(RAW, "4_result.png"), "2回続けて正解したら、\n消える。", "苦手が0問になったら、本番に持っていく苦手はない")
-    compose(5, os.path.join(RAW, "5_exams.png"), "第36〜40回\n1,000問を収録。", "厚生労働省の公表した正答に合わせた過去問")
+    compose(5, os.path.join(RAW, "5_exams.png"), f"第{EXAM['latestExam'] - 4}〜{EXAM['latestExam']}回\n1,000問を収録。", "厚生労働省の公表した正答に合わせた過去問")
     print("ok")

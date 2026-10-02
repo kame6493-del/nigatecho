@@ -28,6 +28,20 @@ describe('答え合わせ', () => {
     expect(isCorrect(x, [2, 4, 5])).toBe(false);
     expect(isCorrect(x, 2)).toBe(false);
   });
+
+  it('公式が複数の組を正解とした問題は、そのどれでも正解(69-182 の形)', () => {
+    const x = { ...q('69-182', '臨床化学', [3, 4, 5]), pick: 2, accepted: [[3, 4], [3, 5], [4, 5]] };
+    expect(isCorrect(x, [3, 4])).toBe(true);
+    expect(isCorrect(x, [5, 3])).toBe(true);
+    expect(isCorrect(x, [4, 5])).toBe(true);
+    expect(isCorrect(x, [1, 3])).toBe(false);
+    expect(isCorrect(x, [3])).toBe(false);
+    // 1つ選ぶ問題で「どれでも正解」(68-050 の形)
+    const y = { ...q('68-050', '臨床化学', [2, 4]), accepted: [[2], [4]] };
+    expect(isCorrect(y, 2)).toBe(true);
+    expect(isCorrect(y, 4)).toBe(true);
+    expect(isCorrect(y, [2, 4])).toBe(false);
+  });
 });
 
 describe('苦手の出入り', () => {

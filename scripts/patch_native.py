@@ -1,9 +1,12 @@
-"""ネイティブ設定を書き換える(iPhone専用・縦固定・日本語・暗号化の申告・ホーム画面の名前)。
+"""ネイティブ設定を書き換える。python scripts/patch_native.py kanri
+(iPhone専用・縦固定・日本語・暗号化の申告・ホーム画面の名前)。
 何度流しても同じ結果になる。npx cap add の直後に1回流す。広告は入れていないので、カチマケの広告まわりは無い。"""
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-HOME_NAME = "ニガテ帳"
+import json, sys
+APP = Path(__file__).resolve().parent.parent
+ROOT = APP / "exams" / sys.argv[1]
+HOME_NAME = json.loads((ROOT / "exam.json").read_text(encoding="utf-8"))["homeName"]
 
 
 def patch(path: Path, pairs):

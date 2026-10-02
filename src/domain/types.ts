@@ -7,8 +7,10 @@ export interface Question {
   subject: string;
   stem: string;
   choices: string[];
-  /** 1始まり。複数あるときは、どれを選んでも正解(正答の注記で複数を正解とした問題) */
+  /** 1始まり。1つ選ぶ問題で複数あるときは、どれを選んでも正解。2つ選ぶ問題では正答の組(accepted があるときはその和) */
   answer: number[];
+  /** 正解として扱う組の一覧(公式が複数の答え方を正解とした問題だけ)。例 [[3,4],[3,5],[4,5]] */
+  accepted?: number[][];
   /** 選ぶ数。省略は1。2なら「2つ選べ」で、answer の2つと選んだ2つが完全に一致したときだけ正解 */
   pick?: number;
   /** 採点対象から除外された問題。解けるが得点には数えない */
@@ -20,19 +22,35 @@ export interface Question {
   explanation?: string;
 }
 
-/** 試験ごとに差し替える設定。シリーズの別の試験はここと問題データだけ替える */
+/** 試験ごとの設定。exams/<試験>/exam.json と同じ形 */
 export interface ExamConfig {
   key: string;
+  dir: string;
   /** "管理栄養士" */
   name: string;
-  /** 出題基準の科目(並び順もこのまま使う) */
-  subjects: string[];
+  appId: string;
+  appName: string;
+  homeName: string;
+  productId: string;
+  price: string;
+  /** サポート・規約の置き場所(末尾は /) */
+  site: string;
+  /** 次の本番 "2027-02-28" */
+  examDate: string;
+  examDateNote: string;
+  /** いちばん新しい回とその年 */
+  latestExam: number;
+  latestYear: number;
   /** 1回の問題数 */
   perExam: number;
   /** 合格基準(総得点に対する割合) */
   passRatio: number;
   /** 無料で解ける回 */
   freeExams: number[];
+  /** 出題基準の科目(並び順もこのまま使う) */
+  subjects: string[];
+  /** 科目名の短い形 */
+  short: Record<string, string>;
   /** 出典の表示 */
   credit: string;
 }

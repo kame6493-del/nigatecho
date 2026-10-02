@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
-import { EXAM, short } from '../domain/exam';
+import { EXAM, short, yearOf } from '../domain/exam';
 import { isLocked, isNigate } from '../domain/study';
 import { TopBar } from './Quiz';
 
@@ -27,7 +27,7 @@ export function ExamPicker(p: {
             <li key={exam} className="exam-row">
               <div className="exam-head">
                 <b>第{exam}回</b>
-                <span className="muted">{2026 - (40 - exam)}年{locked ? '・完全版' : ''}</span>
+                <span className="muted">{yearOf(exam)}年{locked ? '・完全版' : ''}</span>
               </div>
               {!p.mock && <p className="exam-meta">{seen}/{qs.length}問 解いた{ng ? `・苦手${ng}` : ''}</p>}
               {p.mock && last && <p className="exam-meta">前回 {last.score}/{last.total}点</p>}

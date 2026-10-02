@@ -33,3 +33,12 @@ src\domain\exam.ts と data\questions.json を差し替えれば別の試験に�
 - 画面写真5枚: store\shot_1〜5.png(1290x2796)
 - Android: releases\nigatecho-kanri-release.aab(versionCode 1 / 1.0.0、署名検証 OK、中身は最新データと一致)。鍵は %LOCALAPPDATA%\NigatechoBuild\signing(PC を替える前に控える)
 - 未着手: 公開ページの push・非公開リポジトリへの push と iOS クラウドビルド(持ち主の返事待ち)、App Store Connect と RevenueCat の登録(持ち主の作業)
+
+## 公開まわり(2026-10-02)
+- 公開ページ: https://kame6493-del.github.io/nigatecho-site/ (入口・support・privacy・terms。リポジトリ kame6493-del/nigatecho-site、公開)
+- アプリのコード: kame6493-del/nigatecho(非公開)に push 済み
+- iOS ビルドの設定 .github/workflows/ios-testflight.yml は、gh の認証に workflow 権限が無くて push を断られた。ファイルは ../_pending/ に退避してある
+  → 持ち主が `gh auth refresh -h github.com -s workflow` を通したら、_pending から戻して commit・push し、compile_only で1回流す
+- シークレット: ASC_KEY_ID(NNBSHB2KC9)と ASC_KEY_P8_BASE64 は入れた。ASC_ISSUER_ID と APPLE_TEAM_ID は持ち主に聞く(手元に記録が無い。diamond-nine のシークレットは読み出せない)
+- 2本目: 臨床検査技師(第68〜72回)のデータ化を実施中 → Downloads/臨床検査技師国試アプリ_2026-10-02/data/
+- アプリは「2つ選べ」に対応済み(Question.pick、scripts/e2e_pick2.py 12項目 OK)

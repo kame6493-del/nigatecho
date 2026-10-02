@@ -5,7 +5,7 @@ import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
 import { TopBar } from './Quiz';
 
-const SITE = 'https://kame6493-del.github.io/nigatecho-site/';
+const SITE = EXAM.site;
 
 export function SettingsPage(p: {
   data: AppData; premium: boolean;

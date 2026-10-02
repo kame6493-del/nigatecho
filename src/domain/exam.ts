@@ -1,42 +1,17 @@
 import type { ExamConfig } from './types';
+import current from '../exam.current.json';
 
-/** 管理栄養士国家試験。別の試験を出すときはこのファイルと問題データを差し替える */
-export const EXAM: ExamConfig = {
-  key: 'kanri-eiyoushi',
-  name: '管理栄養士',
-  subjects: [
-    '社会・環境と健康',
-    '人体の構造と機能及び疾病の成り立ち',
-    '食べ物と健康',
-    '基礎栄養学',
-    '応用栄養学',
-    '栄養教育論',
-    '臨床栄養学',
-    '公衆栄養学',
-    '給食経営管理論',
-    '応用力試験',
-  ],
-  perExam: 200,
-  passRatio: 0.6,
-  freeExams: [40],
-  credit: '出典: 厚生労働省ホームページ「管理栄養士国家試験の問題および正答について」(各回)。選択肢の番号付けと表示を編集・加工しています。解説は本アプリの独自作成です。',
-};
+/**
+ * いま組んでいる試験の設定。中身は exams/<試験>/exam.json で、
+ * scripts/use-exam.mjs が src/exam.current.json に写す(試験を替えるときはそのスクリプトを流す)。
+ */
+export const EXAM: ExamConfig = current as ExamConfig;
 
-/** 第41回 管理栄養士国家試験(厚生労働省の施行について) */
-export const DEFAULT_EXAM_DATE = '2027-02-28';
+/** 次の本番の試験日 */
+export const DEFAULT_EXAM_DATE = EXAM.examDate;
 
 /** 科目名を画面用に短くする */
-export const SHORT: Record<string, string> = {
-  '社会・環境と健康': '社会・環境',
-  '人体の構造と機能及び疾病の成り立ち': '人体・疾病',
-  '食べ物と健康': '食べ物',
-  '基礎栄養学': '基礎栄養',
-  '応用栄養学': '応用栄養',
-  '栄養教育論': '栄養教育',
-  '臨床栄養学': '臨床栄養',
-  '公衆栄養学': '公衆栄養',
-  '給食経営管理論': '給食経営',
-  '応用力試験': '応用力',
-};
+export const short = (s: string) => EXAM.short[s] ?? s;
 
-export const short = (s: string) => SHORT[s] ?? s;
+/** 第N回が何年の試験か */
+export const yearOf = (exam: number) => EXAM.latestYear - (EXAM.latestExam - exam);

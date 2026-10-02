@@ -6,7 +6,11 @@ import sys
 from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5191/"
-OUT = os.path.join(os.path.dirname(__file__), "e2e_out")
+import json as _json
+EXAM = _json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "exam.current.json"), encoding="utf-8"))
+LATEST = EXAM["latestExam"]
+OUT = os.path.join(os.path.dirname(__file__), "e2e_out", EXAM["dir"])
+TARGET = f"{LATEST}-001"
 os.makedirs(OUT, exist_ok=True)
 fails, errors = [], []
 
@@ -21,7 +25,7 @@ def patch(route):
     resp = route.fetch()
     qs = json.loads(resp.text())
     for q in qs:
-        if q["id"] == "40-001":
+        if q["id"] == TARGET:
             q["pick"] = 2
             q["answer"] = [1, 2]
     route.fulfill(response=resp, body=json.dumps(qs, ensure_ascii=False), headers={**resp.headers, "content-type": "application/json"})
@@ -41,7 +45,7 @@ with sync_playwright() as p:
     pg.click("text=年度別")
     pg.locator(".exam-row").first.locator("text=午前").click()
     pg.wait_for_selector(".choice")
-    check(pg.locator(".q-src").inner_text().startswith("第40回 午前 問1"), "第40回 午前 問1 から始まる")
+    check(pg.locator(".q-src").inner_text().startswith(f"第{LATEST}回 午前 問1"), f"第{LATEST}回 午前 問1 から始まる")
     check(pg.locator(".pick-note").count() == 1, "「2つ選ぶ問題です」が出る")
     btn = pg.locator(".bottom-bar .btn.primary")
     check(btn.is_disabled(), "1つも選んでいないと答え合わせできない")

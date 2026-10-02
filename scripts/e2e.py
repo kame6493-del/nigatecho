@@ -5,7 +5,10 @@ import sys
 from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5191/"
-OUT = os.path.join(os.path.dirname(__file__), "e2e_out")
+import json as _json
+EXAM = _json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "exam.current.json"), encoding="utf-8"))
+LATEST = EXAM["latestExam"]
+OUT = os.path.join(os.path.dirname(__file__), "e2e_out", EXAM["dir"])
 os.makedirs(OUT, exist_ok=True)
 errors = []
 fails = []
@@ -15,6 +18,18 @@ def check(cond, msg):
     print(("OK  " if cond else "NG  ") + msg)
     if not cond:
         fails.append(msg)
+
+
+def answer(page, nums):
+    """番号を順に押す。2つ選ぶ問題なら最後に「答え合わせ」を押す(1つ選ぶ問題は1つ目で答え合わせになり、残りは押せない)。"""
+    for n in nums:
+        btn = page.locator(".choice").nth(n - 1)
+        if btn.is_enabled():
+            btn.click()
+    bar = page.locator(".bottom-bar .btn.primary")
+    if page.locator(".verdict").count() == 0 and bar.count() and bar.is_enabled():
+        bar.click()
+    page.wait_for_selector(".verdict")
 
 
 def shot(page, name):
@@ -42,9 +57,8 @@ with sync_playwright() as p:
     for i in range(10):
         page.wait_for_selector(".choice")
         src = page.locator(".q-src").inner_text()
-        check(src.startswith("第40回"), f"無料の回(第40回)だけ出る: {src}")
-        page.locator(".choice").first.click()
-        page.wait_for_selector(".verdict")
+        check(src.startswith(f"第{LATEST}回"), f"無料の回(第{LATEST}回)だけ出る: {src}")
+        answer(page, [1, 2])
         if page.locator(".verdict.bad").count():
             wrong += 1
         if i == 0:
@@ -77,9 +91,9 @@ with sync_playwright() as p:
                     const qs = await (await fetch('./data/questions.json')).json();
                     const m = src.match(/第(\\d+)回 (午前|午後) 問(\\d+)/);
                     const q = qs.find(x => x.exam == m[1] && x.session == m[2] && x.no == m[3]);
-                    return q.answer[0];
+                    return q.accepted ? q.accepted[0] : q.answer;
                 }""", qid)
-                page.locator(".choice").nth(ans - 1).click()
+                answer(page, ans)
                 page.wait_for_selector(".verdict.good")
                 page.click(".bottom-bar .btn.primary")
             page.wait_for_selector(".result-hero")
@@ -102,7 +116,7 @@ with sync_playwright() as p:
     check(page.locator(".exam-row").count() == 5, "5回分ある")
     page.locator(".exam-row").last.locator("text=午前").click()
     page.wait_for_selector(".choice")
-    check(page.locator(".q-src").inner_text().startswith("第36回 午前 問1"), "第36回の午前1問目から始まる")
+    check(page.locator(".q-src").inner_text().startswith(f"第{LATEST - 4}回 午前 問1"), f"第{LATEST - 4}回の午前1問目から始まる")
     page.click(".topbar .icon")
     page.click(".topbar .icon")
 
@@ -125,7 +139,7 @@ with sync_playwright() as p:
     page.wait_for_selector(".subject-table")
     shot(page, "08_mock_result")
     total = page.locator(".result-score span").inner_text()
-    check("200" in total, f"模試の満点は200点(除外なし): {total}")
+    check(str(EXAM["perExam"]) in total or str(EXAM["perExam"] - 1) in total, f"模試の満点は{EXAM['perExam']}点前後(除外問題の分だけ減る): {total}")
 
     # 9. 設定
     page.click("text=ホームへ")
@@ -139,16 +153,23 @@ with sync_playwright() as p:
     check(page.locator(".fc-score b").count() == 1, "解いた数が多いと予想点が出る")
     shot(page, "10_home_demo")
 
-    # 11. 図の問題
+    # 11. 図の問題: 無料の回で図のある最初の問題まで進む
     page.goto(URL)
     page.wait_for_selector(".home")
+    first_fig = page.evaluate("""async (latest) => {
+        const qs = await (await fetch('./data/questions.json')).json();
+        const q = qs.filter(x => x.exam === latest && x.figure).sort((a, b) => a.no - b.no)[0];
+        return q ? { session: q.session, idx: qs.filter(x => x.exam === latest && x.session === q.session && x.no < q.no).length } : null;
+    }""", LATEST)
     page.click("text=年度別")
-    page.locator(".exam-row").first.locator("text=午後").click()
+    page.locator(".exam-row").first.locator(f"text={first_fig['session']}").click()
     page.wait_for_selector(".choice")
-    for _ in range(92):  # 午後の問193 = 93問目
+    for _ in range(first_fig["idx"]):
         page.locator(".choice").first.click()
+        if page.locator(".bottom-bar .btn.primary").is_disabled():  # 2つ選ぶ問題
+            page.locator(".choice").nth(1).click()
+            page.locator(".bottom-bar .btn.primary").click()
         page.click(".bottom-bar .btn.primary")
-    page.wait_for_selector(".figure")
     try:
         page.wait_for_function("() => { const i = document.querySelector('.figure'); return i && i.complete && i.naturalWidth > 0 }", timeout=10000)
         ok = True

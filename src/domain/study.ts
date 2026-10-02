@@ -9,14 +9,15 @@ export const pickCount = (q: Question) => Math.max(1, q.pick ?? 1);
 /**
  * 1つ選ぶ問題: 選んだ番号が正答のどれかなら正解(複数正答はどれでもよい)。
  * 2つ選ぶ問題: 選んだ組が正答の組と完全に一致したときだけ正解。
+ * accepted がある問題: 選んだ組が、公式が正解とした組のどれかと一致すれば正解。
  */
 export function isCorrect(q: Question, picked: number | number[]): boolean {
-  const xs = Array.isArray(picked) ? picked : [picked];
-  if (pickCount(q) === 1) return xs.length === 1 && q.answer.includes(xs[0]);
-  if (xs.length !== q.answer.length) return false;
-  const a = [...xs].sort((x, y) => x - y);
-  const b = [...q.answer].sort((x, y) => x - y);
-  return a.every((v, i) => v === b[i]);
+  const xs = [...new Set(Array.isArray(picked) ? picked : [picked])].sort((x, y) => x - y);
+  if (xs.length !== pickCount(q)) return false;
+  const same = (b: number[]) => b.length === xs.length && [...b].sort((x, y) => x - y).every((v, i) => v === xs[i]);
+  if (q.accepted?.length) return q.accepted.some(same);
+  if (pickCount(q) === 1) return q.answer.includes(xs[0]);
+  return same(q.answer);
 }
 
 export function isLocked(q: Question, premium: boolean, cfg: ExamConfig): boolean {

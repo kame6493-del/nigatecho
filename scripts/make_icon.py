@@ -1,16 +1,18 @@
-"""アイコン: ノートの紙に墨の「苦」、赤ペンの二重線で消す。
-python scripts/make_icon.py → assets/icon.png(1024) と assets/icon_preview.png"""
+"""アイコン: ノートの紙に墨の「苦」、赤ペンの二重線で消す。試験ごとに紙の色だけ変える(シリーズで見分けるため)。
+python scripts/make_icon.py kanri → exams/kanri/assets/icon.png(1024) と icon_preview.png"""
 import math
 import os
 import random
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(os.path.dirname(HERE), "assets")
+import sys
+EXAM_DIR = sys.argv[1]
+OUT = os.path.join(os.path.dirname(HERE), "exams", EXAM_DIR, "assets")
 os.makedirs(OUT, exist_ok=True)
 S = 1024
-PAPER = (251, 248, 241)
-RULE = (226, 219, 203)
+PAPERS = {"kanri": ((251, 248, 241), (226, 219, 203)), "rinsho": ((236, 242, 247), (204, 216, 228))}
+PAPER, RULE = PAPERS[EXAM_DIR]
 MARGIN = (232, 160, 148)
 INK = (35, 38, 46)
 RED = (210, 64, 42)
