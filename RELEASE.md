@@ -42,3 +42,32 @@ src\domain\exam.ts と data\questions.json を差し替えれば別の試験に�
 - シークレット: ASC_KEY_ID(NNBSHB2KC9)と ASC_KEY_P8_BASE64 は入れた。ASC_ISSUER_ID と APPLE_TEAM_ID は持ち主に聞く(手元に記録が無い。diamond-nine のシークレットは読み出せない)
 - 2本目: 臨床検査技師(第68〜72回)のデータ化を実施中 → Downloads/臨床検査技師国試アプリ_2026-10-02/data/
 - アプリは「2つ選べ」に対応済み(Question.pick、scripts/e2e_pick2.py 12項目 OK)
+
+
+## シリーズ化(2026-10-02)
+1つの作りで複数の試験を出す。試験ごとの物は exams/<試験>/。
+
+| | 管理栄養士 (kanri) | 臨床検査技師 (rinsho) |
+|---|---|---|
+| アプリID | jp.nigatecho.kanrieiyoushi | jp.nigatecho.rinshokensa |
+| 商品 | nigatecho_kanri_full ¥980 | nigatecho_rinsho_full ¥980 |
+| 収録 | 第36〜40回 1,000問 | 第68〜72回 1,000問(2つ選ぶ156問) |
+| 無料 | 第40回 | 第72回 |
+| 解説の検査 | 32問を直した | 19問を直した |
+| 次の試験日 | 2027-02-28 | 2027-02-17 |
+| サポート | nigatecho-site/ | nigatecho-site/rinsho/ |
+| AAB | releases/nigatecho-kanri-release.aab | releases/nigatecho-rinsho-release.aab |
+| 署名鍵 | %LOCALAPPDATA%/NigatechoBuild/signing | %LOCALAPPDATA%/NigatechoBuild/signing/rinsho |
+
+組み方(試験ごと):
+```
+python scripts/merge_expl.py <試験> <元のdataフォルダ>   # 解説を差し込み、正答番号を照合、大きい図は WebP に
+node scripts/use-exam.mjs <試験>                          # src/exam.current.json・capacitor.config.json・public/data を切り替える
+npx vitest run && npm run build && npx cap sync
+python scripts/e2e.py && python scripts/e2e_pick2.py      # 開発サーバー(npx vite --port 5191)を立ててから
+python scripts/make_screenshots.py                        # exams/<試験>/store/shot_1〜5.png
+powershell -File scripts/build-android.ps1 -Exam <試験>
+```
+- 画面写真: ホーム・予想点・年度別は普通の見本データ、解いた直後と結果だけ warm=1 で撮る(warm=1 で全部撮ると正答率100%・満点に見えた)
+- 元のデータ: 管理栄養士 Downloads/管理栄養士国試アプリ_2026-10-01/data、臨床検査技師 Downloads/臨床検査技師国試アプリ_2026-10-02/data
+- iOS のワークフローは ../_pending/ios-testflight.yml(exam を選べる形)。gh に workflow 権限が付いたら .github/workflows/ へ戻して push

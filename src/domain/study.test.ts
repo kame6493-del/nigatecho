@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyData, normalize } from './data';
-import { EXAM } from './exam';
+import { DEFAULT_EXAM_DATE, EXAM } from './exam';
 import { daysLeft, estimate, isCorrect, isLocked, isNigate, nigateOrder, record, rng, shuffle, streakDays, subjectStats, subjectWeights, toggleMark, unseen } from './study';
 import type { Question } from './types';
 
@@ -81,9 +81,11 @@ describe('苦手の出入り', () => {
 
 describe('鍵', () => {
   it('無料の回だけ買わずに解ける', () => {
-    expect(isLocked(q('40-001', 'x'), false, EXAM)).toBe(false);
-    expect(isLocked(q('39-001', 'x'), false, EXAM)).toBe(true);
-    expect(isLocked(q('39-001', 'x'), true, EXAM)).toBe(false);
+    // どの試験に切り替えても通るよう、無料の回は設定から読む
+    const free = EXAM.freeExams[0];
+    expect(isLocked(q(`${free}-001`, 'x'), false, EXAM)).toBe(false);
+    expect(isLocked(q(`${free - 1}-001`, 'x'), false, EXAM)).toBe(true);
+    expect(isLocked(q(`${free - 1}-001`, 'x'), true, EXAM)).toBe(false);
   });
 });
 
@@ -94,7 +96,7 @@ describe('集計と推定', () => {
   it('科目の配点は最新の回の問題数', () => {
     const w = subjectWeights(qs, EXAM);
     expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(200);
-    expect(w['基礎栄養学']).toBe(20);
+    expect(w[EXAM.subjects[3]]).toBe(20);
   });
 
   it('解いた数が少ないうちは推定しない', () => {
@@ -149,7 +151,7 @@ describe('保存データ', () => {
     expect(d.records).toEqual({ a: { n: 3, ok: 3, at: 1, streak: 0, missed: true } });
     expect(d.marks).toEqual(['x']);
     expect(d.settings.fontScale).toBe(1.4);
-    expect(d.settings.examDate).toBe('2027-02-28');
+    expect(d.settings.examDate).toBe(DEFAULT_EXAM_DATE);
     expect(d.daily).toEqual({ '2026-10-01': 4 });
     expect(normalize('garbage')).toEqual(emptyData());
   });

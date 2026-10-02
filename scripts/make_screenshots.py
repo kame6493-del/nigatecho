@@ -31,17 +31,28 @@ def capture():
         ctx = b.new_context(viewport={"width": 430, "height": 932}, device_scale_factor=3, locale="ja-JP")
         pg = ctx.new_page()
 
-        # 見本データは最初に1回だけ入れ、5枚を同じ記録のまま撮る
-        pg.goto(URL + "?demo=1&premium=1&n=420&acc=0.68&warm=1")
+        # ホーム・予想点・年度別は普通の見本データで撮る。
+        # warm=1(苦手を全部「あと1回正解で外れる」=最後は正解)で撮ると、全科目の正答率が100%・予想点が満点に見えてしまう。
+        pg.goto(URL + "?demo=1&premium=1&n=420&acc=0.68")
         pg.wait_for_selector(".hero-num")
         pg.goto(URL)
+
+        def press(nums):
+            """番号を押し、2つ選ぶ問題なら「答え合わせ」を押す"""
+            for n in nums:
+                b = pg.locator(".choice").nth(n - 1)
+                if b.is_enabled():
+                    b.click()
+            bar = pg.locator(".bottom-bar .btn.primary")
+            if pg.locator(".verdict").count() == 0 and bar.count() and bar.is_enabled():
+                bar.click()
 
         def answer_of():
             return pg.evaluate("""async () => {
                 const src = document.querySelector('.q-src').textContent;
                 const qs = await (await fetch('./data/questions.json')).json();
                 const m = src.match(/第(\d+)回 (午前|午後) 問(\d+)/);
-                return qs.find(x => x.exam == m[1] && x.session == m[2] && x.no == m[3]).answer[0];
+                const q = qs.find(x => x.exam == m[1] && x.session == m[2] && x.no == m[3]); return q.accepted ? q.accepted[0] : q.answer;
             }""")
 
         # 1 ホーム(苦手の数)
@@ -59,14 +70,19 @@ def capture():
         pg.screenshot(path=os.path.join(RAW, "5_exams.png"))
         pg.click(".topbar .icon")
 
-        # 2 解いた直後(不正解と解説)と 4 結果(苦手から外れた)
+        # 2 解いた直後(不正解と解説)と 4 結果(苦手から外れた): ここだけ warm=1 の見本データ(苦手の数は同じ)
+        pg.goto(URL + "?demo=1&premium=1&n=420&acc=0.68&warm=1")
+        pg.wait_for_selector(".hero-num")
+        pg.goto(URL)
         pg.wait_for_selector(".hero-num")
         pg.click("text=苦手を解く")
         for i in range(30):
             pg.wait_for_selector(".choice")
             a = answer_of()
-            pick = a if i not in (0, 6) else (1 if a != 1 else 2)
-            pg.locator(".choice").nth(pick - 1).click()
+            if i in (0, 6):
+                # わざと間違える: 正答に入っていない番号を、選ぶ数だけ押す
+                a = [n for n in range(1, 6) if n not in a][: len(a)]
+            press(a)
             pg.wait_for_selector(".verdict")
             if i == 0:
                 pg.evaluate("() => window.scrollTo(0, 0)")
