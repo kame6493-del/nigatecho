@@ -93,9 +93,12 @@ describe('集計と推定', () => {
   const qs: Question[] = [];
   EXAM.subjects.forEach((s, i) => { for (let k = 0; k < 20; k++) qs.push(q(`40-${String(i * 20 + k + 1).padStart(3, '0')}`, s)); });
 
+  // どの試験に切り替えても通るよう、満点は科目の数から決める(理学療法士は13科目で260問)
+  const TOTAL = EXAM.subjects.length * 20;
+
   it('科目の配点は最新の回の問題数', () => {
     const w = subjectWeights(qs, EXAM);
-    expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(200);
+    expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(TOTAL);
     expect(w[EXAM.subjects[3]]).toBe(20);
   });
 
@@ -108,20 +111,20 @@ describe('集計と推定', () => {
     let d = emptyData();
     for (const x of qs) d = record(d, x, true, T0);
     let est = estimate(subjectStats(qs, d, EXAM), subjectWeights(qs, EXAM), EXAM)!;
-    expect(est).toMatchObject({ score: 200, pass: 120, total: 200, coverage: 1 });
+    expect(est).toMatchObject({ score: TOTAL, pass: Math.ceil(TOTAL * EXAM.passRatio), total: TOTAL, coverage: 1 });
 
     d = emptyData();
-    // 前半5科目だけ、各科目20問中10問正解
+    // 前半5科目だけ、各科目20問中10問正解。残りの科目は平均(5割)で埋まる
     for (const x of qs.slice(0, 100)) d = record(d, x, Number(x.id.slice(3)) % 2 === 0, T0);
     est = estimate(subjectStats(qs, d, EXAM), subjectWeights(qs, EXAM), EXAM)!;
-    expect(est.score).toBe(100);
-    expect(est.coverage).toBe(0.5);
+    expect(est.score).toBe(Math.round(TOTAL / 2));
+    expect(est.coverage).toBeCloseTo(100 / TOTAL);
   });
 
   it('まだ解いていない問題(除外は数えない)', () => {
-    const extra = q('40-201', '基礎栄養学', [1], true);
+    const extra = q(`40-${TOTAL + 1}`, EXAM.subjects[3], [1], true);
     const d = record(emptyData(), qs[0], true, T0);
-    expect(unseen([...qs, extra], d).length).toBe(199);
+    expect(unseen([...qs, extra], d).length).toBe(TOTAL - 1);
   });
 });
 
