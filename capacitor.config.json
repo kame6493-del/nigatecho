@@ -1,0 +1,8 @@
+{
+  "appId": "jp.nigatecho.kanrieiyoushi",
+  "appName": "ニガテ帳 管理栄養士",
+  "webDir": "dist",
+  "backgroundColor": "#fbf8f1",
+  "ios": { "contentInset": "never" },
+  "android": { "allowMixedContent": false }
+}
