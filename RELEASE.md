@@ -76,3 +76,12 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - gh に workflow 権限を足し、.github/workflows/ios-testflight.yml を push した(exam を選んで実行)
 - compile_only を2本とも実行: 管理栄養士 run 37014231286 / 臨床検査技師 run 37014237357、どちらも ** BUILD SUCCEEDED **・単体テスト17件 OK
 - TestFlight へ送るには: App Store Connect にアプリ2本を作る + シークレット ASC_ISSUER_ID と APPLE_TEAM_ID を入れる → compile_only=false で実行
+
+## App Store Connect(2026-10-02 夜)
+- Issuer ID c2e4b817-492e-48b1-b0a8-4f999f53e7f7 / Team ID K639HGXHVV(シークレット4つそろった)
+- バンドルID: jp.nigatecho.kanrieiyoushi (A5T3CY6Z8D)・jp.nigatecho.rinshokensa (G2R6H4ZQB4)。API で登録
+- アプリ: 管理栄養士 6818535389 / 臨床検査技師 6818536142(画面で作成)
+- App内課金(API): nigatecho_kanri_full 6818536985 / nigatecho_rinsho_full 6818537154。非消耗型・¥980(日本基準)・日本語の表示名と説明・審査メモと購入画面の写真まで入れた
+- TestFlight: 管理栄養士 ビルド3・臨床検査技師 ビルド4 が VALID。社内テストのグループに持ち主を入れた
+- API の道具: scratchpad の asc.py / asc_iap.py / asc_iap_review.py / asc_beta.py(鍵は Downloads/AuthKey_NNBSHB2KC9.p8)
+- 残り(持ち主): 有料アプリケーション契約(銀行・税)、RevenueCat の登録 → 公開APIキーを src/platform/billing.ts へ
