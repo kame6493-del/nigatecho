@@ -3,6 +3,9 @@ import type { AppData, ExamConfig, Question, Record1 } from './types';
 /** 2回続けて正解したら苦手から外れる */
 export const CLEAR_STREAK = 2;
 
+/** 配点(省略は1) */
+export const pointsOf = (q: Question) => q.points ?? 1;
+
 /** 選ぶ数(「2つ選べ」なら2) */
 export const pickCount = (q: Question) => Math.max(1, q.pick ?? 1);
 
@@ -127,12 +130,12 @@ export function subjectStats(qs: Question[], data: AppData, cfg: ExamConfig): Su
   });
 }
 
-/** 本番1回分の科目の配点(最新の回の問題数で決める) */
+/** 本番1回分の科目の配点(最新の回の配点の合計。配点の無い試験では問題数と同じ) */
 export function subjectWeights(all: Question[], cfg: ExamConfig): Record<string, number> {
   const latest = Math.max(...all.map((q) => q.exam));
   const w: Record<string, number> = {};
   for (const s of cfg.subjects) w[s] = 0;
-  for (const q of all) if (q.exam === latest) w[q.subject] = (w[q.subject] ?? 0) + 1;
+  for (const q of all) if (q.exam === latest) w[q.subject] = (w[q.subject] ?? 0) + pointsOf(q);
   return w;
 }
 

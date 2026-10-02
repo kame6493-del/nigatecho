@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { isCorrect, isNigate, pickCount } from '../domain/study';
+import { isCorrect, isNigate, pickCount, pointsOf } from '../domain/study';
 import { buzz } from '../platform/native';
 
 export interface Session {
@@ -199,14 +199,14 @@ function MockRun(p: Props & { qs: Question[] }) {
     const bySubject: MockResult['bySubject'] = {};
     for (const a of answers) {
       const s = (bySubject[a.q.subject] ??= { ok: 0, n: 0 });
-      s.n++;
-      if (a.ok) s.ok++;
+      s.n += pointsOf(a.q);
+      if (a.ok) s.ok += pointsOf(a.q);
     }
     const m: MockResult = {
       at: Date.now(),
       exam: p.session.exam ?? 0,
-      score: answers.filter((a) => a.ok).length,
-      total: answers.length,
+      score: answers.reduce((t, a) => t + (a.ok ? pointsOf(a.q) : 0), 0),
+      total: answers.reduce((t, a) => t + pointsOf(a.q), 0),
       bySubject,
       seconds: Math.round((Date.now() - startAt) / 1000),
     };

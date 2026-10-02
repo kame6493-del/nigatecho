@@ -13,6 +13,8 @@ export interface Question {
   accepted?: number[][];
   /** 選ぶ数。省略は1。2なら「2つ選べ」で、answer の2つと選んだ2つが完全に一致したときだけ正解 */
   pick?: number;
+  /** 配点。省略は1(理学療法士の実地問題は3) */
+  points?: number;
   /** 採点対象から除外された問題。解けるが得点には数えない */
   excluded: boolean;
   note: string;

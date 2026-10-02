@@ -125,6 +125,14 @@ describe('集計と推定', () => {
   });
 });
 
+describe('配点', () => {
+  it('配点のある試験では、科目の重みは配点の合計(実地問題3点)', () => {
+    const xs = [q('61-001', 'A'), { ...q('61-002', 'A'), points: 3 }, q('61-003', 'B'), q('60-001', 'A')];
+    const w = subjectWeights(xs, { ...EXAM, subjects: ['A', 'B'] });
+    expect(w).toEqual({ A: 4, B: 1 });
+  });
+});
+
 describe('日付', () => {
   it('試験日までの残り日数', () => {
     expect(daysLeft('2027-02-28', new Date(2027, 1, 27, 23).getTime())).toBe(1);
