@@ -47,6 +47,11 @@ export interface ExamConfig {
   perExam: number;
   /** 合格基準(総得点に対する割合) */
   passRatio: number;
+  /**
+   * 総得点とは別の合格基準(理学療法士の実地問題: 配点3の問題で約35%以上)。
+   * 回ごとに基準の点は少し違うので、ここは目安の割合。
+   */
+  subPass?: { label: string; points: number; ratio: number };
   /** 無料で解ける回 */
   freeExams: number[];
   /** 出題基準の科目(並び順もこのまま使う) */

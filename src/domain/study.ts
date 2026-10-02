@@ -169,6 +169,34 @@ export function estimate(stats: SubjectStat[], weights: Record<string, number>, 
   return { score: Math.round(score), pass: Math.ceil(total * cfg.passRatio), total, coverage: covered / total };
 }
 
+export interface SubEstimate {
+  label: string;
+  score: number;
+  total: number;
+  pass: number;
+}
+
+/**
+ * 総得点とは別の基準(実地問題など)の予想。その配点の問題を最後に解いた結果の正答率 × 本番での満点。
+ * 解いた数が少ないうちは null。
+ */
+export function subEstimate(open: Question[], all: Question[], data: AppData, cfg: ExamConfig, minSeen = 10): SubEstimate | null {
+  const sp = cfg.subPass;
+  if (!sp) return null;
+  const mine = open.filter((q) => pointsOf(q) === sp.points && !q.excluded);
+  let seen = 0, ok = 0;
+  for (const q of mine) {
+    const r = data.records[q.id];
+    if (!r) continue;
+    seen++;
+    if (r.streak > 0) ok++;
+  }
+  if (seen < minSeen) return null;
+  const latest = Math.max(...all.map((q) => q.exam));
+  const total = all.filter((q) => q.exam === latest && !q.excluded && pointsOf(q) === sp.points).reduce((t, q) => t + pointsOf(q), 0);
+  return { label: sp.label, score: Math.round((total * ok) / seen), total, pass: Math.ceil(total * sp.ratio) };
+}
+
 /** 試験日までの残り日数。過ぎていたら null */
 export function daysLeft(examDate: string, now: number): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(examDate);

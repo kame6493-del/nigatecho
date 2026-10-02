@@ -85,3 +85,13 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - TestFlight: 管理栄養士 ビルド3・臨床検査技師 ビルド4 が VALID。社内テストのグループに持ち主を入れた
 - API の道具: scratchpad の asc.py / asc_iap.py / asc_iap_review.py / asc_beta.py(鍵は Downloads/AuthKey_NNBSHB2KC9.p8)
 - 残り(持ち主): 有料アプリケーション契約(銀行・税)、RevenueCat の登録 → 公開APIキーを src/platform/billing.ts へ
+
+## 理学療法士(作業中 2026-10-03)
+- データ: Downloads/理学療法士国試アプリ_2026-10-03/data(1,000問・実地200問は3点・2つ選ぶ136・除外11)
+- 解説: 5人が expl/57〜61.json を書いている途中 → merge_expl.py pt <data> → 検査3人
+- exams/pt/exam.json を作った(試験日は厚労省の発表待ちで空欄)。subPass(実地問題35
+## 理学療法士(作業中 2026-10-03)
+- データ: Downloads/理学療法士国試アプリ_2026-10-03/data(1,000問・実地200問は3点・2つ選ぶ136・除外11)
+- 解説: 5人が expl/57〜61.json を書いている途中 → merge_expl.py pt <data> → 検査3人
+- exams/pt/exam.json を作った(試験日は厚労省の発表待ちで空欄)。実地問題の基準(約35%)の計算 subEstimate は study.ts にあるが、画面にはまだつないでいない
+- 残り: 殻(cap add)・アイコン・サポートページ pt/・写真・AAB・App Store Connect にアプリと商品
