@@ -107,3 +107,12 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 ## 理学療法士(2026-10-03)
 - 解説1,000問、検査で36問を直した。実地問題の基準の表示を画面につないだ。殻・アイコン・サポートページ pt/・ストア説明文あり
 - 残り: App Store Connect にアプリと商品(ログイン待ち)、画面写真、AAB
+
+## 課金とTestFlight(2026-10-03)
+- 有料アプリケーション契約: 持ち主が済ませた
+- App Store Connect のアプリ内購入キー 2M7WGPA845 を作り、RevenueCat の3アプリに登録(subscription_key_configured: True)。鍵の控えは %LOCALAPPDATA%/NigatechoBuild
+- 理学療法士: アプリ 6818565109・商品 nigatecho_pt_full(6818565217)・TestFlight の社内グループ
+- 商品3つとも審査用写真 COMPLETE・READY_TO_SUBMIT(写真は scripts/shot_paywall.py で 1290x2796)
+- TestFlight: 管理栄養士 ビルド5 / 臨床検査技師 ビルド6 / 理学療法士 ビルド8(どれも RevenueCat の公開キー入り・VALID)
+- テストは npm run test:all で全試験に切り替えて流す(理学療法士でだけ落ちたことがある)
+- 残り: ストアの掲載情報(説明文・画面写真・年齢区分・プライバシー・審査用の連絡先)→ 審査に提出。Android(Play)は未着手
