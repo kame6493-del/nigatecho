@@ -95,3 +95,15 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 解説: 5人が expl/57〜61.json を書いている途中 → merge_expl.py pt <data> → 検査3人
 - exams/pt/exam.json を作った(試験日は厚労省の発表待ちで空欄)。実地問題の基準(約35%)の計算 subEstimate は study.ts にあるが、画面にはまだつないでいない
 - 残り: 殻(cap add)・アイコン・サポートページ pt/・写真・AAB・App Store Connect にアプリと商品
+
+## RevenueCat(2026-10-03)
+- プロジェクト Nigatecho(a274f6e7)。秘密キー(V2・プロジェクト設定の読み書き)は %LOCALAPPDATA%/NigatechoBuild/revenuecat_secret.txt
+- API で登録: App Store のアプリ3つ・entitlement full・商品3つ(非消耗型)・売り場 default に $rc_lifetime パッケージ
+- 公開キー(iOS)は exams/<試験>/exam.json の revenuecat.ios。src/platform/billing.ts がそこから読む。Android はまだ空
+- 道具: tools/ に rc_setup.py(何度流しても二重に作らない)
+- 残り: RevenueCat の各 iOS アプリに App Store Connect の「アプリ内購入キー」(p8)を入れる(購入の検証に要る)。App Store Connect にログインしてキーを作る必要がある
+- 持ち主へ: RevenueCat のメールアドレスの確認(確認メールのリンク)
+
+## 理学療法士(2026-10-03)
+- 解説1,000問、検査で36問を直した。実地問題の基準の表示を画面につないだ。殻・アイコン・サポートページ pt/・ストア説明文あり
+- 残り: App Store Connect にアプリと商品(ログイン待ち)、画面写真、AAB
