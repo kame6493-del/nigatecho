@@ -130,12 +130,12 @@ export function subjectStats(qs: Question[], data: AppData, cfg: ExamConfig): Su
   });
 }
 
-/** 本番1回分の科目の配点(最新の回の配点の合計。配点の無い試験では問題数と同じ) */
+/** 本番1回分の科目の配点(最新の回の、採点除外を除いた配点の合計。模試の満点と同じ数え方) */
 export function subjectWeights(all: Question[], cfg: ExamConfig): Record<string, number> {
   const latest = Math.max(...all.map((q) => q.exam));
   const w: Record<string, number> = {};
   for (const s of cfg.subjects) w[s] = 0;
-  for (const q of all) if (q.exam === latest) w[q.subject] = (w[q.subject] ?? 0) + pointsOf(q);
+  for (const q of all) if (q.exam === latest && !q.excluded) w[q.subject] = (w[q.subject] ?? 0) + pointsOf(q);
   return w;
 }
 

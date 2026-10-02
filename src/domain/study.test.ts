@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyData, normalize } from './data';
 import { DEFAULT_EXAM_DATE, EXAM } from './exam';
-import { daysLeft, estimate, isCorrect, isLocked, isNigate, nigateOrder, record, rng, shuffle, streakDays, subjectStats, subjectWeights, toggleMark, unseen } from './study';
+import { daysLeft, estimate, subEstimate, isCorrect, isLocked, isNigate, nigateOrder, record, rng, shuffle, streakDays, subjectStats, subjectWeights, toggleMark, unseen } from './study';
 import type { Question } from './types';
 
 const q = (id: string, subject: string, answer = [1], excluded = false): Question => ({
@@ -130,6 +130,21 @@ describe('配点', () => {
     const xs = [q('61-001', 'A'), { ...q('61-002', 'A'), points: 3 }, q('61-003', 'B'), q('60-001', 'A')];
     const w = subjectWeights(xs, { ...EXAM, subjects: ['A', 'B'] });
     expect(w).toEqual({ A: 4, B: 1 });
+    // 採点除外の問題は満点に数えない(模試の満点と合わせる)
+    const w2 = subjectWeights([...xs, { ...q('61-004', 'B', [], true), points: 3 }], { ...EXAM, subjects: ['A', 'B'] });
+    expect(w2).toEqual({ A: 4, B: 1 });
+  });
+});
+
+describe('実地問題の基準', () => {
+  it('配点3の問題の正答率 × 本番の満点。基準が無い試験では null', () => {
+    const cfg = { ...EXAM, subPass: { label: '実地問題', points: 3, ratio: 0.35 } };
+    const xs = Array.from({ length: 20 }, (_, i) => ({ ...q(`61-${String(i + 1).padStart(3, '0')}`, 'A'), points: 3 }));
+    let d = emptyData();
+    xs.forEach((x, i) => { d = record(d, x, i % 2 === 0, T0 + i); });
+    expect(subEstimate(xs, xs, d, cfg)).toEqual({ label: '実地問題', score: 30, total: 60, pass: 21 });
+    expect(subEstimate(xs, xs, d, { ...EXAM, subPass: undefined })).toBeNull();
+    expect(subEstimate(xs, xs, emptyData(), cfg)).toBeNull();
   });
 });
 

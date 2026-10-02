@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { dayKey, daysLeft, estimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
+import { dayKey, daysLeft, estimate, subEstimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
 
 interface Props {
   data: AppData;
@@ -26,6 +26,7 @@ export function Home(p: Props) {
   const stats = useMemo(() => subjectStats(p.open, p.data, EXAM), [p.open, p.data]);
   const weights = useMemo(() => subjectWeights(p.all, EXAM), [p.all]);
   const est = estimate(stats, weights, EXAM);
+  const sub = useMemo(() => subEstimate(p.open, p.all, p.data, EXAM), [p.open, p.all, p.data]);
   const nigate = p.open.filter((q) => isNigate(p.data.records[q.id])).length;
   const fresh = unseen(p.open, p.data).length;
   const seen = stats.reduce((s, x) => s + x.seen, 0);
@@ -89,6 +90,11 @@ export function Home(p: Props) {
               <i style={{ width: `${(est.score / est.total) * 100}%` }} />
               <em style={{ left: `${(est.pass / est.total) * 100}%` }}><span>合格 {est.pass}</span></em>
             </div>
+            {sub && (
+              <p className={`fc-sub ${sub.score >= sub.pass ? 'good' : 'bad'}`}>
+                {sub.label} {sub.score}/{sub.total}点(基準の目安 {sub.pass}点){sub.score >= sub.pass ? '' : ` あと${sub.pass - sub.score}点`}
+              </p>
+            )}
             {est.coverage < 1 && <p className="muted small">まだ解いていない科目は、ほかの科目の正答率で見積もっています</p>}
           </>
         ) : (

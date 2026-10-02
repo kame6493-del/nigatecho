@@ -9,7 +9,7 @@ on:
       exam:
         description: "どの試験のアプリか(exams の下のフォルダ名)"
         type: choice
-        options: [kanri, rinsho]
+        options: [kanri, rinsho, pt]
         default: kanri
       compile_only:
         description: "署名もアップロードもせずにコンパイルだけ試す(Apple のシークレット不要)"

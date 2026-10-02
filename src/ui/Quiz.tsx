@@ -218,14 +218,25 @@ function MockRun(p: Props & { qs: Question[] }) {
 
   if (result) {
     const pass = Math.ceil(result.total * EXAM.passRatio);
-    const passed = result.score >= pass;
+    // 総得点とは別の基準(理学療法士の実地問題)。解いた問題の配点から数える
+    const sp = EXAM.subPass;
+    const subQs = sp ? qs.filter((x) => !x.excluded && pointsOf(x) === sp.points) : [];
+    const subTotal = subQs.reduce((t, x) => t + pointsOf(x), 0);
+    const subScore = subQs.reduce((t, x) => t + (ans[x.id] !== undefined && isCorrect(x, ans[x.id]) ? pointsOf(x) : 0), 0);
+    const subPassPts = sp ? Math.ceil(subTotal * sp.ratio) : 0;
+    const subOk = !sp || subTotal === 0 || subScore >= subPassPts;
+    const passed = result.score >= pass && subOk;
     const wrong = qs.filter((x) => !x.excluded && !(ans[x.id] !== undefined && isCorrect(x, ans[x.id])));
     return (
       <div className="page result">
         <TopBar title={p.session.title} onClose={p.onClose} />
         <section className="result-hero">
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
-          <p className={`pass-line ${passed ? 'good' : 'bad'}`}>合格基準 {pass}点 に{passed ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>合格基準 {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          {sp && subTotal > 0 && (
+            <p className={`pass-line ${subOk ? 'good' : 'bad'}`}>{sp.label} {subScore}/{subTotal}点(基準の目安 {subPassPts}点){subOk ? '' : ` あと${subPassPts - subScore}点`}</p>
+          )}
+          {sp && <p className="muted small">合格は総得点と{sp.label}の両方の基準を満たしたとき。{passed ? '今回は両方とも届いています。' : ''}</p>}
           <p className="muted">かかった時間 {fmtTime(result.seconds)}・未回答 {qs.length - answeredCount}問</p>
         </section>
         <table className="subject-table">

@@ -139,7 +139,12 @@ with sync_playwright() as p:
     page.wait_for_selector(".subject-table")
     shot(page, "08_mock_result")
     total = page.locator(".result-score span").inner_text()
-    check(str(EXAM["perExam"]) in total or str(EXAM["perExam"] - 1) in total, f"模試の満点は{EXAM['perExam']}点前後(除外問題の分だけ減る): {total}")
+    # 満点は、いちばん新しい回の採点対象の配点の合計(理学療法士は実地問題が3点)
+    want = page.evaluate("""async (latest) => {
+        const qs = await (await fetch('./data/questions.json')).json();
+        return qs.filter(x => x.exam === latest && !x.excluded).reduce((t, x) => t + (x.points ?? 1), 0);
+    }""", LATEST)
+    check(f"/ {want} 点" in total, f"模試の満点は配点の合計 {want}点: {total}")
 
     # 9. 設定
     page.click("text=ホームへ")

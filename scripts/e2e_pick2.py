@@ -86,7 +86,8 @@ with sync_playwright() as p:
     pg.click("text=ここで採点する")
     pg.click(".sheet .btn.primary")
     pg.wait_for_selector(".subject-table")
-    check(pg.locator(".result-score b").inner_text() == "1", "模試: 1と2を選んだ問1だけが正解で1点")
+    pts = pg.evaluate("""async (id) => ((await (await fetch('./data/questions.json')).json()).find(x => x.id === id).points ?? 1)""", TARGET)
+    check(pg.locator(".result-score b").inner_text() == str(pts), f"模試: 1と2を選んだ問1だけが正解で{pts}点(その問題の配点)")
     b.close()
 
 print("errors:", errors[:5])
