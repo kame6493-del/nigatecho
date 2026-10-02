@@ -60,6 +60,10 @@ export interface ExamConfig {
   short: Record<string, string>;
   /** 出典の表示 */
   credit: string;
+  /** RevenueCat の公開APIキー(アプリに埋め込む物。秘密ではない) */
+  revenuecat?: { ios: string; android: string };
+  /** RevenueCat の entitlement */
+  entitlement?: string;
 }
 
 export interface Record1 {

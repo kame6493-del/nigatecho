@@ -1,13 +1,15 @@
 import { Capacitor } from '@capacitor/core';
 import { Purchases, type PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
+import { EXAM } from '../domain/exam';
+
 /**
- * RevenueCat の公開APIキー(秘密鍵ではない)。ダッシュボードで作ったら入れる。
- * 空のままなら購入ボタンは「準備中」になり、課金は一切走らない。
- * 商品は買い切り(非消耗型)1つだけ。entitlement は "full"。
+ * RevenueCat の公開APIキー(秘密鍵ではない)。試験ごとに exams/<試験>/exam.json の revenuecat に入っている。
+ * 空のままなら購入ボタンは「準備中」になり、課金は一切走らない(Android はまだ空)。
+ * 商品は買い切り(非消耗型)1つだけ。entitlement は "full"(プロジェクト Nigatecho で全試験共通)。
  */
-const API_KEYS = { ios: '', android: '' };
-export const ENTITLEMENT = 'full';
+const API_KEYS = { ios: EXAM.revenuecat?.ios ?? '', android: EXAM.revenuecat?.android ?? '' };
+export const ENTITLEMENT = EXAM.entitlement ?? 'full';
 
 export type BillingState =
   | { status: 'unavailable'; reason: string }
