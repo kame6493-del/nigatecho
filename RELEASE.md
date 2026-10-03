@@ -175,3 +175,11 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
   - 定期実行は7日で切れ、セッションを閉じても止まる
 - X プロフィールを3アプリ並びに更新(名前「YURU社内SE｜アプリ個人開発｜ニガテ帳・カチマケ・Diamond Nine」、自己紹介にニガテ帳)。URL 欄は一覧 https://kame6493-del.github.io/ のまま
 - 一覧ページの先頭にニガテ帳の欄を追加(3試験の公開ページへのボタン・Android テスター参加の手順)。承認後はボタンを App Store へ替える
+
+## Android の課金(2026-10-03 夕)
+- Play の1回限りのアイテムを3本作成: nigatecho_<試験>_full(購入オプション buy、全地域、日本 ¥980、他は自動換算)
+  - 説明欄は value の書き換えだと Play 側が空扱いにする → document.execCommand('insertText') で入れると通る
+- RevenueCat に Android(play_store)アプリ3本・商品3本を登録し、権利 full と売り場 default の $rc_lifetime に紐づけ(tools/rc_android.py)。公開キー goog_… を exams/<試験>/exam.json の revenuecat.android へ
+- Android 1.0.1(versionCode 2)を作り直し中 → クローズドテストへ上げる
+- 残り: RevenueCat に Play のサービスアカウント JSON を登録(持ち主が Google Cloud で作成)。これが無いと購入の確認ができない
+- Play のクローズドテスト3本は審査通過・公開済み(10-03)
