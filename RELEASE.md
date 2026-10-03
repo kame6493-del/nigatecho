@@ -183,3 +183,6 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - Android 1.0.1(versionCode 2)を作り直し中 → クローズドテストへ上げる
 - 残り: RevenueCat に Play のサービスアカウント JSON を登録(持ち主が Google Cloud で作成)。これが無いと購入の確認ができない
 - Play のクローズドテスト3本は審査通過・公開済み(10-03)
+- Android 1.0.1(課金の公開キー入り)を3本ともクローズドテストに上げ、審査に送信(10-03 夕)
+- Play の画面写真の並びを 1→5(残る/消える/何点/解説/1,000問)に直して送信
+- ブラウザ操作の道具: tools/show_tab.ps1(タブ検索で作業タブへ)・tools/next_tab.ps1(Ctrl+Tab)・tools/front_chrome.ps1(-Nigatecho)。Chrome は表示中のタブでないとファイル選択画面を開かない
