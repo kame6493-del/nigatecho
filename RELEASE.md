@@ -192,3 +192,5 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 求められた物: 1 実機の画面録画(起動から・普段の流れ・有料機能まで) 2 目的と対象 3 使い方 4 外部サービス 5 地域差 6 第三者素材の権利 7 App内課金の中身と入り口
 - 2〜7 は tools/review_notes.py で英語の回答を作り、3本の審査メモ(appStoreReviewDetails.notes)に書き込んだ(200)。同じ文を返信にも貼る
 - 残り: 1 の実機録画(持ち主の iPhone)→ 返信に添付して「App Reviewに再提出」
+- iPhone が無いので、録画は GitHub のクラウド Mac の iPhone シミュレーター(最新 iOS)で撮った(.github/workflows/ios-review-video.yml)。録画用ビルドだけ VITE_REVIEW_TOUR=1 で src/dev/reviewTour.ts が自動操作(10問→解説→苦手→年度別→購入画面→購入ボタンでサンドボックスのサインインまで)。scripts/trim_review_video.py で約90秒・2〜3MB に整えた
+- 3本とも App Review に英語の回答+動画で返信し、版の画面の「審査内容を更新」→「App Reviewに再提出」で出し直した(却下された版は「審査内容を更新」を押すまで再提出ボタンが押せない。API でも 409)
