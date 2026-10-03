@@ -147,3 +147,11 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
   2. テスター用 Google グループ nigatecho-testers を作り、3本のトラックに追加(作成画面は Chrome が前面にないと選択肢が動かない)
   3. リリースを審査へ送信 → 12人×14日
   4. Android の課金: Play に商品(exam.json の productId: nigatecho_<試験>_full)を作成、RevenueCat に Android アプリとサービスアカウント JSON を登録、exam.json の revenuecat.android を入れて versionCode 2 で作り直す(今の AAB は Android の鍵が空なので購入できない)
+
+## 審査中のまま掲載情報を直した(2026-10-03 昼)
+- App Store Connect は審査待ち(WAITING_FOR_REVIEW)でも API で説明文・キーワード・サブタイトル・プロモーション用テキストを書き換えられた(すべて 200)
+  - 臨床検査技師・理学療法士の説明文の収録回を正しい回数に(第68〜72回 / 第57〜61回)
+  - キーワードとサブタイトルを promo/launch_plan.md 4-1 の案へ(サブタイトル「国試の苦手だけが残る 一問一答・模試」)
+  - プロモーション用テキストを「承認〜10月」版へ
+- これで 1.0.1 は不要になった。一度 1.0.1 のビルドを3本起動したが止め、版番号も 1.0.0 に戻した
+- 道具: tools/asc_101.py(promo / fixdesc / keywords / prepare / submit)
