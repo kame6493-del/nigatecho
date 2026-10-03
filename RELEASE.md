@@ -146,4 +146,4 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
   1. AAB 3本のアップロード: 15〜18MB あり、ブラウザ操作のツールでは 10MB までしか上げられない → 持ち主が「新しいリリースを作成」画面へドラッグ
   2. テスター用 Google グループ nigatecho-testers を作り、3本のトラックに追加(作成画面は Chrome が前面にないと選択肢が動かない)
   3. リリースを審査へ送信 → 12人×14日
-  4. Android の課金: Play に商品 full_unlock を作成、RevenueCat に Android アプリとサービスアカウント JSON を登録、exam.json の revenuecat.android を入れて versionCode 2 で作り直す(今の AAB は Android の鍵が空なので購入できない)
+  4. Android の課金: Play に商品(exam.json の productId: nigatecho_<試験>_full)を作成、RevenueCat に Android アプリとサービスアカウント JSON を登録、exam.json の revenuecat.android を入れて versionCode 2 で作り直す(今の AAB は Android の鍵が空なので購入できない)
