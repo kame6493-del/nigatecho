@@ -96,6 +96,6 @@ export async function runReviewTour() {
   await scrollSlow(document.body.scrollHeight, 2500);
   await sleep(2500);
   // 購入ボタン(シミュレーターでストアの商品が取れたときだけ押せる)
-  await tap((b) => b.classList.contains('primary') && /¥|円|購入/.test(b.innerText), 8000);
+  await tap((b) => b.classList.contains('primary') && /買う|購入|¥|円|\$/.test(b.innerText), 10000);
   await sleep(6000);
 }
