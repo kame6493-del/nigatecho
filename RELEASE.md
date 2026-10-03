@@ -186,3 +186,9 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - Android 1.0.1(課金の公開キー入り)を3本ともクローズドテストに上げ、審査に送信(10-03 夕)
 - Play の画面写真の並びを 1→5(残る/消える/何点/解説/1,000問)に直して送信
 - ブラウザ操作の道具: tools/show_tab.ps1(タブ検索で作業タブへ)・tools/next_tab.ps1(Ctrl+Tab)・tools/front_chrome.ps1(-Nigatecho)。Chrome は表示中のタブでないとファイル選択画面を開かない
+
+## App Store 却下への対応(2026-10-03 夕)
+- 3本とも 13:24 に却下。中身は「Guideline 2.1 - Information Needed - New App Submission」(審査履歴の少ない新しいアカウントへの決まった問い合わせ)。分類は 2.1.0 App Completeness
+- 求められた物: 1 実機の画面録画(起動から・普段の流れ・有料機能まで) 2 目的と対象 3 使い方 4 外部サービス 5 地域差 6 第三者素材の権利 7 App内課金の中身と入り口
+- 2〜7 は tools/review_notes.py で英語の回答を作り、3本の審査メモ(appStoreReviewDetails.notes)に書き込んだ(200)。同じ文を返信にも貼る
+- 残り: 1 の実機録画(持ち主の iPhone)→ 返信に添付して「App Reviewに再提出」
