@@ -127,3 +127,23 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 画像: promo/ニガテ帳_告知_X.png(ChatGPT の背景+実物の画面を scripts/fix_promo.py で貼った。ChatGPT が描いた画面は架空の UI だったので使わない)
 - 投稿文: promo/X_post_draft.txt(X の重み 273/280)。アカウントは @apkderete(持ち主の決定)
 - 承認されたら: nigatecho-site の入口に3本の App Store のリンクを載せる → 文面と宛先を持ち主に1回見せてから投稿
+
+## Google Play(2026-10-03)
+- Play Console(開発者アカウント hatotools)に3本を作成。既定の言語 日本語・アプリ・無料
+  - 管理栄養士 4974784348811126470 / 臨床検査技師 4975352707790969913 / 理学療法士 4973194452541590038
+- ストア掲載情報: 簡単な説明・説明文(STORE-LISTING-ja.md)・アイコン512・フィーチャーグラフィック・画面写真5枚(1080x1920)。画像は scripts/make_play_assets.py <試験> → exams/<試験>/store/play/
+  - 画面写真の並び順が 1→5 になっていない(アップロード順のまま)。公開前に並べ替える
+- アプリのコンテンツ 10件すべて申告済み(3本とも)
+  - プライバシーポリシー: サイトの privacy.html(試験ごと)/ 広告なし / ログインの詳細: 制限なし(ログインなし。完全版は Play の買い切り課金)
+  - レーティング: その他のアプリ・デジタル商品の購入あり・教育 / ターゲット 18歳以上 / 広告ID なし(AAB に AD_ID 権限なし)
+  - データセーフティ: 購入履歴を収集(RevenueCat。共有なし・一時処理でない・必須・アプリの機能)、送信時暗号化、アカウント作成なし
+  - 行政アプリ いいえ / 金融取引機能 なし / 健康: 医療文献と教育
+- ストアの設定: カテゴリ 教育、連絡先 kame6493@gmail.com とサイト(試験ごと)
+- クローズドテスト Alpha: 国=日本、テスター=メールリスト「カチマケ 開発者」(自分1人)、フィードバック先 kame6493@gmail.com。3本とも 2/4 完了
+- AAB: releases/nigatecho-<試験>-release.aab(versionCode 1 / 1.0.0、署名 CN=Nigatecho)。scripts/build-android-all.sh で3本まとめて作れる
+  - 理学療法士の署名鍵は 10-03 のこのビルドで新しく作った(%LOCALAPPDATA%\NigatechoBuild\signing\pt)。3本分の鍵フォルダを PC の外へ控えること
+- 残り
+  1. AAB 3本のアップロード: 15〜18MB あり、ブラウザ操作のツールでは 10MB までしか上げられない → 持ち主が「新しいリリースを作成」画面へドラッグ
+  2. テスター用 Google グループ nigatecho-testers を作り、3本のトラックに追加(作成画面は Chrome が前面にないと選択肢が動かない)
+  3. リリースを審査へ送信 → 12人×14日
+  4. Android の課金: Play に商品 full_unlock を作成、RevenueCat に Android アプリとサービスアカウント JSON を登録、exam.json の revenuecat.android を入れて versionCode 2 で作り直す(今の AAB は Android の鍵が空なので購入できない)
