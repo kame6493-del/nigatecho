@@ -1,0 +1,65 @@
+[
+ {
+  "key": "kanri-1",
+  "exam": "kanri",
+  "text": "管理栄養士国試の過去問アプリ「ニガテ帳」\n\n間違えた問題だけが残って、2回続けて正解すると消える。\n苦手が0になったら、本番に持っていく苦手はありません。\n\n第36〜40回の1,000問・全問解説つき\nhttps://kame6493-del.github.io/nigatecho-site/\n#管理栄養士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\kanri\\store\\shot_1.png",
+  "weight": 228
+ },
+ {
+  "key": "rinsho-1",
+  "exam": "rinsho",
+  "text": "臨床検査技師国試の過去問アプリ「ニガテ帳」\n\n間違えた問題だけが残って、2回続けて正解すると消える。\n苦手が0になったら、本番に持っていく苦手はありません。\n\n第68〜72回の1,000問・全問解説つき\nhttps://kame6493-del.github.io/nigatecho-site/rinsho/\n#臨床検査技師国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\rinsho\\store\\shot_1.png",
+  "weight": 232
+ },
+ {
+  "key": "pt-1",
+  "exam": "pt",
+  "text": "理学療法士国試の過去問アプリ「ニガテ帳」\n\n間違えた問題だけが残って、2回続けて正解すると消える。\n苦手が0になったら、本番に持っていく苦手はありません。\n\n第57〜61回の1,000問・全問解説つき\nhttps://kame6493-del.github.io/nigatecho-site/pt/\n#理学療法士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\pt\\store\\shot_1.png",
+  "weight": 228
+ },
+ {
+  "key": "kanri-2",
+  "exam": "kanri",
+  "text": "管理栄養士国試、いま受けたら何点?\n\n「ニガテ帳」は科目ごとの正答率から本番の予想点を出して、合格ラインと並べて見せます。\n\n第40回の200問は解説まで無料。広告なし・登録なし\nhttps://kame6493-del.github.io/nigatecho-site/\n#管理栄養士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\kanri\\store\\shot_3.png",
+  "weight": 212
+ },
+ {
+  "key": "rinsho-2",
+  "exam": "rinsho",
+  "text": "臨床検査技師国試、いま受けたら何点?\n\n「ニガテ帳」は科目ごとの正答率から本番の予想点を出して、合格ラインと並べて見せます。\n\n第72回の200問は解説まで無料。広告なし・登録なし\nhttps://kame6493-del.github.io/nigatecho-site/rinsho/\n#臨床検査技師国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\rinsho\\store\\shot_3.png",
+  "weight": 216
+ },
+ {
+  "key": "pt-2",
+  "exam": "pt",
+  "text": "理学療法士国試、いま受けたら何点?\n\n「ニガテ帳」は科目ごとの正答率から本番の予想点を出して、合格ラインと並べて見せます。\n\n第61回の200問は解説まで無料。広告なし・登録なし\nhttps://kame6493-del.github.io/nigatecho-site/pt/\n#理学療法士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\pt\\store\\shot_3.png",
+  "weight": 212
+ },
+ {
+  "key": "kanri-3",
+  "exam": "kanri",
+  "text": "どの科目で落としているか、ひと目で。\n\n管理栄養士国試の過去問アプリ「ニガテ帳」\n・第36〜40回の1,000問\n・全問解説\n・苦手だけを解き直す\n・買い切りで月額なし\n\nhttps://kame6493-del.github.io/nigatecho-site/\n#管理栄養士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\kanri\\store\\shot_4.png",
+  "weight": 198
+ },
+ {
+  "key": "rinsho-3",
+  "exam": "rinsho",
+  "text": "どの科目で落としているか、ひと目で。\n\n臨床検査技師国試の過去問アプリ「ニガテ帳」\n・第68〜72回の1,000問\n・全問解説\n・苦手だけを解き直す\n・買い切りで月額なし\n\nhttps://kame6493-del.github.io/nigatecho-site/rinsho/\n#臨床検査技師国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\rinsho\\store\\shot_4.png",
+  "weight": 202
+ },
+ {
+  "key": "pt-3",
+  "exam": "pt",
+  "text": "どの科目で落としているか、ひと目で。\n\n理学療法士国試の過去問アプリ「ニガテ帳」\n・第57〜61回の1,000問\n・全問解説\n・苦手だけを解き直す\n・買い切りで月額なし\n\nhttps://kame6493-del.github.io/nigatecho-site/pt/\n#理学療法士国家試験",
+  "image": "C:\\Users\\yuichi1\\Downloads\\管理栄養士国試アプリ_2026-10-01\\app\\exams\\pt\\store\\shot_4.png",
+  "weight": 198
+ }
+]
