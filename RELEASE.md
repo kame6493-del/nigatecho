@@ -173,3 +173,5 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 持ち主の指示で、X は「今日の1問」ではなくアプリの宣伝だけにする(今日の1問の定期投稿は始める前に取り消した)
 - 宣伝投稿: promo/make_ad_posts.py → promo/ad_posts.json(3試験×3本、画面写真つき)。毎日 20:04 に1本、セッション内の定期実行で投稿。投稿済みは promo/ad_posted.json。承認後は本文のリンクを App Store に替える
   - 定期実行は7日で切れ、セッションを閉じても止まる
+- X プロフィールを3アプリ並びに更新(名前「YURU社内SE｜アプリ個人開発｜ニガテ帳・カチマケ・Diamond Nine」、自己紹介にニガテ帳)。URL 欄は一覧 https://kame6493-del.github.io/ のまま
+- 一覧ページの先頭にニガテ帳の欄を追加(3試験の公開ページへのボタン・Android テスター参加の手順)。承認後はボタンを App Store へ替える
