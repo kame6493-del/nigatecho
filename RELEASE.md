@@ -155,3 +155,14 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
   - プロモーション用テキストを「承認〜10月」版へ
 - これで 1.0.1 は不要になった。一度 1.0.1 のビルドを3本起動したが止め、版番号も 1.0.0 に戻した
 - 道具: tools/asc_101.py(promo / fixdesc / keywords / prepare / submit)
+
+## Google Play クローズドテストを審査へ(2026-10-03 午後)
+- AAB 3本をアップロードしてリリース「1.0.0 クローズドテスト」を作成・保存し、公開の概要から審査に送信(3本とも)
+  - 管理栄養士は持ち主がドラッグ。臨床検査技師・理学療法士は tools/pick_file.ps1(Windows のファイル選択画面へ WM_SETTEXT と BM_CLICK)で上げた
+  - 警告は「難読化解除ファイルなし」の1件だけ
+- テスター用 Google グループ nigatecho-testers@googlegroups.com を作成(検索・参加は誰でも、投稿とメンバー一覧は管理者のみ)。作成時の CAPTCHA は持ち主
+- 3本のクローズドテストのテスターをこのグループに変更し、審査に送り直した(理学療法士は進行中の審査をやり直し)
+- テスターの参加手順(3本共通のグループに1回入れば3本とも入れる)
+  1. https://groups.google.com/g/nigatecho-testers に参加
+  2. https://play.google.com/apps/testing/jp.nigatecho.kanrieiyoushi / .../jp.nigatecho.rinshokensa / .../jp.nigatecho.rigakuryouhoushi で「テスターになる」
+- 残り: 審査が通ったら12人集め、14日続ける。Android の課金(Play の商品・RevenueCat の Android 鍵)
