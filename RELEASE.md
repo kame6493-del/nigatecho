@@ -166,3 +166,9 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
   1. https://groups.google.com/g/nigatecho-testers に参加
   2. https://play.google.com/apps/testing/jp.nigatecho.kanrieiyoushi / .../jp.nigatecho.rinshokensa / .../jp.nigatecho.rigakuryouhoushi で「テスターになる」
 - 残り: 審査が通ったら12人集め、14日続ける。Android の課金(Play の商品・RevenueCat の Android 鍵)
+
+## X(@apkderete)の運用開始(2026-10-03)
+- 12:54 Android 版テスター募集を投稿(本文 promo/tester_post.txt、リンク先はサイトの #tester)
+- サイト3ページに「Android 版のテスター募集」の節を追加(グループ参加 → テスト参加ページ)
+- 今日の1問: このセッションの定期実行で毎日 18:02 理学療法士 / 19:02 臨床検査技師 / 20:02 管理栄養士。promo/daily_questions.json から未投稿の1件を出し、答えと解説は返信。投稿済みは promo/daily_posted.json
+  - 定期実行は7日で切れ、セッションを閉じても止まる。続けるときは作り直す。在庫は各試験10問
