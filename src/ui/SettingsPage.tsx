@@ -10,7 +10,7 @@ const SITE = EXAM.site;
 export function SettingsPage(p: {
   data: AppData; premium: boolean;
   onBack: () => void; onChange: (s: Partial<Settings>) => void; onReset: () => void;
-  onPaywall: () => void; onRestored: () => void;
+  onPaywall: () => void; onRestored: () => void; onSources: () => void;
 }) {
   const s = p.data.settings;
   const [confirm, setConfirm] = useState(false);
@@ -60,6 +60,7 @@ export function SettingsPage(p: {
       </ul>
 
       <ul className="links">
+        <li><button className="linkish" onClick={p.onSources}>出典と参考文献</button></li>
         <li><a href={`${SITE}support.html`} target="_blank" rel="noreferrer">問い合わせ・問題の誤りの報告</a></li>
         <li><a href={`${SITE}privacy.html`} target="_blank" rel="noreferrer">プライバシーポリシー</a></li>
         <li><a href={`${SITE}terms.html`} target="_blank" rel="noreferrer">利用規約</a></li>

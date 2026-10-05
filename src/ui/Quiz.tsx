@@ -3,6 +3,7 @@ import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
 import { isCorrect, isNigate, pickCount, pointsOf } from '../domain/study';
 import { buzz } from '../platform/native';
+import { sourcePageFor } from '../domain/sources';
 
 export interface Session {
   title: string;
@@ -26,6 +27,8 @@ interface Props {
   onHome: () => void;
   onNigate: () => void;
   onPaywall: () => void;
+  /** 出典と参考文献の画面へ */
+  onSources?: () => void;
 }
 
 interface Done { id: string; ok: boolean; wasNigate: boolean }
@@ -150,7 +153,7 @@ function Practice(p: Props & { qs: Question[] }) {
           <h3>{q.excluded ? '採点対象外の問題' : ok ? '正解' : '不正解'}<span>{q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)'}</span></h3>
           {q.note && <p className="note">{q.note}</p>}
           <div className="explain">{q.explanation ?? '解説は準備中です。'}</div>
-          <p className="source">出典: 厚生労働省「第{q.exam}回{EXAM.name}国家試験」{q.session} 問題{q.no}</p>
+          <SourceLine q={q} onSources={p.onSources} />
         </section>
       )}
       <div className="bottom-bar">
@@ -317,6 +320,20 @@ function MockRun(p: Props & { qs: Question[] }) {
 }
 
 /* ---------- 部品 ---------- */
+
+/** 解説の下の出典。厚生労働省の掲載ページへのリンクつき */
+function SourceLine({ q, onSources }: { q: Question; onSources?: () => void }) {
+  const link = sourcePageFor(q.exam, EXAM);
+  return (
+    <div className="source">
+      <p>出典: 厚生労働省「第{q.exam}回{EXAM.name}国家試験」{q.session} 問題{q.no}(問題・正答)。解説は本アプリの独自作成です。</p>
+      <p className="source-links">
+        {link && <a href={link.url} target="_blank" rel="noreferrer">厚生労働省の問題・正答のページ</a>}
+        {onSources && <button className="linkish" onClick={onSources}>出典と参考文献</button>}
+      </p>
+    </div>
+  );
+}
 
 function QuestionView({ q, record, marked, onMark }: { q: Question; record?: AppData['records'][string]; marked?: boolean; onMark?: () => void }) {
   return (

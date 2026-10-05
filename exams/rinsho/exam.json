@@ -42,6 +42,38 @@
     "医用工学概論": "医用工学"
   },
   "credit": "出典: 厚生労働省ホームページ「臨床検査技師国家試験の問題および正答について」(各回)。選択肢の番号付けと表示を編集・加工しています。解説は本アプリの独自作成です。",
+  "sources": {
+    "top": {
+      "title": "臨床検査技師国家試験の施行",
+      "url": "https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/rinshoukensagishi/"
+    },
+    "pages": {
+      "68": {
+        "title": "第68回臨床検査技師国家試験問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp220421-07.html"
+      },
+      "69": {
+        "title": "第69回臨床検査技師国家試験問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp230524-07.html"
+      },
+      "70": {
+        "title": "第70回臨床検査技師国家試験問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp240424-07.html"
+      },
+      "71": {
+        "title": "第71回臨床検査技師国家試験問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp250428-07.html"
+      },
+      "72": {
+        "title": "第72回臨床検査技師国家試験問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp260424-07.html"
+      }
+    },
+    "license": {
+      "title": "公共データ利用規約(第1.0版)",
+      "url": "https://www.digital.go.jp/resources/open_data/public_data_license_v1.0"
+    }
+  },
   "revenuecat": {
     "ios": "appl_UaILRCajokSOtIAiWMFhtnyUagN",
     "android": "goog_QDwhAULhuYpOQAnkwkMtzaqlIRu"

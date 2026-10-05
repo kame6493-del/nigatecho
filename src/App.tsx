@@ -12,6 +12,7 @@ import { ExamPicker, SubjectPicker } from './ui/Pickers';
 import { Paywall } from './ui/Paywall';
 import { SettingsPage } from './ui/SettingsPage';
 import { MockHistory } from './ui/MockHistory';
+import { SourcesPage } from './ui/SourcesPage';
 
 export type Route =
   | { name: 'home' }
@@ -20,7 +21,8 @@ export type Route =
   | { name: 'subjects' }
   | { name: 'paywall'; from: string }
   | { name: 'settings' }
-  | { name: 'mocks' };
+  | { name: 'mocks' }
+  | { name: 'sources' };
 
 export default function App() {
   const [data, setData] = useState<AppData | null>(null);
@@ -124,6 +126,7 @@ export default function App() {
           onSubject={(s) => start(s, open.filter((q) => q.subject === s && !q.excluded).sort((a, b) => sortNigateFirst(a, b, data)))}
           onPaywall={() => push({ name: 'paywall', from: 'home' })}
           onSettings={() => push({ name: 'settings' })}
+          onSources={() => push({ name: 'sources' })}
         />
       )}
       {route.name === 'exams' && (
@@ -154,6 +157,7 @@ export default function App() {
           onHome={home}
           onNigate={() => { back(); starters.nigate(); }}
           onPaywall={() => push({ name: 'paywall', from: 'quiz' })}
+          onSources={() => push({ name: 'sources' })}
         />
       )}
       {route.name === 'paywall' && (
@@ -172,9 +176,11 @@ export default function App() {
           onReset={() => update((d) => ({ ...d, records: {}, marks: [], mocks: [], daily: {} }))}
           onPaywall={() => push({ name: 'paywall', from: 'settings' })}
           onRestored={() => loadBilling().then(setBilling)}
+          onSources={() => push({ name: 'sources' })}
         />
       )}
       {route.name === 'mocks' && <MockHistory data={data} onBack={back} />}
+      {route.name === 'sources' && <SourcesPage exams={[...new Set(all.map((q) => q.exam))]} onBack={back} />}
     </div>
   );
 

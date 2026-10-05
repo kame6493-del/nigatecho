@@ -60,10 +60,25 @@ export interface ExamConfig {
   short: Record<string, string>;
   /** 出典の表示 */
   credit: string;
+  /** 出典のリンク(厚生労働省の掲載ページと利用規約) */
+  sources?: ExamSources;
   /** RevenueCat の公開APIキー(アプリに埋め込む物。秘密ではない) */
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */
   entitlement?: string;
+}
+
+export interface SourceLink { title: string; url: string }
+
+export interface ExamSources {
+  /** 試験そのものの案内ページ */
+  top: SourceLink;
+  /** 回ごとの「問題および正答について」のページ。キーは回の番号 */
+  pages: Record<string, SourceLink>;
+  /** 回のページが無い(公開が終わった)回のときに出す、いま公開中のページ */
+  current?: SourceLink;
+  /** 公共データ利用規約 */
+  license: SourceLink;
 }
 
 export interface Record1 {

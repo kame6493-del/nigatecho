@@ -19,6 +19,7 @@ interface Props {
   onSubject: (s: string) => void;
   onPaywall: () => void;
   onSettings: () => void;
+  onSources: () => void;
 }
 
 export function Home(p: Props) {
@@ -140,6 +141,7 @@ export function Home(p: Props) {
       )}
 
       <p className="credit">{EXAM.credit}</p>
+      <p className="credit"><button className="linkish" onClick={p.onSources}>出典と参考文献・医療に関するご注意</button></p>
     </div>
   );
 }
