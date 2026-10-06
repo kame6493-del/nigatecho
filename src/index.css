@@ -222,6 +222,8 @@ a.ext { color: var(--navy); word-break: break-all; }
 .seg { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; }
 .seg button { padding: 6px 10px; font-size: .85em; }
 .seg button.on { background: var(--ink); color: #fff; }
+.exempt-seg { margin: 0 0 10px; width: fit-content; max-width: 100%; }
+.exempt-seg button + button { border-left: 1px solid var(--ink); }
 .toggle { width: 50px; height: 30px; border-radius: 15px; background: var(--rule); position: relative; transition: background .15s; }
 .toggle i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s; }
 .toggle.on { background: var(--green); }

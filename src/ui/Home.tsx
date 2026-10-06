@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { dayKey, examRange, daysLeft, estimate, subEstimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
+import { dayKey, examRange, examView, daysLeft, estimate, subEstimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
 
 interface Props {
   data: AppData;
@@ -22,13 +22,18 @@ interface Props {
   onSources: () => void;
   /** 試験を切り替える画面へ */
   onSwitchExam: () => void;
+  /** 予想点を免除を受けた受け方(精神保健福祉士の専門科目だけ)で見るかを切り替える */
+  onExemptOnly: (on: boolean) => void;
 }
 
 export function Home(p: Props) {
   const now = Date.now();
-  const stats = useMemo(() => subjectStats(p.open, p.data, EXAM), [p.open, p.data]);
-  const weights = useMemo(() => subjectWeights(p.all, EXAM), [p.all]);
-  const est = estimate(stats, weights, EXAM);
+  // 共通科目を免除される人(精神保健福祉士)は、専門科目だけで予想点と科目ごとの正答率を出す
+  const exemptOnly = !!(EXAM.exempt && p.data.settings.exemptOnly);
+  const view = useMemo(() => examView(EXAM, exemptOnly), [exemptOnly]);
+  const stats = useMemo(() => subjectStats(p.open, p.data, view), [p.open, p.data, view]);
+  const weights = useMemo(() => subjectWeights(p.all, view), [p.all, view]);
+  const est = estimate(stats, weights, view);
   const sub = useMemo(() => subEstimate(p.open, p.all, p.data, EXAM), [p.open, p.all, p.data]);
   const nigate = p.open.filter((q) => isNigate(p.data.records[q.id])).length;
   const fresh = unseen(p.open, p.data).length;
@@ -82,6 +87,13 @@ export function Home(p: Props) {
 
       <section className="card forecast">
         <h2>本番の予想点</h2>
+        {EXAM.exempt && (
+          <div className="seg exempt-seg" role="group" aria-label="予想点の受け方">
+            <button className={exemptOnly ? '' : 'on'} aria-pressed={!exemptOnly} onClick={() => p.onExemptOnly(false)}>全科目 {EXAM.perExam}問</button>
+            <button className={exemptOnly ? 'on' : ''} aria-pressed={exemptOnly} onClick={() => p.onExemptOnly(true)} data-exempt="on">{EXAM.exempt.label}</button>
+          </div>
+        )}
+        {exemptOnly && EXAM.exempt && <p className="muted small">{EXAM.exempt.note}</p>}
         {est ? (
           <>
             <div className="fc-row">
@@ -123,7 +135,7 @@ export function Home(p: Props) {
             </li>
           ))}
         </ul>
-        <p className="muted small">最後に解いたときの結果で数えています。点線は合格基準の6割{EXAM.groups ? 'の目安' : ''}。{EXAM.groups ? '本番は1つでも0点の科目群があると不合格です。' : ''}</p>
+        <p className="muted small">最後に解いたときの結果で数えています。点線は合格基準の6割{view.groups ? 'の目安' : ''}。{view.groups ? `本番は${view.groups.length}つの科目群のうち1つでも0点があると不合格です。` : ''}</p>
       </section>
 
       <section className="menu">

@@ -67,6 +67,7 @@ export function Paywall(p: {
         <button className="link" disabled={busy} onClick={doRestore}>以前に買った方はこちら(購入の復元)</button>
         {msg && <p className="err">{msg}</p>}
       </div>
+      {EXAM.paywallNote && <p className="muted small">{EXAM.paywallNote}</p>}
       <p className="muted small">この完全版で開くのは{EXAM.name}の問題だけです。ほかの試験の完全版は、それぞれの試験の画面から別に購入できます。</p>
       <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。記録はこの端末の中だけに保存し、外へ送りません。</p>
     </div>

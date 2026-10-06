@@ -38,8 +38,8 @@ export function ExamPicker(p: {
                   <button className="btn small primary" onClick={() => p.onStart(`第${exam}回 模試`, qs, exam)}>始める</button>
                 ) : (
                   <>
-                    <button className="btn small" onClick={() => p.onStart(`第${exam}回 午前`, qs.filter((q) => q.session === '午前'), exam)}>午前</button>
-                    <button className="btn small" onClick={() => p.onStart(`第${exam}回 午後`, qs.filter((q) => q.session === '午後'), exam)}>午後</button>
+                    <button className="btn small" onClick={() => p.onStart(`第${exam}回 ${EXAM.sessionNames?.午前 ?? '午前'}`, qs.filter((q) => q.session === '午前'), exam)}>{EXAM.sessionNames?.午前 ?? '午前'}</button>
+                    <button className="btn small" onClick={() => p.onStart(`第${exam}回 ${EXAM.sessionNames?.午後 ?? '午後'}`, qs.filter((q) => q.session === '午後'), exam)}>{EXAM.sessionNames?.午後 ?? '午後'}</button>
                     {seen > 0 && seen < qs.length && (
                       <button className="btn small primary" onClick={() => p.onStart(`第${exam}回 続き`, qs.filter((q) => !p.data.records[q.id] && !q.excluded), exam)}>続きから</button>
                     )}

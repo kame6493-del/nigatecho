@@ -11,6 +11,7 @@ import type { ExamConfig } from '../domain/types';
  * 商品は試験ごとの買い切り(非消耗型)。どの商品も、その試験の完全版だけを開く。
  * - 管理栄養士 nigatecho_kanri_full → entitlement "full"(公開中の商品のまま。買った人はそのまま使える)
  * - 理学療法士 nigatecho_multi_pt_full → "pt_full" / 介護福祉士 …_kaigo_full → "kaigo_full" / 社会福祉士 …_shakai_full → "shakai_full"
+ * - 精神保健福祉士 nigatecho_multi_seishin_full → "seishin_full"(v1.2。社会福祉士の完全版とは別の商品)
  * RevenueCat の売り場(current offering)に全部のパッケージを並べ、どの試験の物かは商品IDで見分ける。
  */
 const API_KEYS = { ios: APP.revenuecat?.ios ?? '', android: APP.revenuecat?.android ?? '' };

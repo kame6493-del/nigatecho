@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_EXAM_DATE, EXAM, EXAMS, FIRST_EXAM, selectExam } from './exam';
 import { hasOwnPage, isMhlw, sourceLabelOf, sourcePageFor } from './sources';
-import { examRange, isLocked, passScoreOf, zeroGroups } from './study';
+import { examRange, examView, isLocked, passScoreOf, subjectWeights, zeroGroups } from './study';
 import type { AppData, Question } from './types';
 
 // Preferences は端末の保存場所。テストでは入れ物(Map)に置き換える(Web 版は localStorage の CapacitorStorage.<key>)
@@ -33,8 +33,8 @@ describe('試験の並びと商品', () => {
     expect(EXAM.dir).toBe('kanri');
   });
 
-  it('理学療法士・介護福祉士・社会福祉士が入っていて、臨床検査技師は入れていない(単体のアプリで売っているため)', () => {
-    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai']);
+  it('理学療法士・介護福祉士・社会福祉士・精神保健福祉士が入っていて、臨床検査技師は入れていない(単体のアプリで売っているため)', () => {
+    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai', 'seishin']);
   });
 
   it('記録の保存先・商品・entitlement は試験ごとに別(重なると記録が混ざる/1つ買うとほかも開く)', () => {
@@ -43,12 +43,16 @@ describe('試験の並びと商品', () => {
     }
     expect(EXAMS.find((e) => e.dir === 'pt')!.productId).toBe('nigatecho_multi_pt_full');
     expect(EXAMS.find((e) => e.dir === 'kaigo')!.entitlement).toBe('kaigo_full');
+    const se = EXAMS.find((e) => e.dir === 'seishin')!;
+    expect([se.key, se.productId, se.entitlement, se.price]).toEqual(['seishin-fukushishi', 'nigatecho_multi_seishin_full', 'seishin_full', '¥900']);
   });
 
   it('買った entitlement の試験だけが開く', () => {
-    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false });
-    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true });
-    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false });
+    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false, seishin: false });
+    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true, seishin: false });
+    // 社会福祉士の完全版では精神保健福祉士は開かない(別の商品)
+    expect(accessFrom(['seishin_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: true });
+    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false });
   });
 
   it('試験を切り替えると EXAM と試験日が替わる。知らない試験は管理栄養士', () => {
@@ -115,7 +119,7 @@ describe('試験ごとの出典', () => {
   });
 
   it('センターの留意事項(解説は関係が無いこと・法改正の注意)を出典の画面に出す', () => {
-    for (const dir of ['kaigo', 'shakai']) {
+    for (const dir of ['kaigo', 'shakai', 'seishin']) {
       const e = EXAMS.find((x) => x.dir === dir)!;
       const usage = e.sources!.usage!.join('');
       expect(usage).toContain('社会福祉振興・試験センターとは関係ありません');
@@ -144,6 +148,68 @@ describe('合格の判定(介護福祉士・社会福祉士の物を足した)',
   it('回の範囲', () => {
     expect(examRange(38, 37)).toBe('第37〜38回');
     expect(examRange(37, 37)).toBe('第37回');
+  });
+});
+
+describe('精神保健福祉士(v1.2)', () => {
+  const se = () => EXAMS.find((e) => e.dir === 'seishin')!;
+
+  it('第27・28回 264問。各回 共通(午前)84問・専門(午後)48問、無料は第28回', () => {
+    const qs = loadQs('seishin');
+    expect(qs.length).toBe(264);
+    for (const n of [27, 28]) {
+      expect(qs.filter((q) => q.exam === n && q.session === '午前').map((q) => q.no)).toEqual(Array.from({ length: 84 }, (_, i) => i + 1));
+      expect(qs.filter((q) => q.exam === n && q.session === '午後').map((q) => q.no)).toEqual(Array.from({ length: 48 }, (_, i) => i + 1));
+    }
+    expect(se().freeExams).toEqual([28]);
+    expect(new Set(qs.map((q) => q.id)).size).toBe(264);
+  });
+
+  it('共通科目168問は社会福祉士 第37・38回の1〜84番と同じ問題・正答・解説(出典は社会福祉士の冊子)', () => {
+    const sh = new Map(loadQs('shakai').map((q) => [q.id, q]));
+    const common = loadQs('seishin').filter((q) => q.session === '午前');
+    expect(common.length).toBe(168);
+    for (const q of common) {
+      const s = sh.get(`${q.exam + 10}-${String(q.no).padStart(3, '0')}`)!;
+      expect(s, q.id).toBeTruthy();
+      for (const k of ['stem', 'choices', 'answer', 'subject', 'explanation', 'footnote', 'case', 'pick'] as const) expect(q[k], `${q.id} ${k}`).toEqual(s[k]);
+      expect(q.source).toMatch(/^https:\/\/www\.sssc\.or\.jp\/shakai\/past_exam\/pdf\/no3[78]\//);
+    }
+    const senmon = loadQs('seishin').filter((q) => q.session === '午後');
+    for (const q of senmon) expect(q.source).toMatch(/^https:\/\/www\.sssc\.or\.jp\/seishin\/past_exam\/pdf\/no2[78]\/se_pm_0[1-6]_2[78]\.pdf$/);
+  });
+
+  it('合格: 公式の合格点(第27回70・第28回62)と9科目群', () => {
+    expect(passScoreOf(28, 132, se())).toEqual({ score: 62, official: true });
+    expect(passScoreOf(27, 132, se())).toEqual({ score: 70, official: true });
+    expect(se().groups!.length).toBe(9);
+    const all = se().groups!.flatMap((g) => g.subjects);
+    expect([...all].sort()).toEqual([...se().subjects].sort());
+    const by: Record<string, { ok: number; n: number }> = {};
+    for (const s of se().subjects) by[s] = { ok: 1, n: 2 };
+    by['精神障害リハビリテーション論'] = { ok: 0, n: 6 };
+    expect(zeroGroups(by, se())).toEqual([]); // 制度論で得点があれば⑤群は0点ではない
+    by['精神保健福祉制度論'] = { ok: 0, n: 6 };
+    expect(zeroGroups(by, se())).toEqual(['精神障害リハビリテーション論、精神保健福祉制度論']);
+  });
+
+  it('専門科目だけ(共通科目免除)の見方: 48問満点・5科目群・公式の合格点 32/27', () => {
+    const v = examView(se(), true);
+    expect(v.perExam).toBe(48);
+    expect(v.subjects.length).toBe(6);
+    expect(v.groups!.length).toBe(5);
+    expect(passScoreOf(27, 48, v)).toEqual({ score: 32, official: true });
+    expect(passScoreOf(28, 48, v)).toEqual({ score: 27, official: true });
+    const w = subjectWeights(loadQs('seishin'), v);
+    expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(48);
+    expect(Object.values(subjectWeights(loadQs('seishin'), se())).reduce((a, b) => a + b, 0)).toBe(132);
+    // 切り替えていないとき・免除の無い試験はそのまま
+    expect(examView(se(), false)).toBe(se());
+    expect(examView(FIRST_EXAM, true)).toBe(FIRST_EXAM);
+  });
+
+  it('記録は nigatecho.seishin-fukushishi.v1(社会福祉士の記録とは別)', () => {
+    expect(keyOf(se().key)).toBe('nigatecho.seishin-fukushishi.v1');
   });
 });
 

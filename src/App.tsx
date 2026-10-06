@@ -173,6 +173,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onSettings={() => push({ name: 'settings' })}
           onSources={() => push({ name: 'sources' })}
           onSwitchExam={() => push({ name: 'switch' })}
+          onExemptOnly={(on) => update((d) => ({ ...d, settings: { ...d.settings, exemptOnly: on } }))}
         />
       )}
       {route.name === 'switch' && (

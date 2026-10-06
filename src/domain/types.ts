@@ -79,6 +79,15 @@ export interface ExamConfig {
   groups?: { name: string; subjects: string[] }[];
   /** 回ごとの公式の合格点(問題の難易度で補正された点)。{"38": 64} */
   passScores?: Record<string, number>;
+  /** 年度別の画面の「午前」「午後」の呼び方(精神保健福祉士: 午前=共通科目、午後=専門科目) */
+  sessionNames?: Partial<Record<'午前' | '午後', string>>;
+  /**
+   * 一部の科目を免除されて受ける人の予想点(精神保健福祉士: 社会福祉士の資格がある人は共通科目が免除され、専門48問だけを受ける)。
+   * ホームの予想点で切り替える。subjects・groups・perExam・passScores はその受け方の物
+   */
+  exempt?: ExemptOption;
+  /** 購入画面に足す説明(精神保健福祉士: 社会福祉士の完全版とは別の商品であること) */
+  paywallNote?: string;
   /** 収録した問題の数と回(scripts/use-multi.mjs が数えて入れる) */
   count?: number;
   rounds?: number[];
@@ -86,6 +95,17 @@ export interface ExamConfig {
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */
   entitlement?: string;
+}
+
+export interface ExemptOption {
+  /** 切り替えの名前 "専門科目だけ(共通科目免除)" */
+  label: string;
+  /** 切り替えたときに出す説明 */
+  note: string;
+  subjects: string[];
+  groups?: { name: string; subjects: string[] }[];
+  perExam: number;
+  passScores?: Record<string, number>;
 }
 
 export interface SourceLink { title: string; url: string }
@@ -138,6 +158,8 @@ export interface Settings {
   examDate: string;
   remindAt: string;
   remind: boolean;
+  /** 予想点を「免除された科目を除いた受け方」で出す(exempt のある試験だけ。試験ごとに残る) */
+  exemptOnly?: boolean;
 }
 
 export interface AppData {

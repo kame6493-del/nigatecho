@@ -3,11 +3,12 @@
   "appExam": "kanri",
   "appName": "ニガテ帳 国家試験の過去問",
   "homeName": "ニガテ帳",
-  "exams": ["kanri", "pt", "kaigo", "shakai"],
+  "exams": ["kanri", "pt", "kaigo", "shakai", "seishin"],
   "products": {
     "kanri": { "productId": "nigatecho_kanri_full", "entitlement": "full", "price": "¥980" },
     "pt": { "productId": "nigatecho_multi_pt_full", "entitlement": "pt_full", "price": "¥980" },
     "kaigo": { "productId": "nigatecho_multi_kaigo_full", "entitlement": "kaigo_full", "price": "¥900" },
-    "shakai": { "productId": "nigatecho_multi_shakai_full", "entitlement": "shakai_full", "price": "¥900" }
+    "shakai": { "productId": "nigatecho_multi_shakai_full", "entitlement": "shakai_full", "price": "¥900" },
+    "seishin": { "productId": "nigatecho_multi_seishin_full", "entitlement": "seishin_full", "price": "¥900" }
   }
 }

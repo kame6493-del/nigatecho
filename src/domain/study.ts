@@ -135,7 +135,8 @@ export function subjectWeights(all: Question[], cfg: ExamConfig): Record<string,
   const latest = Math.max(...all.map((q) => q.exam));
   const w: Record<string, number> = {};
   for (const s of cfg.subjects) w[s] = 0;
-  for (const q of all) if (q.exam === latest && !q.excluded) w[q.subject] = (w[q.subject] ?? 0) + pointsOf(q);
+  // cfg の科目だけを数える(免除を受けた見方では、免除された科目の配点を入れない)
+  for (const q of all) if (q.exam === latest && !q.excluded && q.subject in w) w[q.subject] += pointsOf(q);
   return w;
 }
 
@@ -195,6 +196,16 @@ export function subEstimate(open: Question[], all: Question[], data: AppData, cf
   const latest = Math.max(...all.map((q) => q.exam));
   const total = all.filter((q) => q.exam === latest && !q.excluded && pointsOf(q) === sp.points).reduce((t, q) => t + pointsOf(q), 0);
   return { label: sp.label, score: Math.round((total * ok) / seen), total, pass: Math.ceil(total * sp.ratio) };
+}
+
+/**
+ * 免除を受けて受ける人の見方の設定(科目・科目群・満点・合格点をその受け方の物にした写し)。
+ * exempt の無い試験や、切り替えていないときは cfg のまま。
+ */
+export function examView(cfg: ExamConfig, exemptOnly: boolean | undefined): ExamConfig {
+  const x = cfg.exempt;
+  if (!x || !exemptOnly) return cfg;
+  return { ...cfg, subjects: x.subjects, groups: x.groups, perExam: x.perExam, passScores: x.passScores };
 }
 
 /** 試験日までの残り日数。過ぎていたら null */

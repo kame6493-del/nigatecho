@@ -49,6 +49,7 @@ export function normalize(raw: unknown): AppData {
     examDate: typeof s.examDate === 'string' ? s.examDate : base.settings.examDate,
     remindAt: typeof s.remindAt === 'string' && /^\d{2}:\d{2}$/.test(s.remindAt) ? s.remindAt : base.settings.remindAt,
     remind: !!s.remind,
+    ...(s.exemptOnly ? { exemptOnly: true } : {}),
   };
   const daily: Record<string, number> = {};
   if (r.daily && typeof r.daily === 'object') {
