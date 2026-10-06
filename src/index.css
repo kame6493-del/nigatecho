@@ -186,6 +186,8 @@ a.ext { color: var(--navy); word-break: break-all; }
 .result-list .ng .mark { color: var(--red); }
 .result-list .subj { color: var(--ink-3); }
 .result-actions { display: grid; gap: 8px; }
+.full-note { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 4px; background: var(--sheet); display: grid; gap: 10px; }
+.full-note p { margin: 0; font-size: .9em; color: var(--ink-2); line-height: 1.6; }
 .subject-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; background: var(--sheet); font-size: .92em; }
 .subject-table th, .subject-table td { padding: 8px; border-bottom: 1px solid var(--rule); text-align: right; font-variant-numeric: tabular-nums; }
 .subject-table th:first-child, .subject-table td:first-child { text-align: left; }

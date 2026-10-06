@@ -44,8 +44,11 @@ def answer_first(page):
     page.wait_for_selector(".verdict")
 
 
-def solve10(page):
-    page.click("text=まず10問解いてみる")
+NOTES = {}
+
+
+def solve10(page, start="text=まず10問解いてみる"):
+    page.click(start)
     srcs, wrong = [], 0
     for _ in range(10):
         page.wait_for_selector(".choice")
@@ -54,6 +57,8 @@ def solve10(page):
         wrong += page.locator(".verdict.bad").count()
         page.click(".bottom-bar .btn.primary")
     page.wait_for_selector(".result-hero")
+    note = page.locator(".full-note")
+    NOTES["last"] = note.inner_text() if note.count() else None
     page.click("text=ホームへ")
     page.wait_for_selector(".home")
     return srcs, wrong
@@ -152,6 +157,7 @@ with sync_playwright() as p:
     shot(page, "04_pt_home_first")
     srcs, pt_wrong = solve10(page)
     check(all(s.startswith("第61回") for s in srcs), f"無料は第61回だけ: {srcs[:3]}")
+    check(NOTES["last"] is not None and "理学療法士の第57〜60回(800問)と本番形式の模試は、完全版で解けます" in NOTES["last"], f"理学療法士の結果画面の完全版の案内: {NOTES['last']}")
     shot(page, "05_pt_home_after")
     page.click("text=年度別")
     page.wait_for_selector(".exam-row")
@@ -266,6 +272,8 @@ with sync_playwright() as p:
     page.click(".pw-cta .btn.primary")
     page.wait_for_selector(".home")
     check(page.locator(".unlock").count() == 0, "理学療法士を買うと理学療法士の案内が消える")
+    solve10(page, "text=ランダム10問")
+    check(NOTES["last"] is None, "理学療法士を買った後の結果画面には完全版の案内が出ない")
     page.click("text=年度別")
     check(page.locator(".exam-row >> text=完全版で解く").count() == 0, "理学療法士は全部の回が開く")
     page.click(".topbar .icon")
@@ -277,6 +285,19 @@ with sync_playwright() as p:
     page.click(".ex-item[data-exam=kaigo]")
     page.wait_for_selector(".home")
     check(page.locator(".unlock").count() == 1, "介護福祉士は開かない")
+    # 理学療法士を買っても、介護福祉士の結果画面には介護福祉士の案内が出る
+    page.click("text=ランダム10問")
+    for _ in range(10):
+        page.wait_for_selector(".choice")
+        answer_first(page)
+        page.click(".bottom-bar .btn.primary")
+    page.wait_for_selector(".result-hero")
+    nt = page.locator(".full-note")
+    check(nt.count() == 1 and "介護福祉士の第33〜37回(625問)" in nt.inner_text(), f"介護福祉士の案内(理学療法士の購入とは別): {nt.inner_text() if nt.count() else None}")
+    nt.scroll_into_view_if_needed()
+    nt.screenshot(path=os.path.join(OUT, "17b_kaigo_full_note.png"))
+    page.click("text=ホームへ")
+    page.wait_for_selector(".home")
 
     # ---------- 9. 管理栄養士に戻る: 記録が変わっていない ----------
     switch(page, "kanri")

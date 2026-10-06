@@ -242,3 +242,18 @@ export function examRange(a: number, b: number): string {
   const lo = Math.min(a, b), hi = Math.max(a, b);
   return lo === hi ? `第${lo}回` : `第${lo}〜${hi}回`;
 }
+
+/**
+ * 無料で解いた人に、完全版で増える分を見せるための数。鍵のかかった回の範囲と問題数。
+ * 鍵のかかった問題が無ければ null(出さない)。
+ */
+export function lockedSummary(all: Iterable<Question>, cfg: ExamConfig): { from: number; to: number; count: number } | null {
+  let from = Infinity, to = -Infinity, count = 0;
+  for (const q of all) {
+    if (cfg.freeExams.includes(q.exam)) continue;
+    count++;
+    if (q.exam < from) from = q.exam;
+    if (q.exam > to) to = q.exam;
+  }
+  return count ? { from, to, count } : null;
+}

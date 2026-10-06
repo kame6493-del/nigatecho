@@ -3,7 +3,8 @@ import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, selectExam } from './domain/exam';
 import { isLocked, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
-import { loadData, loadExamChoice, saveData, saveExamChoice } from './platform/storage';
+import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
 import { askReview } from './platform/native';
 import { Home } from './ui/Home';
@@ -25,6 +26,9 @@ export type Route =
   | { name: 'mocks' }
   | { name: 'sources' }
   | { name: 'switch' };
+
+/** 評価のお願いの記録は読んで書くまでを1本ずつ(続けて解き終えても数え漏れない) */
+let reviewChain: Promise<void> = Promise.resolve();
 
 /** 試験をまたいで同じにする設定(文字の大きさ・毎日のお知らせ。お知らせは端末に1つだけ) */
 type Carry = Pick<Settings, 'fontScale' | 'remind' | 'remindAt'>;
@@ -137,11 +141,13 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
     update((d) => record(d, q, ok, Date.now()));
   }, [update]);
 
-  const sessionsDone = useRef(0);
-  const onSessionEnd = useCallback((correctRate: number) => {
-    sessionsDone.current++;
-    // よく解けた回の終わりにだけ、評価をお願いする(出すかどうかは OS が決める)
-    if (sessionsDone.current >= 2 && correctRate >= 0.7) askReview();
+  /** 解き終えたとき。苦手が減った直後にだけ評価をお願いする(出すかどうかは OS が決める) */
+  const onSessionEnd = useCallback((e: SessionEnd) => {
+    reviewChain = reviewChain.then(async () => {
+      const { state, ask } = reviewOnSessionEnd(await loadReview(), e, Date.now());
+      await saveReview(state);
+      if (ask) askReview();
+    }).catch((err) => console.error('[nigatecho] review', err));
   }, []);
 
   if (loadError) return <div className="fatal">{loadError}</div>;
@@ -207,7 +213,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onClose={back}
           onHome={home}
           onNigate={() => { back(); starters.nigate(); }}
-          onPaywall={() => push({ name: 'paywall', from: 'quiz' })}
+          // 結果の画面から開いた購入画面は、閉じたら問題の前の画面へ(同じ問題の1問目に戻さない)
+          onPaywall={() => setStack((s) => [...s.slice(0, -1), { name: 'paywall', from: 'quiz' }])}
           onSources={() => push({ name: 'sources' })}
         />
       )}

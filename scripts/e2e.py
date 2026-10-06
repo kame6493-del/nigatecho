@@ -77,13 +77,41 @@ with sync_playwright() as p:
     check(int(score) == 10 - wrong, f"結果の正解数 {score} = 10 - 不正解 {wrong}")
     newn = page.locator(".result-moves li").nth(1).locator("b").inner_text()
     check(newn == f"{wrong}問", f"新しく苦手に入った数 {newn} = {wrong}")
+    # 無料の回を解き終えたら、結果の下に完全版の案内が1枚だけ出る
+    want_note = page.evaluate(js("""async () => {
+        const qs = await (await fetch('./data/__DIR__/questions.json')).json();
+        const free = __FREE__;
+        const locked = qs.filter(x => !free.includes(x.exam));
+        const ex = locked.map(x => x.exam);
+        const lo = Math.min(...ex), hi = Math.max(...ex);
+        return { range: lo === hi ? `第${lo}回` : `第${lo}〜${hi}回`, n: locked.length.toLocaleString('ja-JP') };
+    }""").replace("__FREE__", _json.dumps(EXAM["freeExams"])))
+    note = page.locator(".full-note")
+    check(note.count() == 1, "無料の結果画面に完全版の案内が1枚出る")
+    note_text = note.inner_text()
+    check(f"{EXAM['name']}の{want_note['range']}({want_note['n']}問)と本番形式の模試は、完全版で解けます" in note_text, f"案内の文: {note_text.splitlines()[0]}")
+    note.scroll_into_view_if_needed()
+    note.screenshot(path=os.path.join(OUT, "03b_result_full_note.png"))
+    page.screenshot(path=os.path.join(OUT, "03c_result_full_note_view.png"))
+    check(page.locator(".sheet-backdrop").count() == 0, "案内はポップアップにしない")
+    note.locator("text=完全版を見る").click()
+    page.wait_for_selector(".paywall")
+    check(f"{EXAM['name']} 完全版" in page.locator(".topbar h1").inner_text(), "完全版を見るで購入画面が開く")
+    page.click(".topbar .icon")
+    page.wait_for_selector(".home")
+    check(page.locator(".home").count() == 1, "購入画面を閉じるとホームへ(同じ問題の1問目に戻らない)")
+    page.wait_for_selector(".home")
 
     # 3. ホームに苦手の数が出る
-    page.click("text=ホームへ")
-    page.wait_for_selector(".home")
     if wrong:
         check(page.locator(".hero-num b").inner_text() == str(wrong), "ホームの苦手の数")
     shot(page, "04_home_after")
+
+    def review_state():
+        v = page.evaluate("() => localStorage.getItem('CapacitorStorage.nigatecho.review')")
+        return _json.loads(v) if v else {"sessions": 0, "askedAt": 0}
+
+    check(review_state() == {"sessions": 1, "askedAt": 0}, f"1回目を解き終えた: 評価はお願いしない {review_state()}")
 
     # 4. 苦手を解いて、正解を2回選ぶと消える
     if wrong:
@@ -103,6 +131,12 @@ with sync_playwright() as p:
                 page.wait_for_selector(".verdict.good")
                 page.click(".bottom-bar .btn.primary")
             page.wait_for_selector(".result-hero")
+            rs = review_state()
+            if rnd == 0:
+                check(rs["sessions"] == 2 and rs["askedAt"] == 0, f"苦手が1回正解しただけ(まだ外れない)ならお願いしない {rs}")
+            else:
+                check(rs["sessions"] == 3 and rs["askedAt"] > 0, f"最後の苦手を片づけた直後にお願いする {rs}")
+                shot(page, "04b_nigate_cleared_result")
             page.click("text=ホームへ")
             page.wait_for_selector(".home")
         check(page.locator(".hero-num b").inner_text() == "0", "2回続けて正解すると苦手が0になる")
@@ -114,6 +148,17 @@ with sync_playwright() as p:
     page.click(".pw-cta .btn.primary")
     page.wait_for_selector(".home")
     check(page.locator(".unlock").count() == 0, "買ったら案内が消える")
+    # 買った人には、結果画面の完全版の案内を出さない
+    page.click("text=ランダム10問")
+    for _ in range(10):
+        page.wait_for_selector(".choice")
+        answer(page, [1, 2])
+        page.click(".bottom-bar .btn.primary")
+    page.wait_for_selector(".result-hero")
+    check(page.locator(".full-note").count() == 0, "買った人の結果画面には完全版の案内が出ない")
+    shot(page, "05b_result_premium")
+    page.click("text=ホームへ")
+    page.wait_for_selector(".home")
 
     # 6. 年度別で第36回が開ける
     page.click("text=年度別")
@@ -144,6 +189,7 @@ with sync_playwright() as p:
     page.click(".sheet .btn.primary")
     page.wait_for_selector(".subject-table")
     shot(page, "08_mock_result")
+    check(page.locator(".full-note").count() == 0, "買った人の模試の結果にも案内は出ない")
     total = page.locator(".result-score span").inner_text()
     # 満点は、いちばん新しい回の採点対象の配点の合計(理学療法士は実地問題が3点)
     want = page.evaluate(js("""async (latest) => {

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { isCorrect, isNigate, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { examRange, isCorrect, isLocked, isNigate, lockedSummary, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { buzz } from '../platform/native';
+import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 
 export interface Session {
@@ -22,7 +23,8 @@ interface Props {
   onAnswer: (q: Question, ok: boolean) => void;
   onMark: (id: string) => void;
   onMockDone: (m: MockResult, answers: { q: Question; ok: boolean }[]) => void;
-  onEnd: (correctRate: number) => void;
+  /** 解き終えたとき(評価のお願いの時機を決める) */
+  onEnd: (e: SessionEnd) => void;
   onClose: () => void;
   onHome: () => void;
   onNigate: () => void;
@@ -87,6 +89,7 @@ function Practice(p: Props & { qs: Question[] }) {
           <button className="btn" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}>同じ問題をもう一度</button>
           <button className="btn ghost" onClick={p.onHome}>ホームへ</button>
         </div>
+        <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
@@ -120,7 +123,11 @@ function Practice(p: Props & { qs: Question[] }) {
     if (i + 1 >= order.length) {
       setFinished(true);
       const n = done.length || 1;
-      p.onEnd(done.filter((d) => d.ok).length / n);
+      p.onEnd({
+        cleared: done.filter((d) => d.wasNigate && !isNigate(p.data.records[d.id])).length,
+        nigateLeft: Object.values(p.data.records).filter(isNigate).length,
+        correctRate: done.filter((d) => d.ok).length / n,
+      });
       return;
     }
     setI(i + 1);
@@ -217,7 +224,8 @@ function MockRun(p: Props & { qs: Question[] }) {
     // 答えていない問題は記録に残さない(解いていない物を「苦手」にしない)
     p.onMockDone(m, answers.filter((a) => (ans[a.q.id]?.length ?? 0) > 0));
     setResult(m);
-    p.onEnd(m.score / Math.max(1, m.total));
+    // 模試は苦手の出入りを数えない(前の版と同じ「よく解けた回」だけで見る)
+    p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total) });
   };
 
   if (result) {
@@ -262,6 +270,7 @@ function MockRun(p: Props & { qs: Question[] }) {
           <button className="btn primary" onClick={p.onNigate}>間違えた{wrong.length}問を苦手から解く</button>
           <button className="btn ghost" onClick={p.onHome}>ホームへ</button>
         </div>
+        <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
@@ -327,6 +336,22 @@ function MockRun(p: Props & { qs: Question[] }) {
 }
 
 /* ---------- 部品 ---------- */
+
+/**
+ * 結果の下の、完全版の案内(1枚だけ・押したときだけ購入画面へ)。
+ * 出すのは、この試験を買っていない人が無料の回の問題を解き終えたときだけ。
+ */
+function FullVersionNote(p: Props & { qs: Question[] }) {
+  if (p.premium || p.qs.length === 0 || p.qs.some((x) => isLocked(x, false, EXAM))) return null;
+  const s = lockedSummary(p.byId.values(), EXAM);
+  if (!s) return null;
+  return (
+    <section className="full-note">
+      <p>{EXAM.name}の{examRange(s.from, s.to)}({s.count.toLocaleString('ja-JP')}問)と本番形式の模試は、完全版で解けます。</p>
+      <button className="btn" onClick={p.onPaywall}>完全版を見る</button>
+    </section>
+  );
+}
 
 /** 解説の下の出典。問題を公表した所(厚生労働省・社会福祉振興・試験センター)の掲載ページへのリンクつき */
 function SourceLine({ q, onSources }: { q: Question; onSources?: () => void }) {

@@ -2,6 +2,7 @@ import { Preferences } from '@capacitor/preferences';
 import type { AppData } from '../domain/types';
 import { emptyData, normalize } from '../domain/data';
 import { EXAM } from '../domain/exam';
+import { EMPTY_REVIEW, normalizeReview, type ReviewState } from '../domain/review';
 
 /**
  * 記録の保存先は試験ごと。nigatecho.<試験の key>.v1(管理栄養士は nigatecho.kanri-eiyoushi.v1)。
@@ -64,4 +65,20 @@ export function saveData(data: AppData): Promise<void> {
 export async function clearData(): Promise<void> {
   await Preferences.remove({ key: KEY() });
   await Preferences.remove({ key: BACKUP_KEY() });
+}
+
+/** 評価のお願いの記録。試験をまたいで端末に1つ */
+const REVIEW_KEY = 'nigatecho.review';
+
+export async function loadReview(): Promise<ReviewState> {
+  try {
+    const { value } = await Preferences.get({ key: REVIEW_KEY });
+    return value ? normalizeReview(JSON.parse(value)) : EMPTY_REVIEW;
+  } catch {
+    return EMPTY_REVIEW;
+  }
+}
+
+export async function saveReview(s: ReviewState): Promise<void> {
+  await Preferences.set({ key: REVIEW_KEY, value: JSON.stringify(s) });
 }
