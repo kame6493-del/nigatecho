@@ -1,0 +1,28 @@
+{
+  "_": "App Store のアプリ内イベント(v1.1.0 の承認後に作る)。画像は scripts/make_store_play_events.py で作る。イベントカード 1920x1080・詳細ページ 1080x1920。画像に文字は入れていない(名前と説明はストアが重ねる)。文字数の上限は 名前30・短い説明50・長い説明120。",
+  "events": [
+    {
+      "id": "kaigo_added",
+      "badge": "MAJOR_UPDATE",
+      "name": "介護福祉士の過去問を追加",
+      "shortDescription": "第33〜38回の750問を全問解説つきで。第38回は無料",
+      "longDescription": "アプリの中で試験を選べるようになり、介護福祉士が加わりました。第33〜38回の750問に全問解説つき。最新の第38回125問は無料で解けます。完全版は¥900の買い切りです。",
+      "purchaseRequirement": "NO_COST_ASSOCIATED",
+      "eventCard": "kaigo_added_card.png",
+      "eventDetails": "kaigo_added_details.png",
+      "imageNotes": "カード: 試験を選ぶ画面(介護福祉士を選んでいる)・介護福祉士のホーム・解説の画面。詳細: 試験を選ぶ画面"
+    },
+    {
+      "id": "kaigo39_final",
+      "badge": "CHALLENGE",
+      "name": "第39回 介護福祉士 直前対策",
+      "shortDescription": "本番までに、間違えた問題を0問にしていく",
+      "longDescription": "2027年1月31日の第39回介護福祉士国家試験(筆記)に向けて。間違えた問題は苦手として残り、2回続けて正解すると消えます。苦手を0問にして本番へ。",
+      "suggestedPeriod": "2026-12-01 〜 2027-01-31",
+      "purchaseRequirement": "NO_COST_ASSOCIATED",
+      "eventCard": "kaigo39_final_card.png",
+      "eventDetails": "kaigo39_final_details.png",
+      "imageNotes": "カード: 介護福祉士のホーム(試験までの日数・いまの苦手)と苦手を解いた結果。詳細: 苦手を解いた結果(苦手から外れた19問)"
+    }
+  ]
+}
