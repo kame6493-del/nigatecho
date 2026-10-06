@@ -22,14 +22,16 @@
 - RevenueCat: 管理栄養士のアプリの current offering に4つのパッケージを並べる(アプリは商品IDで見分ける)。新しい3つの商品を entitlement "full" に付けないこと(付けると理学療法士を買った人に管理栄養士も開く)
 - 単体の理学療法士のアプリ用の nigatecho_pt_full は別アプリの商品なので使えない
 
-## アプリの表示名の案(ストアの掲載はまだ替えない)
-- 「ニガテ帳 国家試験の過去問」(13字)
-- ほか: 「ニガテ帳 国試過去問」(10字)、「ニガテ帳 - 国家試験 過去問題集」(17字)
-- サブタイトル案: 「管理栄養士・理学療法士・介護福祉士ほか」(19字)
-- 名前を替えるのは、試験を足した版を出すときに App Store Connect の掲載情報で。ホーム画面の名前(capacitor の appName / Info.plist)はまだ「ニガテ帳 管理栄養士」のまま
+## 名前・版・ストアの素材(v1.1.0)
+- ストアの名前「ニガテ帳 国家試験の過去問」(13字)・サブタイトル「管理栄養士・理学療法士・介護福祉士・社会福祉士」(23字)。掲載文・新機能・App Review へのメモ(英語)は store/multi/listing_ja.md
+- 名前は exams/multi.json の appName(capacitor の appName)、ホーム画面の名前は homeName「ニガテ帳」。use-multi.mjs が組むたびに exams/kanri の Info.plist(CFBundleDisplayName)と Android の strings.xml(app_name)に書く。patch_native.py は `python scripts/patch_native.py multi` で同じ名前を書く
+- 版: iOS 1.1.0(MARKETING_VERSION。ビルド番号は TestFlight のワークフローの実行番号)・Android 1.1.0(versionCode 3)
+- iOS の組み立て: GitHub Actions「iOS TestFlight」の exam に multi を選ぶ(use-multi.mjs で組み、殻は exams/kanri)
+- Android の組み立て: node scripts/use-multi.mjs → npm run build → npx cap sync android → powershell -File scripts/build-android.ps1 -Exam kanri
+- 画面写真: python scripts/make_store_multi.py(開発サーバー npx vite --port 5191 を出しておく)→ store/multi/iphone 1〜6(1枚目は試験を選ぶ画面)・ipad 1〜5・iap(購入画面4枚。ios_release/iap_shots/multi_<試験>.png にも写した)
 
 ## 確かめ方
 - `npm run test:all`(単体テスト。src/domain/multi.test.ts が試験ごとの設定・問題・出典・商品の重なり・記録の保存先を見る)
 - `python scripts/e2e.py`(管理栄養士の流れ。前と同じ)
 - `python scripts/e2e_multi.py`(試験の切り替え。main を組んだ dist を `npx vite preview --port 5193` で出しておくと、前の版で作った記録を新しい版で読む確認もする)
-- scripts/make_screenshots.py・shot_paywall.py は前の1試験の形のまま(public/data/questions.json を読む)。ストアの写真を撮り直すときに直す
+- scripts/make_screenshots.py・shot_paywall.py は前の1試験の形のまま(public/data/questions.json を読む)。試験を選べる版の写真は make_store_multi.py

@@ -1,12 +1,18 @@
-"""ネイティブ設定を書き換える。python scripts/patch_native.py kanri
+"""ネイティブ設定を書き換える。python scripts/patch_native.py kanri(試験を選べる版は python scripts/patch_native.py multi)
 (iPhone専用・縦固定・日本語・暗号化の申告・ホーム画面の名前)。
 何度流しても同じ結果になる。npx cap add の直後に1回流す。広告は入れていないので、カチマケの広告まわりは無い。"""
 from pathlib import Path
 
 import json, sys
 APP = Path(__file__).resolve().parent.parent
-ROOT = APP / "exams" / sys.argv[1]
-HOME_NAME = json.loads((ROOT / "exam.json").read_text(encoding="utf-8"))["homeName"]
+if sys.argv[1] == "multi":
+    # 試験を選べる版: 殻は exams/multi.json の appExam(公開中の管理栄養士のアプリ)、ホーム画面の名前は multi.json の homeName
+    MULTI = json.loads((APP / "exams" / "multi.json").read_text(encoding="utf-8"))
+    ROOT = APP / "exams" / MULTI["appExam"]
+    HOME_NAME = MULTI.get("homeName") or json.loads((ROOT / "exam.json").read_text(encoding="utf-8"))["homeName"]
+else:
+    ROOT = APP / "exams" / sys.argv[1]
+    HOME_NAME = json.loads((ROOT / "exam.json").read_text(encoding="utf-8"))["homeName"]
 
 
 def patch(path: Path, pairs):

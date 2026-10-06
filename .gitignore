@@ -34,6 +34,7 @@ android/local.properties
 # 画面写真の撮影途中の物と確認の出力
 scripts/e2e_out/
 **/store/raw/
+store/multi/raw/
 scripts/__pycache__/
 
 # scripts/use-exam.mjs が試験ごとに作る物

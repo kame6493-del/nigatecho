@@ -1,6 +1,8 @@
 {
-  "_": "1本のアプリ(公開中の管理栄養士のアプリ)の中で試験を選べるようにする設定。scripts/use-multi.mjs が読む。appExam の exam.json の appId・RevenueCat のキーでアプリを組む。products は exam.json の productId・entitlement・price を上書きする。管理栄養士は今の商品のまま(買った人の購入をそのまま生かす)。",
+  "_": "1本のアプリ(公開中の管理栄養士のアプリ)の中で試験を選べるようにする設定。scripts/use-multi.mjs が読む。appExam の exam.json の appId・RevenueCat のキーでアプリを組む。products は exam.json の productId・entitlement・price を上書きする。管理栄養士は今の商品のまま(買った人の購入をそのまま生かす)。appName はストアと capacitor の名前、homeName はホーム画面の名前(Info.plist の CFBundleDisplayName と Android の app_name。use-multi.mjs が書き込む)。",
   "appExam": "kanri",
+  "appName": "ニガテ帳 国家試験の過去問",
+  "homeName": "ニガテ帳",
   "exams": ["kanri", "pt", "kaigo", "shakai"],
   "products": {
     "kanri": { "productId": "nigatecho_kanri_full", "entitlement": "full", "price": "¥980" },

@@ -1,4 +1,5 @@
 # ニガテ帳(試験ごと)の iOS 版を GitHub のクラウド Mac で組み立て、TestFlight へ送る。exam に exams/ の下のフォルダ名(kanri / rinsho)を入れる。
+# multi は試験を選べる版(公開中の管理栄養士のアプリ。殻は exams/kanri、組み方は scripts/use-multi.mjs)。
 # 持ち主は Mac を持っていないので、これが iOS を組み立てる唯一の道。Actions の画面から手で実行する。
 # 必要なシークレット4つと準備は RELEASE.md の「iOS」を参照。
 name: iOS TestFlight
@@ -7,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       exam:
-        description: "どの試験のアプリか(exams の下のフォルダ名)"
+        description: "どの試験のアプリか(exams の下のフォルダ名。multi は試験を選べる版)"
         type: choice
-        options: [kanri, rinsho, pt]
+        options: [kanri, rinsho, pt, multi]
         default: kanri
       compile_only:
         description: "署名もアップロードもせずにコンパイルだけ試す(Apple のシークレット不要)"
@@ -40,7 +41,13 @@ jobs:
 
       - name: Test, build web assets and sync the iOS project
         run: |
-          node scripts/use-exam.mjs "${{ inputs.exam }}"
+          if [ "${{ inputs.exam }}" = "multi" ]; then
+            node scripts/use-multi.mjs
+            echo "SHELL_DIR=$(node -p "require('./exams/multi.json').appExam")" >> "$GITHUB_ENV"
+          else
+            node scripts/use-exam.mjs "${{ inputs.exam }}"
+            echo "SHELL_DIR=${{ inputs.exam }}" >> "$GITHUB_ENV"
+          fi
           npm test
           npm run build
           npx cap sync ios
@@ -49,7 +56,7 @@ jobs:
         if: inputs.compile_only
         run: |
           xcodebuild build \
-            -project exams/${{ inputs.exam }}/ios/App/App.xcodeproj \
+            -project exams/${{ env.SHELL_DIR }}/ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
@@ -74,7 +81,7 @@ jobs:
         if: ${{ !inputs.compile_only }}
         run: |
           xcodebuild archive \
-            -project exams/${{ inputs.exam }}/ios/App/App.xcodeproj \
+            -project exams/${{ env.SHELL_DIR }}/ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
@@ -86,10 +93,10 @@ jobs:
       - name: Export and upload to TestFlight
         if: ${{ !inputs.compile_only }}
         run: |
-          plutil -replace teamID -string "$APPLE_TEAM_ID" exams/${{ inputs.exam }}/ios/ExportOptions.plist
+          plutil -replace teamID -string "$APPLE_TEAM_ID" exams/${{ env.SHELL_DIR }}/ios/ExportOptions.plist
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportOptionsPlist exams/${{ inputs.exam }}/ios/ExportOptions.plist \
+            -exportOptionsPlist exams/${{ env.SHELL_DIR }}/ios/ExportOptions.plist \
             -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
