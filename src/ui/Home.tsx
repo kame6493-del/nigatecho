@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { dayKey, daysLeft, estimate, subEstimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
+import { dayKey, examRange, daysLeft, estimate, subEstimate, isNigate, streakDays, subjectStats, subjectWeights, unseen } from '../domain/study';
 
 interface Props {
   data: AppData;
@@ -20,6 +20,8 @@ interface Props {
   onPaywall: () => void;
   onSettings: () => void;
   onSources: () => void;
+  /** 試験を切り替える画面へ */
+  onSwitchExam: () => void;
 }
 
 export function Home(p: Props) {
@@ -43,6 +45,7 @@ export function Home(p: Props) {
         <div className="brand">
           <span className="brand-name">ニガテ帳</span>
           <span className="brand-sub">{EXAM.name} 過去問</span>
+          <button className="exam-switch" onClick={p.onSwitchExam} aria-label="試験を切り替える">試験を切り替える</button>
         </div>
         <button className="icon" onClick={p.onSettings} aria-label="設定">⚙</button>
       </header>
@@ -120,28 +123,28 @@ export function Home(p: Props) {
             </li>
           ))}
         </ul>
-        <p className="muted small">最後に解いたときの結果で数えています。点線は合格基準の6割。</p>
+        <p className="muted small">最後に解いたときの結果で数えています。点線は合格基準の6割{EXAM.groups ? 'の目安' : ''}。{EXAM.groups ? '本番は1つでも0点の科目群があると不合格です。' : ''}</p>
       </section>
 
       <section className="menu">
-        <button onClick={p.onExams}><b>年度別</b><span>第{exams[exams.length - 1]}〜{exams[0]}回</span></button>
+        <button onClick={p.onExams}><b>年度別</b><span>{examRange(exams[exams.length - 1], exams[0])}</span></button>
         <button onClick={p.onSubjects}><b>科目別</b><span>{EXAM.subjects.length}科目</span></button>
         <button onClick={p.onUnseen} disabled={fresh === 0}><b>まだ解いていない</b><span>{fresh}問</span></button>
         <button onClick={p.onRandom}><b>ランダム10問</b><span>すきま時間に</span></button>
         <button onClick={p.onMarks} disabled={p.data.marks.length === 0}><b>しるし</b><span>{p.data.marks.length}問</span></button>
-        <button onClick={p.premium ? p.onMock : p.onPaywall}><b>本番形式の模試</b><span>{p.premium ? '200問・時間を計る' : '完全版'}</span></button>
+        <button onClick={p.premium ? p.onMock : p.onPaywall}><b>本番形式の模試</b><span>{p.premium ? `${EXAM.perExam}問・時間を計る` : '完全版'}</span></button>
         {p.data.mocks.length > 0 && <button onClick={p.onMockHistory}><b>模試の記録</b><span>{p.data.mocks.length}回</span></button>}
       </section>
 
       {!p.premium && lockedCount > 0 && (
         <button className="unlock" onClick={p.onPaywall}>
           <span className="unlock-title">完全版で、あと{lockedCount}問</span>
-          <span className="unlock-sub">第{exams[exams.length - 1]}〜{exams[1]}回と本番形式の模試。買い切りで、月額はかかりません。</span>
+          <span className="unlock-sub">{examRange(exams[exams.length - 1], exams[1])}と本番形式の模試。買い切りで、月額はかかりません。</span>
         </button>
       )}
 
       <p className="credit">{EXAM.credit}</p>
-      <p className="credit"><button className="linkish" onClick={p.onSources}>出典と参考文献・医療に関するご注意</button></p>
+      <p className="credit"><button className="linkish" onClick={p.onSources}>出典と参考文献・{EXAM.notice ? 'ご注意' : '医療に関するご注意'}</button></p>
     </div>
   );
 }

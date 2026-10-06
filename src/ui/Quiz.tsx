@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { isCorrect, isNigate, pickCount, pointsOf } from '../domain/study';
+import { isCorrect, isNigate, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { buzz } from '../platform/native';
-import { sourcePageFor } from '../domain/sources';
+import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 
 export interface Session {
   title: string;
@@ -148,6 +148,7 @@ function Practice(p: Props & { qs: Question[] }) {
           );
         })}
       </ol>
+      {q.footnote && <p className="footnote">{q.footnote}</p>}
       {reveal && (
         <section className={`verdict ${q.excluded ? 'neutral' : ok ? 'good' : 'bad'}`}>
           <h3>{q.excluded ? '採点対象外の問題' : ok ? '正解' : '不正解'}<span>{q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)'}</span></h3>
@@ -220,7 +221,8 @@ function MockRun(p: Props & { qs: Question[] }) {
   };
 
   if (result) {
-    const pass = Math.ceil(result.total * EXAM.passRatio);
+    const ps = passScoreOf(result.exam, result.total, EXAM);
+    const pass = ps.score;
     // 総得点とは別の基準(理学療法士の実地問題)。解いた問題の配点から数える
     const sp = EXAM.subPass;
     const subQs = sp ? qs.filter((x) => !x.excluded && pointsOf(x) === sp.points) : [];
@@ -228,18 +230,22 @@ function MockRun(p: Props & { qs: Question[] }) {
     const subScore = subQs.reduce((t, x) => t + (ans[x.id] !== undefined && isCorrect(x, ans[x.id]) ? pointsOf(x) : 0), 0);
     const subPassPts = sp ? Math.ceil(subTotal * sp.ratio) : 0;
     const subOk = !sp || subTotal === 0 || subScore >= subPassPts;
-    const passed = result.score >= pass && subOk;
+    const zeros = zeroGroups(result.bySubject, EXAM);
+    const passed = result.score >= pass && subOk && zeros.length === 0;
     const wrong = qs.filter((x) => !x.excluded && !(ans[x.id] !== undefined && isCorrect(x, ans[x.id])));
     return (
       <div className="page result">
         <TopBar title={p.session.title} onClose={p.onClose} />
         <section className="result-hero">
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
-          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>合格基準 {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{ps.official ? `第${result.exam}回の合格点` : '合格基準'} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
           {sp && subTotal > 0 && (
             <p className={`pass-line ${subOk ? 'good' : 'bad'}`}>{sp.label} {subScore}/{subTotal}点(基準の目安 {subPassPts}点){subOk ? '' : ` あと${subPassPts - subScore}点`}</p>
           )}
           {sp && <p className="muted small">合格は総得点と{sp.label}の両方の基準を満たしたとき。{passed ? '今回は両方とも届いています。' : ''}</p>}
+          {EXAM.groups && (zeros.length === 0
+            ? <p className="pass-line good">{EXAM.groups.length}科目群すべてで得点できています</p>
+            : <p className="pass-line bad">0点の科目群があります: {zeros.join('/')}(1つでも0点だと総得点に関係なく不合格)</p>)}
           <p className="muted">かかった時間 {fmtTime(result.seconds)}・未回答 {qs.length - answeredCount}問</p>
         </section>
         <table className="subject-table">
@@ -296,6 +302,7 @@ function MockRun(p: Props & { qs: Question[] }) {
           </li>
         ))}
       </ol>
+      {q.footnote && <p className="footnote">{q.footnote}</p>}
       <div className="bottom-bar two">
         <button className="btn" disabled={i === 0} onClick={() => setI(i - 1)}>前へ</button>
         {i + 1 < qs.length
@@ -321,14 +328,17 @@ function MockRun(p: Props & { qs: Question[] }) {
 
 /* ---------- 部品 ---------- */
 
-/** 解説の下の出典。厚生労働省の掲載ページへのリンクつき */
+/** 解説の下の出典。問題を公表した所(厚生労働省・社会福祉振興・試験センター)の掲載ページへのリンクつき */
 function SourceLine({ q, onSources }: { q: Question; onSources?: () => void }) {
   const link = sourcePageFor(q.exam, EXAM);
+  const org = orgOf(EXAM);
   return (
     <div className="source">
-      <p>出典: 厚生労働省「第{q.exam}回{EXAM.name}国家試験」{q.session} 問題{q.no}(問題・正答)。解説は本アプリの独自作成です。</p>
+      {isMhlw(EXAM)
+        ? <p>出典: {sourceLabelOf(q.exam, EXAM)}{q.session} 問題{q.no}(問題・正答)。解説は本アプリの独自作成です。</p>
+        : <p>出典: {sourceLabelOf(q.exam, EXAM)} 問題{q.no}(問題・正答)。解説は本アプリの独自作成で、{org}とは関係ありません。</p>}
       <p className="source-links">
-        {link && <a href={link.url} target="_blank" rel="noreferrer">厚生労働省の問題・正答のページ</a>}
+        {link && <a href={link.url} target="_blank" rel="noreferrer">{org}の問題・正答のページ</a>}
         {onSources && <button className="linkish" onClick={onSources}>出典と参考文献</button>}
       </p>
     </div>
@@ -344,9 +354,15 @@ function QuestionView({ q, record, marked, onMark }: { q: Question; record?: App
         {record && <span className={`q-hist ${isNigate(record) ? 'bad' : ''}`}>{record.n}回目 ・ 正解{record.ok}</span>}
         {onMark && <button className={`star ${marked ? 'on' : ''}`} onClick={onMark} aria-label="しるし">{marked ? '★' : '☆'}</button>}
       </div>
+      {q.case && (
+        <details className="case" open>
+          <summary>事例を読む</summary>
+          <p>{q.case}</p>
+        </details>
+      )}
       <p className="stem">{q.stem}</p>
       {pickCount(q) > 1 && <p className="pick-note">{pickCount(q)}つ選ぶ問題です</p>}
-      {q.figure && <img className="figure" src={`./data/${q.figure}`} alt="問題の図" />}
+      {q.figure && <img className="figure" src={`./data/${EXAM.dir}/${q.figure}`} alt="問題の図" />}
     </section>
   );
 }

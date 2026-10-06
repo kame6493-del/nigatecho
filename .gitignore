@@ -38,6 +38,7 @@ scripts/__pycache__/
 
 # scripts/use-exam.mjs が試験ごとに作る物
 src/exam.current.json
+src/exams.multi.json
 capacitor.config.json
 public/data/
 

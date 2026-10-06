@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
-import type { AppData, MockResult, Question } from './domain/types';
-import { EXAM } from './domain/exam';
+import type { AppData, MockResult, Question, Settings } from './domain/types';
+import { EXAM, selectExam } from './domain/exam';
 import { isLocked, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
-import { loadData, saveData } from './platform/storage';
-import { loadBilling, type BillingState } from './platform/billing';
+import { loadData, loadExamChoice, saveData, saveExamChoice } from './platform/storage';
+import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
 import { askReview } from './platform/native';
 import { Home } from './ui/Home';
 import { Quiz, type Session } from './ui/Quiz';
@@ -13,6 +13,7 @@ import { Paywall } from './ui/Paywall';
 import { SettingsPage } from './ui/SettingsPage';
 import { MockHistory } from './ui/MockHistory';
 import { SourcesPage } from './ui/SourcesPage';
+import { ExamSwitch } from './ui/ExamSwitch';
 
 export type Route =
   | { name: 'home' }
@@ -22,27 +23,65 @@ export type Route =
   | { name: 'paywall'; from: string }
   | { name: 'settings' }
   | { name: 'mocks' }
-  | { name: 'sources' };
+  | { name: 'sources' }
+  | { name: 'switch' };
 
-export default function App() {
+/** 試験をまたいで同じにする設定(文字の大きさ・毎日のお知らせ。お知らせは端末に1つだけ) */
+type Carry = Pick<Settings, 'fontScale' | 'remind' | 'remindAt'>;
+
+/**
+ * 試験を選ぶ所。前に選んだ試験(無ければ管理栄養士)で開く。
+ * 試験を替えたら、画面ごと作り直す(記録・問題・完全版は試験ごと)。
+ */
+export default function Root() {
+  const [dir, setDir] = useState<string | null>(null);
+  const [carry, setCarry] = useState<Carry | null>(null);
+
+  useEffect(() => {
+    loadExamChoice().then((d) => setDir(selectExam(d).dir));
+  }, []);
+
+  const switchExam = useCallback((next: string, c: Carry) => {
+    // EXAM の切り替えと画面の作り直しを同じ瞬間にする(前の試験の画面を新しい試験の設定で描かない)
+    const e = selectExam(next);
+    saveExamChoice(e.dir).catch((err) => console.error('[nigatecho] save exam', err));
+    setCarry(c);
+    setDir(e.dir);
+  }, []);
+
+  if (!dir) return <div className="splash"><span>ニガテ帳</span></div>;
+  return <App key={dir} carry={carry} onSwitchExam={switchExam} />;
+}
+
+function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir: string, c: Carry) => void }) {
   const [data, setData] = useState<AppData | null>(null);
   const [all, setAll] = useState<Question[] | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [billing, setBilling] = useState<BillingState>({ status: 'unavailable', reason: '読み込み中' });
+  const [billing, setBilling] = useState<BillingState>({ status: 'unavailable', reason: '読み込み中', access: EMPTY_ACCESS });
   const [stack, setStack] = useState<Route[]>([{ name: 'home' }]);
   const route = stack[stack.length - 1];
   const dataRef = useRef<AppData | null>(null);
 
   useEffect(() => {
-    loadData().then((d) => { dataRef.current = d; setData(d); });
-    fetch('./data/questions.json')
+    loadData().then((loaded) => {
+      let d = loaded;
+      // 文字の大きさとお知らせは、切り替える前の試験の設定を引き継ぐ
+      if (carry && (d.settings.fontScale !== carry.fontScale || d.settings.remind !== carry.remind || d.settings.remindAt !== carry.remindAt)) {
+        d = { ...d, settings: { ...d.settings, ...carry } };
+        saveData(d);
+      }
+      dataRef.current = d;
+      setData(d);
+    });
+    fetch(`./data/${EXAM.dir}/questions.json`)
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then((qs: Question[]) => setAll(qs))
       .catch((e) => setLoadError(`問題を読み込めませんでした(${e})`));
     loadBilling().then(setBilling);
   }, []);
 
-  const premium = billing.status === 'ready' && billing.premium;
+  /** いま選んでいる試験の完全版を持っているか */
+  const premium = !!billing.access[EXAM.dir];
 
   const update = useCallback((f: (d: AppData) => AppData) => {
     const cur = dataRef.current;
@@ -127,6 +166,18 @@ export default function App() {
           onPaywall={() => push({ name: 'paywall', from: 'home' })}
           onSettings={() => push({ name: 'settings' })}
           onSources={() => push({ name: 'sources' })}
+          onSwitchExam={() => push({ name: 'switch' })}
+        />
+      )}
+      {route.name === 'switch' && (
+        <ExamSwitch
+          billing={billing}
+          onBack={back}
+          onPick={(dir) => {
+            if (dir === EXAM.dir) { home(); return; }
+            const s = data.settings;
+            onSwitchExam(dir, { fontScale: s.fontScale, remind: s.remind, remindAt: s.remindAt });
+          }}
         />
       )}
       {route.name === 'exams' && (
@@ -177,6 +228,7 @@ export default function App() {
           onPaywall={() => push({ name: 'paywall', from: 'settings' })}
           onRestored={() => loadBilling().then(setBilling)}
           onSources={() => push({ name: 'sources' })}
+          onSwitchExam={() => push({ name: 'switch' })}
         />
       )}
       {route.name === 'mocks' && <MockHistory data={data} onBack={back} />}

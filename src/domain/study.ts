@@ -216,3 +216,29 @@ export function streakDays(daily: Record<string, number>, now: number): number {
   while (daily[dayKey(t)]) { n++; t -= 86400000; }
   return n;
 }
+
+/**
+ * 「すべての科目群で得点」の基準で、0点だった科目群の名前(介護福祉士・社会福祉士)。
+ * bySubject は科目ごとの {ok, n}。出題の無かった科目群は数えない。
+ */
+export function zeroGroups(bySubject: Record<string, { ok: number; n: number }>, cfg: ExamConfig): string[] {
+  if (!cfg.groups) return [];
+  return cfg.groups
+    .filter((g) => {
+      const xs = g.subjects.map((s) => bySubject[s]).filter((v) => !!v && v.n > 0);
+      return xs.length > 0 && xs.reduce((t, v) => t + v.ok, 0) === 0;
+    })
+    .map((g) => g.name);
+}
+
+/** その回の合格点。公式の点があればそれ、無ければ満点 × 合格基準の割合 */
+export function passScoreOf(exam: number, total: number, cfg: ExamConfig): { score: number; official: boolean } {
+  const v = cfg.passScores?.[String(exam)];
+  return typeof v === 'number' ? { score: v, official: true } : { score: Math.ceil(total * cfg.passRatio), official: false };
+}
+
+/** 回の範囲の表示。同じ回なら「第37回」、違えば「第37〜38回」(小さい方から) */
+export function examRange(a: number, b: number): string {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  return lo === hi ? `第${lo}回` : `第${lo}〜${hi}回`;
+}

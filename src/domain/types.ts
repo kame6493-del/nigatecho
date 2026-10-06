@@ -22,6 +22,12 @@ export interface Question {
   figure: string | null;
   source: string;
   explanation?: string;
+  /** 事例問題の事例文(同じ事例の問題で共通。原文のまま。介護福祉士) */
+  case?: string;
+  /** 選択肢の後ろに付いている用語の注「（注）…」(原文のまま。社会福祉士) */
+  footnote?: string;
+  /** 選択肢が図の中にだけある問題(図の番号を選ぶ) */
+  figChoices?: boolean;
 }
 
 /** 試験ごとの設定。exams/<試験>/exam.json と同じ形 */
@@ -30,8 +36,9 @@ export interface ExamConfig {
   dir: string;
   /** "管理栄養士" */
   name: string;
-  appId: string;
-  appName: string;
+  /** 単体のアプリのときの ID と名前(まとめアプリでは使わない) */
+  appId?: string;
+  appName?: string;
   homeName: string;
   productId: string;
   price: string;
@@ -60,8 +67,21 @@ export interface ExamConfig {
   short: Record<string, string>;
   /** 出典の表示 */
   credit: string;
-  /** 出典のリンク(厚生労働省の掲載ページと利用規約) */
+  /** 問題ごとの出典。{n} が回の番号になる(無ければ 厚生労働省「第{n}回<試験名>国家試験」) */
+  sourceLabel?: string;
+  /** 実施団体と関係が無いことの表示(無ければ「厚生労働省とは関係のない個人の制作物」) */
+  disclaimer?: string;
+  /** 出典のリンク(厚生労働省・社会福祉振興・試験センターの掲載ページと利用の条件) */
   sources?: ExamSources;
+  /** 出典の画面の最後に出す注意(無ければ医療に関するご注意) */
+  notice?: { title: string; body: string };
+  /** 合格に「すべての群で得点」が要る科目群(介護福祉士の11科目群、社会福祉士の6科目群) */
+  groups?: { name: string; subjects: string[] }[];
+  /** 回ごとの公式の合格点(問題の難易度で補正された点)。{"38": 64} */
+  passScores?: Record<string, number>;
+  /** 収録した問題の数と回(scripts/use-multi.mjs が数えて入れる) */
+  count?: number;
+  rounds?: number[];
   /** RevenueCat の公開APIキー(アプリに埋め込む物。秘密ではない) */
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */
@@ -71,14 +91,22 @@ export interface ExamConfig {
 export interface SourceLink { title: string; url: string }
 
 export interface ExamSources {
-  /** 試験そのものの案内ページ */
+  /** 問題を公表している所。無ければ厚生労働省 */
+  org?: string;
+  /** 試験そのものの案内ページ(社会福祉振興・試験センターは「過去の試験問題」のページ) */
   top: SourceLink;
   /** 回ごとの「問題および正答について」のページ。キーは回の番号 */
   pages: Record<string, SourceLink>;
   /** 回のページが無い(公開が終わった)回のときに出す、いま公開中のページ */
   current?: SourceLink;
-  /** 公共データ利用規約 */
+  /** 公共データ利用規約(社会福祉振興・試験センターは「過去問題利用にあたっての留意事項等」) */
   license: SourceLink;
+  /** 利用の条件の説明(無ければ公共データ利用規約の文) */
+  usage?: string[];
+  /** top のページにいま載っている回(回ごとのページが無い所) */
+  listedExams?: number[];
+  /** top のページに載っていない回の説明 */
+  archivedNote?: string;
 }
 
 export interface Record1 {

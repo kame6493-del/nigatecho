@@ -8,6 +8,12 @@ URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5191/"
 import json as _json
 EXAM = _json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "exam.current.json"), encoding="utf-8"))
 LATEST = EXAM["latestExam"]
+
+
+def js(src):
+    """まとめアプリでは問題は public/data/<試験>/ にある"""
+    return src.replace("__DIR__", EXAM["dir"])
+
 OUT = os.path.join(os.path.dirname(__file__), "e2e_out", EXAM["dir"])
 os.makedirs(OUT, exist_ok=True)
 errors = []
@@ -87,12 +93,12 @@ with sync_playwright() as p:
                 page.wait_for_selector(".choice")
                 # 正答の番号を問題データから引く
                 qid = page.evaluate("""() => document.querySelector('.q-src').textContent""")
-                ans = page.evaluate("""async (src) => {
-                    const qs = await (await fetch('./data/questions.json')).json();
+                ans = page.evaluate(js("""async (src) => {
+                    const qs = await (await fetch('./data/__DIR__/questions.json')).json();
                     const m = src.match(/第(\\d+)回 (午前|午後) 問(\\d+)/);
                     const q = qs.find(x => x.exam == m[1] && x.session == m[2] && x.no == m[3]);
                     return q.accepted ? q.accepted[0] : q.answer;
-                }""", qid)
+                }"""), qid)
                 answer(page, ans)
                 page.wait_for_selector(".verdict.good")
                 page.click(".bottom-bar .btn.primary")
@@ -140,10 +146,10 @@ with sync_playwright() as p:
     shot(page, "08_mock_result")
     total = page.locator(".result-score span").inner_text()
     # 満点は、いちばん新しい回の採点対象の配点の合計(理学療法士は実地問題が3点)
-    want = page.evaluate("""async (latest) => {
-        const qs = await (await fetch('./data/questions.json')).json();
+    want = page.evaluate(js("""async (latest) => {
+        const qs = await (await fetch('./data/__DIR__/questions.json')).json();
         return qs.filter(x => x.exam === latest && !x.excluded).reduce((t, x) => t + (x.points ?? 1), 0);
-    }""", LATEST)
+    }"""), LATEST)
     check(f"/ {want} 点" in total, f"模試の満点は配点の合計 {want}点: {total}")
 
     # 9. 設定
@@ -161,11 +167,11 @@ with sync_playwright() as p:
     # 11. 図の問題: 無料の回で図のある最初の問題まで進む
     page.goto(URL)
     page.wait_for_selector(".home")
-    first_fig = page.evaluate("""async (latest) => {
-        const qs = await (await fetch('./data/questions.json')).json();
+    first_fig = page.evaluate(js("""async (latest) => {
+        const qs = await (await fetch('./data/__DIR__/questions.json')).json();
         const q = qs.filter(x => x.exam === latest && x.figure).sort((a, b) => a.no - b.no)[0];
         return q ? { session: q.session, idx: qs.filter(x => x.exam === latest && x.session === q.session && x.no < q.no).length } : null;
-    }""", LATEST)
+    }"""), LATEST)
     page.click("text=年度別")
     page.locator(".exam-row").first.locator(f"text={first_fig['session']}").click()
     page.wait_for_selector(".choice")

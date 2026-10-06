@@ -1,14 +1,16 @@
-import { EXAM } from '../domain/exam';
+import { EXAM, selectExam } from '../domain/exam';
 import { emptyData } from '../domain/data';
 import { record, rng } from '../domain/study';
 import type { Question } from '../domain/types';
 
 /**
- * 画面写真用の見本データ。?demo=1&n=解いた数&acc=正答率&premium=1
+ * 画面写真用の見本データ。?demo=1&n=解いた数&acc=正答率&premium=1&exam=試験(kanri・pt・kaigo・shakai。省略は管理栄養士)
  * 本番のビルドには入らない(main.tsx が DEV のときだけ読む)。
  */
 export async function installDemo(params: URLSearchParams) {
-  const qs: Question[] = await (await fetch('./data/questions.json')).json();
+  selectExam(params.get('exam'));
+  localStorage.setItem('CapacitorStorage.nigatecho.exam', EXAM.dir);
+  const qs: Question[] = await (await fetch(`./data/${EXAM.dir}/questions.json`)).json();
   const n = Number(params.get('n') ?? 260);
   const acc = Number(params.get('acc') ?? 0.66);
   const rand = rng(20261001);
@@ -28,6 +30,7 @@ export async function installDemo(params: URLSearchParams) {
   }
   d.marks = pool.slice(0, 6).map((q) => q.id);
   localStorage.setItem(`CapacitorStorage.nigatecho.${EXAM.key}.v1`, JSON.stringify(d));
-  if (params.get('premium') === '1') localStorage.setItem('nigatecho.mockFull', '1');
-  else localStorage.removeItem('nigatecho.mockFull');
+  const mockKey = EXAM.dir === 'kanri' ? 'nigatecho.mockFull' : `nigatecho.mockFull.${EXAM.dir}`;
+  if (params.get('premium') === '1') localStorage.setItem(mockKey, '1');
+  else localStorage.removeItem(mockKey);
 }

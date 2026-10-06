@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:all": "node scripts/test-all.mjs",
     "sync": "npm run build && cap sync",
-    "use": "node scripts/use-exam.mjs",
+    "use": "node scripts/use-multi.mjs",
+    "use:single": "node scripts/use-exam.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

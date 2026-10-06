@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import type { AppData, Settings } from '../domain/types';
-import { EXAM } from '../domain/exam';
+import { APP, EXAM } from '../domain/exam';
+import { disclaimerOf } from '../domain/sources';
 import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
 import { TopBar } from './Quiz';
 
-const SITE = EXAM.site;
+const SITE = APP.site;
 
 export function SettingsPage(p: {
   data: AppData; premium: boolean;
   onBack: () => void; onChange: (s: Partial<Settings>) => void; onReset: () => void;
-  onPaywall: () => void; onRestored: () => void; onSources: () => void;
+  onPaywall: () => void; onRestored: () => void; onSources: () => void; onSwitchExam: () => void;
 }) {
   const s = p.data.settings;
   const [confirm, setConfirm] = useState(false);
@@ -27,6 +28,7 @@ export function SettingsPage(p: {
     <div className="page settings">
       <TopBar title="設定" onClose={p.onBack} />
       <ul className="form">
+        <li><span>試験</span><button className="btn small" onClick={p.onSwitchExam}>{EXAM.name}(切り替える)</button></li>
         <li>
           <label htmlFor="exam-date">試験日</label>
           <input id="exam-date" type="date" value={s.examDate} onChange={(e) => p.onChange({ examDate: e.target.value })} />
@@ -50,12 +52,12 @@ export function SettingsPage(p: {
       {msg && <p className="err">{msg}</p>}
 
       <ul className="form">
-        <li><span>完全版</span>{p.premium ? <b>購入済み</b> : <button className="btn small" onClick={p.onPaywall}>見る</button>}</li>
+        <li><span>{EXAM.name}の完全版</span>{p.premium ? <b>購入済み</b> : <button className="btn small" onClick={p.onPaywall}>見る</button>}</li>
         <li>
           <span>購入の復元</span>
-          <button className="btn small" onClick={async () => { const ok = await restore(); setMsg(ok ? '復元しました' : '購入は見つかりませんでした'); if (ok) p.onRestored(); }}>復元</button>
+          <button className="btn small" onClick={async () => { const names = await restore(); setMsg(names.length ? `復元しました(${names.join('・')})` : '購入は見つかりませんでした'); if (names.length) p.onRestored(); }}>復元</button>
         </li>
-        <li><span>記録を消す</span><button className="btn small danger" onClick={() => setConfirm(true)}>消す</button></li>
+        <li><span>{EXAM.name}の記録を消す</span><button className="btn small danger" onClick={() => setConfirm(true)}>消す</button></li>
         {import.meta.env.DEV && <li><span>(開発用)疑似購入を戻す</span><button className="btn small" onClick={() => { resetMock(); location.reload(); }}>戻す</button></li>}
       </ul>
 
@@ -66,13 +68,13 @@ export function SettingsPage(p: {
         <li><a href={`${SITE}terms.html`} target="_blank" rel="noreferrer">利用規約</a></li>
       </ul>
       <p className="credit">{EXAM.credit}</p>
-      <p className="credit">本アプリは厚生労働省とは関係のない個人の制作物です。</p>
+      <p className="credit">{disclaimerOf(EXAM)}</p>
 
       {confirm && (
         <div className="sheet-backdrop" onClick={() => setConfirm(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <h3>記録を消しますか</h3>
-            <p>解いた記録・苦手・しるし・模試の結果がすべて消えます。元には戻せません。完全版の購入は消えません。</p>
+            <h3>{EXAM.name}の記録を消しますか</h3>
+            <p>{EXAM.name}の解いた記録・苦手・しるし・模試の結果がすべて消えます(ほかの試験の記録は消えません)。元には戻せません。完全版の購入は消えません。</p>
             <div className="sheet-actions">
               <button className="btn" onClick={() => setConfirm(false)}>やめる</button>
               <button className="btn danger" onClick={() => { p.onReset(); setConfirm(false); }}>消す</button>

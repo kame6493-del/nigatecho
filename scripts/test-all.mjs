@@ -1,18 +1,10 @@
-// すべての試験に切り替えながら単体テストを流す。npm run test:all
-// (科目の数や配点は試験ごとに違う。2つの試験でしか流さなかったら、理学療法士でだけ落ちた)
+// まとめアプリ(試験を選べる管理栄養士のアプリ)を組み直してから単体テストを流す。npm run test:all
+// 試験ごとの設定・問題データ・出典・商品の重なりは src/domain/multi.test.ts が全試験について確かめる。
 import { execSync } from 'node:child_process';
-import { readdirSync, existsSync } from 'node:fs';
 
-const exams = readdirSync('exams').filter((d) => existsSync(`exams/${d}/exam.json`));
-let failed = 0;
-for (const ex of exams) {
-  execSync(`node scripts/use-exam.mjs ${ex}`, { stdio: 'inherit' });
-  try {
-    execSync('npx vitest run', { stdio: 'inherit' });
-  } catch {
-    failed++;
-    console.error(`${ex} でテストが落ちた`);
-  }
+execSync('node scripts/use-multi.mjs', { stdio: 'inherit' });
+try {
+  execSync('npx vitest run', { stdio: 'inherit' });
+} catch {
+  process.exit(1);
 }
-execSync('node scripts/use-exam.mjs kanri', { stdio: 'inherit' });
-process.exit(failed ? 1 : 0);

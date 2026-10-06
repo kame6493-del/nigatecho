@@ -1,0 +1,11 @@
+{
+  "_": "1本のアプリ(公開中の管理栄養士のアプリ)の中で試験を選べるようにする設定。scripts/use-multi.mjs が読む。appExam の exam.json の appId・RevenueCat のキーでアプリを組む。products は exam.json の productId・entitlement・price を上書きする。管理栄養士は今の商品のまま(買った人の購入をそのまま生かす)。",
+  "appExam": "kanri",
+  "exams": ["kanri", "pt", "kaigo", "shakai"],
+  "products": {
+    "kanri": { "productId": "nigatecho_kanri_full", "entitlement": "full", "price": "¥980" },
+    "pt": { "productId": "nigatecho_multi_pt_full", "entitlement": "pt_full", "price": "¥980" },
+    "kaigo": { "productId": "nigatecho_multi_kaigo_full", "entitlement": "kaigo_full", "price": "¥900" },
+    "shakai": { "productId": "nigatecho_multi_shakai_full", "entitlement": "shakai_full", "price": "¥900" }
+  }
+}

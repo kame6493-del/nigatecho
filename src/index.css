@@ -235,3 +235,24 @@ a.ext { color: var(--navy); word-break: break-all; }
 .pick-note { display: inline-block; margin: 8px 0 0; font-size: .82em; font-weight: 700; color: var(--red); border: 1.5px solid var(--red); border-radius: 3px; padding: 0 8px; }
 
 .fc-sub { margin: 0 0 6px; font-size: .85em; font-weight: 600; }
+
+/* 選択肢の後ろの用語の注(社会福祉士) */
+.footnote { white-space: pre-wrap; margin: 4px 2px 14px; font-size: .84em; line-height: 1.65; color: var(--ink-2); }
+
+/* 事例問題の事例文(介護福祉士) */
+.case { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--ink-2); border-radius: 4px; padding: 8px 12px; margin: 0 0 12px; }
+.case summary { font-weight: 700; font-size: .9em; cursor: pointer; }
+.case p { white-space: pre-wrap; margin: 8px 0 2px; font-size: .96em; line-height: 1.75; }
+
+/* 試験の切り替え */
+.exam-switch { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 4px 10px; border: 1px solid var(--ink-2); border-radius: 999px; background: transparent; color: var(--ink); font: inherit; font-size: .8em; cursor: pointer; }
+.exam-switch:after { content: '▾'; font-size: .85em; color: var(--ink-2); }
+.ex-list { list-style: none; padding: 0; margin: 8px 0; }
+.ex-item { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 14px 14px; margin: 0 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink); font: inherit; cursor: pointer; }
+.ex-item.on { border: 2px solid var(--ink); }
+.ex-item b { font-size: 1.1em; }
+.ex-item .ex-meta { font-size: .82em; color: var(--ink-2); }
+.ex-item .ex-state { font-size: .8em; font-weight: 700; }
+.ex-item .ex-state.owned { color: var(--green); }
+.pw-owned { font-weight: 700; color: var(--green); text-align: center; margin: 4px 0; }
+.brand { flex-wrap: wrap; row-gap: 4px; }
