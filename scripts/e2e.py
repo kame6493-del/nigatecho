@@ -208,6 +208,10 @@ with sync_playwright() as p:
     page.goto(URL + "?demo=1&premium=1&n=400")
     page.wait_for_selector(".forecast")
     check(page.locator(".fc-score b").count() == 1, "解いた数が多いと予想点が出る")
+    # 管理栄養士は合格基準が6割で決まっている。線は 200点満点の 120点のまま
+    check(page.locator(".fc-bar em span").inner_text() == "合格 120", f"管理栄養士の線は 合格 120: {page.locator('.fc-bar em span').inner_text()}")
+    check(page.locator(".fc-line").count() == 0, "管理栄養士に直近の合格点の行は出ない")
+    check("合格基準の6割" in page.locator(".subjects + p").inner_text(), "管理栄養士の科目の点線は合格基準の6割")
     shot(page, "10_home_demo")
 
     # 11. 図の問題: 無料の回で図のある最初の問題まで進む

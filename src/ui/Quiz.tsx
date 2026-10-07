@@ -246,7 +246,7 @@ function MockRun(p: Props & { qs: Question[] }) {
         <TopBar title={p.session.title} onClose={p.onClose} />
         <section className="result-hero">
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
-          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{ps.official ? `第${result.exam}回の合格点` : '合格基準'} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{!ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
           {sp && subTotal > 0 && (
             <p className={`pass-line ${subOk ? 'good' : 'bad'}`}>{sp.label} {subScore}/{subTotal}点(基準の目安 {subPassPts}点){subOk ? '' : ` あと${subPassPts - subScore}点`}</p>
           )}

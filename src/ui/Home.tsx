@@ -34,6 +34,8 @@ export function Home(p: Props) {
   const stats = useMemo(() => subjectStats(p.open, p.data, view), [p.open, p.data, view]);
   const weights = useMemo(() => subjectWeights(p.all, view), [p.all, view]);
   const est = estimate(stats, weights, view);
+  // 毎年の合格点が変わる試験は、直近の回の公式の合格点を線にする(6割の線は実際の合格点よりずっと高い)
+  const lineName = est?.passExam ? '直近の合格点' : '合格ライン';
   const sub = useMemo(() => subEstimate(p.open, p.all, p.data, EXAM), [p.open, p.all, p.data]);
   const nigate = p.open.filter((q) => isNigate(p.data.records[q.id])).length;
   const fresh = unseen(p.open, p.data).length;
@@ -99,13 +101,16 @@ export function Home(p: Props) {
             <div className="fc-row">
               <p className="fc-score"><b>{est.score}</b><span>/ {est.total}点</span></p>
               <p className={`fc-verdict ${est.score >= est.pass ? 'good' : 'bad'}`}>
-                {est.score >= est.pass ? `合格ラインを ${est.score - est.pass}点 上回っています` : `合格ラインまで あと${est.pass - est.score}点`}
+                {est.score >= est.pass ? `${lineName}を ${est.score - est.pass}点 上回っています` : `${lineName}まで あと${est.pass - est.score}点`}
               </p>
             </div>
             <div className="fc-bar" aria-hidden>
               <i style={{ width: `${(est.score / est.total) * 100}%` }} />
-              <em style={{ left: `${(est.pass / est.total) * 100}%` }}><span>合格 {est.pass}</span></em>
+              <em style={{ left: `${(est.pass / est.total) * 100}%` }}><span>{est.passExam ? '合格点' : '合格'} {est.pass}</span></em>
             </div>
+            {est.passExam && (
+              <p className="muted small fc-line">直近の合格点 {est.pass}点(第{est.passExam}回)。合格点は回ごとの難しさで変わります(6割なら{est.ratioPass}点)。</p>
+            )}
             {sub && (
               <p className={`fc-sub ${sub.score >= sub.pass ? 'good' : 'bad'}`}>
                 {sub.label} {sub.score}/{sub.total}点(基準の目安 {sub.pass}点){sub.score >= sub.pass ? '' : ` あと${sub.pass - sub.score}点`}
@@ -135,7 +140,7 @@ export function Home(p: Props) {
             </li>
           ))}
         </ul>
-        <p className="muted small">最後に解いたときの結果で数えています。点線は合格基準の6割{view.groups ? 'の目安' : ''}。{view.groups ? `本番は${view.groups.length}つの科目群のうち1つでも0点があると不合格です。` : ''}</p>
+        <p className="muted small">最後に解いたときの結果で数えています。{view.passScores ? '点線は正答率6割の目安で、合格点ではありません。' : '点線は合格基準の6割。'}{view.groups ? `本番は${view.groups.length}つの科目群のうち1つでも0点があると不合格です。` : ''}</p>
       </section>
 
       <section className="menu">

@@ -19,7 +19,7 @@ export function MockHistory({ data, onBack }: { data: AppData; onBack: () => voi
                 <b>{m.exam ? `第${m.exam}回` : '混合'}</b>
                 <span className="muted">{d.getMonth() + 1}月{d.getDate()}日</span>
               </div>
-              <p className={`mock-score ${m.score >= pass ? 'good' : 'bad'}`}>{m.score}<small> / {m.total}点({ps.official ? '合格点' : '合格基準'} {pass})</small></p>
+              <p className={`mock-score ${m.score >= pass ? 'good' : 'bad'}`}>{m.score}<small> / {m.total}点({!ps.official ? '合格基準' : ps.exam === m.exam ? '合格点' : `第${ps.exam}回の合格点`} {pass})</small></p>
             </li>
           );
         })}

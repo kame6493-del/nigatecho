@@ -71,6 +71,32 @@ def switch(page, dir_):
     page.wait_for_selector(".home")
 
 
+def seed_records(page, dir_, key, exam):
+    """その回の問題60問ぶんの記録を足す(予想点を出すため。3問に1問は不正解)"""
+    page.evaluate("""async ([dir, key, exam]) => {
+      const qs = await (await fetch(`./data/${dir}/questions.json`)).json();
+      const k = `CapacitorStorage.nigatecho.${key}.v1`;
+      const d = JSON.parse(localStorage.getItem(k) || '{"version":1,"records":{},"marks":[],"mocks":[],"settings":{},"daily":{}}');
+      qs.filter(q => q.exam === exam).slice(0, 60).forEach((q, i) => { d.records[q.id] = { n: 1, ok: i % 3 ? 1 : 0, at: 1, streak: i % 3 ? 1 : 0, missed: i % 3 === 0 }; });
+      localStorage.setItem(k, JSON.stringify(d));
+    }""", [dir_, key, exam])
+    page.reload()
+    page.wait_for_selector(".home")
+
+
+def forecast_line(page, total, pass_, exam, ratio_pass, name):
+    """ホームの予想点の線が直近の公式の合格点になっている(6割の点ではない)"""
+    fc = page.locator(".forecast")
+    text = fc.inner_text()
+    check(f"/ {total}点" in page.locator(".fc-score").inner_text(), f"{name}: {total}点満点")
+    check(page.locator(".fc-bar em span").inner_text() == f"合格点 {pass_}", f"{name}: 線のラベルは 合格点 {pass_}: {page.locator('.fc-bar em span').inner_text()}")
+    check(f"直近の合格点 {pass_}点(第{exam}回)" in text, f"{name}: 直近の合格点 {pass_}点(第{exam}回) と書く")
+    check(f"6割なら{ratio_pass}点" in text, f"{name}: 6割の点は補足だけ")
+    check("直近の合格点" in page.locator(".fc-verdict").inner_text(), f"{name}: 差は直近の合格点との差: {page.locator('.fc-verdict').inner_text()}")
+    check("合格点ではありません" in page.locator(".subjects + p").inner_text(), f"{name}: 科目の点線は合格点ではないと書く")
+    fc.screenshot(path=os.path.join(OUT, f"forecast_{name}.png"))
+
+
 def storage(page):
     return page.evaluate("() => Object.fromEntries(Object.entries(localStorage))")
 
@@ -310,6 +336,7 @@ with sync_playwright() as p:
     check(page.locator(".subj-row").count() == 18, "全科目のときは18科目")
     page.click("[data-exempt=on]")
     check("/ 48点" in page.locator(".fc-score").inner_text(), f"専門科目だけにすると48点満点: {page.locator('.fc-score').inner_text()}")
+    forecast_line(page, 48, 27, 28, 29, "seishin_exempt")
     check(page.locator(".subj-row").count() == 6, "専門科目だけのときは6科目")
     check("共通科目を免除" in page.locator(".forecast").inner_text(), "免除の説明が出る")
     shot(page, "seishin_home_exempt")
@@ -318,6 +345,7 @@ with sync_playwright() as p:
     check("/ 48点" in page.locator(".fc-score").inner_text(), "専門科目だけの切り替えは開き直しても残る")
     page.click(".exempt-seg button >> nth=0")
     check("/ 132点" in page.locator(".fc-score").inner_text(), "全科目に戻せる")
+    forecast_line(page, 132, 62, 28, 80, "seishin_all")
     shot(page, "seishin_home")
     page.click(".unlock")
     page.wait_for_selector(".paywall")
@@ -374,6 +402,13 @@ with sync_playwright() as p:
     nt.screenshot(path=os.path.join(OUT, "17b_kaigo_full_note.png"))
     page.click("text=ホームへ")
     page.wait_for_selector(".home")
+
+    # ---------- 8b. 予想点の線: 介護福祉士・社会福祉士は直近の公式の合格点 ----------
+    seed_records(page, "kaigo", "kaigo-fukushishi", 38)
+    forecast_line(page, 125, 64, 38, 75, "kaigo")
+    switch(page, "shakai")
+    seed_records(page, "shakai", "shakai-fukushishi", 38)
+    forecast_line(page, 129, 50, 38, 78, "shakai")
 
     # ---------- 9. 管理栄養士に戻る: 記録が変わっていない ----------
     switch(page, "kanri")

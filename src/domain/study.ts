@@ -143,10 +143,15 @@ export function subjectWeights(all: Question[], cfg: ExamConfig): Record<string,
 export interface Estimate {
   /** 本番で取れそうな点(200点満点) */
   score: number;
+  /** 線を引く点。公式の合格点がある試験は直近の回の合格点、無ければ満点 × 合格基準の割合 */
   pass: number;
   total: number;
   /** 推定に使えた科目の配点の割合。低いうちは当てにならない */
   coverage: number;
+  /** pass が公式の合格点のときの回(第38回なら 38)。割合で出したときは undefined */
+  passExam?: number;
+  /** 満点 × 合格基準の割合(6割)。公式の合格点がある試験で、補足に出す */
+  ratioPass: number;
 }
 
 /**
@@ -167,7 +172,8 @@ export function estimate(stats: SubjectStat[], weights: Record<string, number>, 
     score += w * (s.rate ?? avg);
     if (s.rate !== null) covered += w;
   }
-  return { score: Math.round(score), pass: Math.ceil(total * cfg.passRatio), total, coverage: covered / total };
+  const line = latestPassLine(total, cfg);
+  return { score: Math.round(score), pass: line.score, total, coverage: covered / total, passExam: line.exam, ratioPass: Math.ceil(total * cfg.passRatio) };
 }
 
 export interface SubEstimate {
@@ -242,10 +248,34 @@ export function zeroGroups(bySubject: Record<string, { ok: number; n: number }>,
     .map((g) => g.name);
 }
 
-/** その回の合格点。公式の点があればそれ、無ければ満点 × 合格基準の割合 */
-export function passScoreOf(exam: number, total: number, cfg: ExamConfig): { score: number; official: boolean } {
+export interface PassLine {
+  score: number;
+  /** 公式の合格点(難しさで補正された点)なら true。満点 × 割合で出したときは false */
+  official: boolean;
+  /** official のとき、その合格点の回 */
+  exam?: number;
+}
+
+/** 公式の合格点が分かっている回のうち、いちばん新しい回。無ければ null */
+export function latestPassExam(cfg: ExamConfig): number | null {
+  const ks = Object.keys(cfg.passScores ?? {}).map(Number).filter((n) => Number.isFinite(n));
+  return ks.length ? Math.max(...ks) : null;
+}
+
+/**
+ * 回を決めない合格の線(ホームの予想点)。毎年の合格点が変わる試験(介護福祉士・社会福祉士・精神保健福祉士)は
+ * 直近の回の公式の合格点、決まった割合の試験(管理栄養士・理学療法士)は満点 × 合格基準の割合。
+ */
+export function latestPassLine(total: number, cfg: ExamConfig): PassLine {
+  const n = latestPassExam(cfg);
+  if (n !== null) return { score: cfg.passScores![String(n)], official: true, exam: n };
+  return { score: Math.ceil(total * cfg.passRatio), official: false };
+}
+
+/** その回の合格点。公式の点があればそれ、その回の点が無ければ直近の回の公式の点、どちらも無ければ満点 × 合格基準の割合 */
+export function passScoreOf(exam: number, total: number, cfg: ExamConfig): PassLine {
   const v = cfg.passScores?.[String(exam)];
-  return typeof v === 'number' ? { score: v, official: true } : { score: Math.ceil(total * cfg.passRatio), official: false };
+  return typeof v === 'number' ? { score: v, official: true, exam } : latestPassLine(total, cfg);
 }
 
 /** 回の範囲の表示。同じ回なら「第37回」、違えば「第37〜38回」(小さい方から) */

@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_EXAM_DATE, EXAM, EXAMS, FIRST_EXAM, selectExam } from './exam';
 import { hasOwnPage, isMhlw, sourceLabelOf, sourcePageFor } from './sources';
-import { examRange, examView, isLocked, passScoreOf, subjectWeights, zeroGroups } from './study';
+import { estimate, examRange, examView, isLocked, latestPassLine, passScoreOf, subjectWeights, zeroGroups } from './study';
+import type { SubjectStat } from './study';
 import type { AppData, Question } from './types';
 
 // Preferences は端末の保存場所。テストでは入れ物(Map)に置き換える(Web 版は localStorage の CapacitorStorage.<key>)
@@ -133,7 +134,7 @@ describe('試験ごとの出典', () => {
 describe('合格の判定(介護福祉士・社会福祉士の物を足した)', () => {
   it('公式の合格点があればそれ、無ければ6割', () => {
     const kaigo = EXAMS.find((e) => e.dir === 'kaigo')!;
-    expect(passScoreOf(38, 125, kaigo)).toEqual({ score: 64, official: true });
+    expect(passScoreOf(38, 125, kaigo)).toEqual({ score: 64, official: true, exam: 38 });
     expect(passScoreOf(40, 200, FIRST_EXAM)).toEqual({ score: 120, official: false });
   });
   it('0点の科目群を拾う', () => {
@@ -148,6 +149,48 @@ describe('合格の判定(介護福祉士・社会福祉士の物を足した)',
   it('回の範囲', () => {
     expect(examRange(38, 37)).toBe('第37〜38回');
     expect(examRange(37, 37)).toBe('第37回');
+  });
+});
+
+describe('ホームの予想点の合格の線(毎年変わる試験は直近の公式の合格点)', () => {
+  // 全科目を50問ずつ解いて半分正解したことにする(線の位置だけを見る)
+  const half = (cfg: (typeof EXAMS)[number]): SubjectStat[] =>
+    cfg.subjects.map((subject) => ({ subject, total: 50, seen: 50, lastOk: 25, nigate: 0, rate: 0.5 }));
+  const lineOf = (dir: string, exemptOnly = false) => {
+    const cfg = examView(EXAMS.find((e) => e.dir === dir)!, exemptOnly);
+    const est = estimate(half(cfg), subjectWeights(loadQs(dir), cfg), cfg)!;
+    return { total: est.total, pass: est.pass, passExam: est.passExam, ratioPass: est.ratioPass };
+  };
+
+  it('管理栄養士・理学療法士は決まった割合(6割)のまま', () => {
+    expect(lineOf('kanri')).toEqual({ total: 200, pass: 120, passExam: undefined, ratioPass: 120 });
+    const pt = lineOf('pt');
+    expect(pt.passExam).toBeUndefined();
+    expect(pt.pass).toBe(Math.ceil(pt.total * 0.6));
+  });
+
+  it('介護福祉士は第38回の合格点 64(6割の75ではない)', () => {
+    expect(lineOf('kaigo')).toEqual({ total: 125, pass: 64, passExam: 38, ratioPass: 75 });
+  });
+
+  it('社会福祉士は第38回の合格点 50(6割の78ではない)', () => {
+    expect(lineOf('shakai')).toEqual({ total: 129, pass: 50, passExam: 38, ratioPass: 78 });
+  });
+
+  it('精神保健福祉士は第28回の合格点 62、専門科目だけなら 27', () => {
+    expect(lineOf('seishin')).toEqual({ total: 132, pass: 62, passExam: 28, ratioPass: 80 });
+    expect(lineOf('seishin', true)).toEqual({ total: 48, pass: 27, passExam: 28, ratioPass: 29 });
+  });
+
+  it('回ごとの結果はその回の合格点。点の分からない回は直近の回の合格点', () => {
+    const sh = EXAMS.find((e) => e.dir === 'shakai')!;
+    expect(passScoreOf(37, 129, sh)).toEqual({ score: 62, official: true, exam: 37 });
+    expect(passScoreOf(38, 129, sh)).toEqual({ score: 50, official: true, exam: 38 });
+    expect(passScoreOf(0, 129, sh)).toEqual({ score: 50, official: true, exam: 38 });
+    const se = EXAMS.find((e) => e.dir === 'seishin')!;
+    expect(passScoreOf(27, 132, se)).toEqual({ score: 70, official: true, exam: 27 });
+    expect(passScoreOf(27, 48, examView(se, true))).toEqual({ score: 32, official: true, exam: 27 });
+    expect(latestPassLine(200, FIRST_EXAM)).toEqual({ score: 120, official: false });
   });
 });
 
@@ -180,8 +223,8 @@ describe('精神保健福祉士(v1.2)', () => {
   });
 
   it('合格: 公式の合格点(第27回70・第28回62)と9科目群', () => {
-    expect(passScoreOf(28, 132, se())).toEqual({ score: 62, official: true });
-    expect(passScoreOf(27, 132, se())).toEqual({ score: 70, official: true });
+    expect(passScoreOf(28, 132, se())).toEqual({ score: 62, official: true, exam: 28 });
+    expect(passScoreOf(27, 132, se())).toEqual({ score: 70, official: true, exam: 27 });
     expect(se().groups!.length).toBe(9);
     const all = se().groups!.flatMap((g) => g.subjects);
     expect([...all].sort()).toEqual([...se().subjects].sort());
@@ -198,8 +241,8 @@ describe('精神保健福祉士(v1.2)', () => {
     expect(v.perExam).toBe(48);
     expect(v.subjects.length).toBe(6);
     expect(v.groups!.length).toBe(5);
-    expect(passScoreOf(27, 48, v)).toEqual({ score: 32, official: true });
-    expect(passScoreOf(28, 48, v)).toEqual({ score: 27, official: true });
+    expect(passScoreOf(27, 48, v)).toEqual({ score: 32, official: true, exam: 27 });
+    expect(passScoreOf(28, 48, v)).toEqual({ score: 27, official: true, exam: 28 });
     const w = subjectWeights(loadQs('seishin'), v);
     expect(Object.values(w).reduce((a, b) => a + b, 0)).toBe(48);
     expect(Object.values(subjectWeights(loadQs('seishin'), se())).reduce((a, b) => a + b, 0)).toBe(132);
