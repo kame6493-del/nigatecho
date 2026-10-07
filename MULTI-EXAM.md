@@ -39,7 +39,7 @@
 - 共通科目免除(社会福祉士の資格がある人): ホームの予想点で「専門科目だけ」に切り替えると、専門6科目・48点満点・5科目群で出す(exam.json の exempt。切り替えは試験ごとの記録の settings.exemptOnly に残る)。模試は132問のまま
 - 年度別の画面のボタンは「午前(共通科目)」「午後(専門科目)」(exam.json の sessionNames)
 - 商品: nigatecho_multi_seishin_full / entitlement seishin_full / ¥900 / 無料は第28回。社会福祉士の完全版とは別の商品(購入画面に書いた。exam.json の paywallNote)。まだ App Store Connect・RevenueCat に作っていない
-- 版はまだ 1.1.0 のまま。出すときに 1.2.0 に上げる
+- 版は iOS・Android とも 1.2.0(Android versionCode 4)
 
 ## 確かめ方
 - `npm run test:all`(単体テスト。src/domain/multi.test.ts が試験ごとの設定・問題・出典・商品の重なり・記録の保存先を見る)
