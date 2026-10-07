@@ -3,7 +3,7 @@
 出力(store/multi/):
 - iphone/1〜6.png 1290x2796(1枚目は試験を選ぶ画面)
 - ipad/1〜5.png 2048x2732(iPhone の1〜5枚目を、ぼかした同じ絵の上に置く。ios_release/ipad_shots と同じ形)
-- iap/<試験>.png 1290x2796(App内課金の審査用。各試験の購入画面)
+- iap/<試験>.png 1290x2796(App内課金の審査用。各試験の購入画面。精神保健福祉士を含む5枚)
 撮影途中の画面は store/multi/raw/(git に入れない)"""
 import os
 import sys
@@ -111,7 +111,7 @@ def capture():
                 pg.screenshot(path=raw("5_result_shakai"))
 
         # App内課金の審査用: 各試験の購入画面(未購入)
-        for exam in ("kanri", "pt", "kaigo", "shakai"):
+        for exam in ("kanri", "pt", "kaigo", "shakai", "seishin"):
             fresh(pg)
             pg.evaluate("(d) => localStorage.setItem('CapacitorStorage.nigatecho.exam', d)", exam)
             pg.goto(URL)
@@ -121,17 +121,20 @@ def capture():
             pg.evaluate("() => window.scrollTo(0, 0)")
             pg.screenshot(path=os.path.join(OUT, "iap", f"{exam}.png"))
         b.close()
+    # 1・2枚目の介護福祉士の画面(ホーム・解説)は Play・イベントの画像と同じ撮り方
+    import make_store_play_events as pe
+    pe.capture_kaigo()
 
 
 # 写真に値段・「無料」を書かない(2026-10-07 1.1.0 が 2.3.7 で却下: 試験選びの画面の「完全版 ¥980」「無料」と6枚目の見出し)。
 # 試験選びの画面は値段が映るので使わない。受験生の多い介護福祉士を先頭に置く。
 IPHONE = [
-    ("e_home_kaigo", "介護福祉士も、\n1つのアプリで。", "管理栄養士・理学療法士・介護福祉士・社会福祉士"),
+    ("e_home_kaigo", "介護福祉士も、\n1つのアプリで。", "介護福祉士・社会福祉士・精神保健福祉士ほか"),
     ("e_answer_kaigo", "全問に、\nなぜ違うかの解説。", "正答の理由と、ほかの選択肢の誤りを1つずつ"),
-    ("4_forecast_kaigo", "本番なら何点か、\n毎日わかる。", "合格基準と並べて、科目ごとの正答率も"),
+    ("4_forecast_kaigo", "本番なら何点か、\n毎日わかる。", "直近の合格点と並べて、科目ごとの正答率も"),
     ("2_home_kanri", "間違えた問題だけが、\n残る。", "苦手はノートに残り、本番までに減らしていく"),
     ("5_result_shakai", "2回続けて正解したら、\n消える。", "苦手が0問になったら、本番に持っていく苦手はない"),
-    ("6_exams_pt", "4試験 計3,008問。\n年度別にも解ける。", "管理栄養士・理学療法士・介護福祉士・社会福祉士"),
+    ("6_exams_pt", "5試験 計3,272問。\n年度別にも解ける。", "精神保健福祉士・管理栄養士・理学療法士ほか"),
 ]
 
 
@@ -170,7 +173,7 @@ def ipad(src, dst):
 
 
 def check_sizes():
-    for d, size, n in (("iphone", (1290, 2796), 6), ("ipad", (2048, 2732), 5), ("iap", (1290, 2796), 4)):
+    for d, size, n in (("iphone", (1290, 2796), 6), ("ipad", (2048, 2732), 5), ("iap", (1290, 2796), 5)):
         files = sorted(os.listdir(os.path.join(OUT, d)))
         assert len(files) == n, (d, files)
         for f in files:
