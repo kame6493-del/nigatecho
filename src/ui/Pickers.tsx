@@ -1,20 +1,35 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { isLocked, isNigate } from '../domain/study';
-import { TopBar } from './Quiz';
+import { examRange, isLocked, isNigate } from '../domain/study';
+import { subjectColor } from './look';
+import { TopBar } from './parts';
+import { ICheck, IChevron, ILock } from './Icons';
 
 const byNo = (a: Question, b: Question) => (a.session === b.session ? a.no - b.no : a.session === '午前' ? -1 : 1);
+
+/** 年度別・科目別の切り替え(見本の「問題一覧」の上のタブ) */
+function ListTabs({ on, onExams, onSubjects }: { on: 'exams' | 'subjects'; onExams: () => void; onSubjects: () => void }) {
+  return (
+    <div className="seg-tabs" role="tablist">
+      <button role="tab" aria-selected={on === 'exams'} className={on === 'exams' ? 'on' : ''} onClick={onExams}>年度別</button>
+      <button role="tab" aria-selected={on === 'subjects'} className={on === 'subjects' ? 'on' : ''} onClick={onSubjects}>科目別</button>
+    </div>
+  );
+}
 
 export function ExamPicker(p: {
   all: Question[]; data: AppData; premium: boolean; mock: boolean;
   onBack: () => void; onLocked: () => void;
   onStart: (title: string, qs: Question[], exam: number) => void;
+  onSubjects?: () => void;
 }) {
   const exams = useMemo(() => [...new Set(p.all.map((q) => q.exam))].sort((a, b) => b - a), [p.all]);
+  const lockedExams = exams.filter((e) => !EXAM.freeExams.includes(e));
   return (
-    <div className="page">
-      <TopBar title={p.mock ? '本番形式の模試' : '年度別'} onClose={p.onBack} />
+    <div className="page list-page">
+      <TopBar title={p.mock ? '本番形式の模試' : '問題一覧'} onClose={p.onBack} />
+      {!p.mock && p.onSubjects && <ListTabs on="exams" onExams={() => {}} onSubjects={p.onSubjects} />}
       {p.mock && <p className="lead">本番と同じ{EXAM.perExam}問を、答え合わせなしで最後まで解きます。時間を計り、最後に科目ごとの点数を出します。</p>}
       <ul className="rows">
         {exams.map((exam) => {
@@ -23,17 +38,28 @@ export function ExamPicker(p: {
           const seen = qs.filter((q) => p.data.records[q.id]).length;
           const ng = qs.filter((q) => isNigate(p.data.records[q.id])).length;
           const last = p.data.mocks.filter((m) => m.exam === exam).at(-1);
+          const free = !p.premium && EXAM.freeExams.includes(exam);
           return (
-            <li key={exam} className="exam-row">
+            <li key={exam} className={`exam-row ${locked ? 'locked' : ''}`}>
               <div className="exam-head">
-                <b>第{exam}回</b>
-                <span className="muted">{yearOf(exam)}年{locked ? '・完全版' : ''}</span>
+                {locked && <span className="lock-ico"><ILock size={20} /></span>}
+                <div className="exam-title">
+                  {free && <span className="badge red">無料</span>}
+                  {locked && <span className="badge gold">完全版</span>}
+                  <b>第{exam}回</b><span className="muted">({yearOf(exam)}年)</span>
+                </div>
               </div>
-              {!p.mock && <p className="exam-meta">{seen}/{qs.length}問 解いた{ng ? `・苦手${ng}` : ''}</p>}
+              {!p.mock && !locked && (
+                <>
+                  <p className="exam-meta">{seen}/{qs.length}問 解いた{ng ? `・苦手${ng}` : ''}</p>
+                  <span className="mini-bar"><i style={{ width: `${(seen / qs.length) * 100}%` }} /></span>
+                </>
+              )}
+              {locked && <p className="exam-meta">完全版で解ける回です</p>}
               {p.mock && last && <p className="exam-meta">前回 {last.score}/{last.total}点</p>}
               <div className="exam-actions">
                 {locked ? (
-                  <button className="btn small" onClick={p.onLocked}>完全版で解く</button>
+                  <button className="btn small" onClick={p.onLocked}>完全版で解く<IChevron size={16} /></button>
                 ) : p.mock ? (
                   <button className="btn small primary" onClick={() => p.onStart(`第${exam}回 模試`, qs, exam)}>始める</button>
                 ) : (
@@ -50,6 +76,17 @@ export function ExamPicker(p: {
           );
         })}
       </ul>
+      {!p.premium && lockedExams.length > 0 && (
+        <section className="card plan-card">
+          <p className="plan-title">完全版で、{examRange(lockedExams[lockedExams.length - 1], lockedExams[0])}も解けます</p>
+          <ul className="checks">
+            <li><ICheck size={16} />{EXAM.name}の過去の回の問題すべて</li>
+            <li><ICheck size={16} />本番形式の模試</li>
+            <li><ICheck size={16} />買い切り(月額はかかりません)</li>
+          </ul>
+          <button className="btn primary wide" onClick={p.onLocked}>完全版を見る<IChevron size={16} /></button>
+        </section>
+      )}
     </div>
   );
 }
@@ -58,20 +95,22 @@ export function SubjectPicker(p: {
   open: Question[]; all: Question[]; data: AppData; premium: boolean;
   onBack: () => void; onPaywall: () => void;
   onStart: (title: string, qs: Question[]) => void;
+  onExams?: () => void;
 }) {
   return (
-    <div className="page">
-      <TopBar title="科目別" onClose={p.onBack} />
+    <div className="page list-page">
+      <TopBar title="問題一覧" onClose={p.onBack} />
+      {p.onExams && <ListTabs on="subjects" onExams={p.onExams} onSubjects={() => {}} />}
       <ul className="rows">
-        {EXAM.subjects.map((s) => {
+        {EXAM.subjects.map((s, i) => {
           const mine = p.open.filter((q) => q.subject === s && !q.excluded);
           const total = p.all.filter((q) => q.subject === s && !q.excluded).length;
           const ng = mine.filter((q) => isNigate(p.data.records[q.id]));
           const fresh = mine.filter((q) => !p.data.records[q.id]);
           return (
             <li key={s} className="exam-row">
-              <div className="exam-head"><b>{short(s)}</b><span className="muted">{mine.length}問{!p.premium && total > mine.length ? `(完全版 ${total}問)` : ''}</span></div>
-              <p className="exam-meta">{s}</p>
+              <div className="exam-head"><span className="subj-dot" style={{ background: subjectColor(i) }} /><b>{short(s)}</b><span className="muted">{mine.length}問{!p.premium && total > mine.length ? `(完全版 ${total}問)` : ''}</span></div>
+              {short(s) !== s && <p className="exam-meta">{s}</p>}
               <div className="exam-actions">
                 <button className="btn small" disabled={!mine.length} onClick={() => p.onStart(short(s), mine.slice().sort(order))}>順に解く</button>
                 <button className="btn small" disabled={!fresh.length} onClick={() => p.onStart(`${short(s)} 未回答`, fresh.slice().sort(order))}>未回答 {fresh.length}</button>
@@ -81,7 +120,7 @@ export function SubjectPicker(p: {
           );
         })}
       </ul>
-      {!p.premium && <button className="unlock" onClick={p.onPaywall}><span className="unlock-title">完全版で全科目の問題を増やす</span></button>}
+      {!p.premium && <button className="unlock" onClick={p.onPaywall}><span className="unlock-title">完全版で全科目の問題を増やす</span><IChevron /></button>}
     </div>
   );
 }

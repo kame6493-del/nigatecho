@@ -58,13 +58,14 @@ async function answerOne(choiceIndex: number) {
   await sleep(700);
   tapMark(target); target.click();
   await sleep(900);
-  // 2つ選ぶ問題は1つ目を押すと「2つ選んでください(あと1つ)」が出る → もう1つ選んでから答え合わせ
+  // 2つ選ぶ問題は1つ目を押すと「2つ選んでください(あと1つ)」が出る → もう1つ選ぶ
   const needMore = [...document.querySelectorAll<HTMLElement>('button')].some((b) => b.innerText.includes('つ選んでください'));
   if (needMore) {
     const other = choices[(choiceIndex + 1) % choices.length];
     tapMark(other); other.click(); await sleep(700);
-    await tap(text('答え合わせ'), 900);
   }
+  // 選んでから「答え合わせをする」で解説へ(2026-10-10 の作り直しから)
+  await tap(text('答え合わせ'), 900);
   await scrollSlow(document.body.scrollHeight, 2200);
   await sleep(2200);
   return true;

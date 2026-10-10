@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
-import { EXAM, short } from '../domain/exam';
-import { examRange, isCorrect, isLocked, isNigate, lockedSummary, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { EXAM, short, yearOf } from '../domain/exam';
+import { CLEAR_STREAK, examRange, isCorrect, isLocked, isNigate, lockedSummary, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { splitExplanation } from '../domain/explain';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
+import { ART } from './look';
+import { Ring, TopBar } from './parts';
+import { IArrow, IBookmark, IBulb, ICheck, IChevron, IDoc, IRepeat, IX, IBook } from './Icons';
+
+export { TopBar } from './parts';
 
 export interface Session {
   title: string;
@@ -40,7 +46,7 @@ export function Quiz(p: Props) {
   return p.session.mode === 'mock' ? <MockRun {...p} qs={qs} /> : <Practice {...p} qs={qs} />;
 }
 
-/* ---------- 練習: 1問ずつ答え合わせ ---------- */
+/* ---------- 練習: 選んで答え合わせ → 解説 ---------- */
 
 function Practice(p: Props & { qs: Question[] }) {
   const { qs } = p;
@@ -48,31 +54,43 @@ function Practice(p: Props & { qs: Question[] }) {
   const [i, setI] = useState(0);
   /** 答え合わせした選択。null なら答え合わせ前 */
   const [picked, setPicked] = useState<number[] | null>(null);
-  /** 2つ選ぶ問題で、答え合わせ前に選んでいる番号 */
+  /** 答え合わせ前に選んでいる番号 */
   const [sel, setSel] = useState<number[]>([]);
   const [done, setDone] = useState<Done[]>([]);
   const [finished, setFinished] = useState(false);
   const q = order[i];
 
-  useEffect(() => { window.scrollTo(0, 0); }, [i, finished]);
+  useEffect(() => { window.scrollTo(0, 0); }, [i, finished, picked]);
 
   if (finished) {
     const ok = done.filter((d) => d.ok).length;
     const cleared = done.filter((d) => d.wasNigate && !isNigate(p.data.records[d.id])).length;
     const fresh = done.filter((d) => !d.wasNigate && isNigate(p.data.records[d.id])).length;
     const nigateLeft = Object.values(p.data.records).filter(isNigate).length;
+    const skipped = order.length - done.length;
+    const rate = done.length ? ok / done.length : 0;
     return (
       <div className="page result">
-        <TopBar title={p.session.title} onClose={p.onClose} />
+        <TopBar title={`${p.session.title} 結果`} onClose={p.onClose} close="x" />
         <section className="result-hero">
+          <Ring ok={ok} total={done.length} />
+          <div className="cheer">
+            <p className="bubble">{rate >= 0.8 ? 'よくがんばりました!\nこの調子で続けましょう。' : rate >= 0.5 ? 'よくがんばりました!\n苦手を見直して\n次につなげましょう。' : '間違えた問題は\n苦手ノートに残りました。\n1つずつ消していきましょう。'}</p>
+            <img src={ART.womanCheer} alt="" />
+          </div>
           <div className="result-score"><b>{ok}</b><span>/ {done.length} 問 正解</span></div>
-          <ul className="result-moves">
-            <li><span>苦手から外れた</span><b className="good">{cleared}問</b></li>
-            <li><span>新しく苦手に入った</span><b className="bad">{fresh}問</b></li>
-            <li><span>残りの苦手</span><b>{nigateLeft}問</b></li>
-          </ul>
         </section>
-        <ol className="result-list">
+        <ul className="tally card">
+          <li><span className="t-ok"><ICheck size={16} /></span>正解<b>{ok}<small>問</small></b></li>
+          <li><span className="t-ng"><IX size={16} /></span>不正解<b>{done.length - ok}<small>問</small></b></li>
+          {skipped > 0 && <li><span className="t-na">−</span>採点対象外<b>{skipped}<small>問</small></b></li>}
+        </ul>
+        <ul className="result-moves card">
+          <li><span>苦手から外れた</span><b className="good">{cleared}問</b></li>
+          <li><span>新しく苦手に入った</span><b className="bad">{fresh}問</b></li>
+          <li><span>残りの苦手</span><b>{nigateLeft}問</b></li>
+        </ul>
+        <ol className="result-list card">
           {done.map((d, k) => {
             const x = p.byId.get(d.id)!;
             return (
@@ -85,21 +103,20 @@ function Practice(p: Props & { qs: Question[] }) {
           })}
         </ol>
         <div className="result-actions">
-          {nigateLeft > 0 && <button className="btn primary" onClick={p.onNigate}>苦手を解く({nigateLeft}問)</button>}
-          <button className="btn" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}>同じ問題をもう一度</button>
-          <button className="btn ghost" onClick={p.onHome}>ホームへ</button>
+          {nigateLeft > 0 && <button className="btn soft-red" onClick={p.onNigate}><IDoc size={20} />間違えた問題を復習する(苦手を解く {nigateLeft}問)</button>}
+          <button className="btn soft-red" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}><IRepeat size={20} />もう一度同じ問題で解く</button>
+          <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
         <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
 
-  if (!q) return <div className="page"><TopBar title={p.session.title} onClose={p.onClose} /><p className="empty">解ける問題がありません。</p></div>;
+  if (!q) return <div className="page"><TopBar title={p.session.title} onClose={p.onClose} close="x" /><p className="empty">解ける問題がありません。</p></div>;
 
   const reveal = picked !== null;
   const ok = reveal && isCorrect(q, picked!);
   const marked = p.data.marks.includes(q.id);
-
   const need = pickCount(q);
 
   const judge = (xs: number[]) => {
@@ -115,7 +132,7 @@ function Practice(p: Props & { qs: Question[] }) {
 
   const choose = (n: number) => {
     if (reveal) return;
-    if (need === 1) { judge([n]); return; }
+    if (need === 1) { setSel([n]); return; }
     setSel((cur) => (cur.includes(n) ? cur.filter((x) => x !== n) : cur.length < need ? [...cur, n] : cur));
   };
 
@@ -135,19 +152,49 @@ function Practice(p: Props & { qs: Question[] }) {
     setSel([]);
   };
 
+  const head = (
+    <>
+      <TopBar title={reveal ? '解説' : p.session.title} onClose={p.onClose} close="x"
+        right={<button className={`icon mark-btn ${marked ? 'on' : ''}`} onClick={() => p.onMark(q.id)} aria-label="しるし" aria-pressed={marked}><IBookmark on={marked} /></button>} />
+      <div className="progress-row">
+        <div className="progress"><i style={{ width: `${((i + (reveal ? 1 : 0)) / order.length) * 100}%` }} /></div>
+        <span className="count">{i + 1}<small> / {order.length}</small></span>
+      </div>
+    </>
+  );
+
+  if (reveal) {
+    const last = done[done.length - 1];
+    return (
+      <div className="page quiz explain-page">
+        {head}
+        <p className="q-src-line"><span className="q-src">第{q.exam}回 {q.session} 問{q.no}</span>({yearOf(q.exam)}年)・{short(q.subject)}</p>
+        <Verdict q={q} ok={ok} />
+        {!q.excluded && last?.id === q.id && <NigateStatus q={q} data={p.data} ok={ok} wasNigate={last.wasNigate} />}
+        <details className="q-again">
+          <summary>問題文を見る</summary>
+          <QuestionView q={q} />
+        </details>
+        <Explanation q={q} picked={picked!} />
+        <SourceLine q={q} onSources={p.onSources} />
+        <div className="bottom-bar two">
+          <button className={`btn mark-wide ${marked ? 'on' : ''}`} onClick={() => p.onMark(q.id)} aria-pressed={marked}><IBookmark on={marked} size={20} />しるし</button>
+          <button className="btn primary next" onClick={next}>{i + 1 >= order.length ? '結果を見る' : '次の問題へ'}<IArrow size={18} /></button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page quiz">
-      <TopBar title={p.session.title} onClose={p.onClose} right={<span className="count">{i + 1}<small> / {order.length}</small></span>} />
-      <div className="progress"><i style={{ width: `${((i + (reveal ? 1 : 0)) / order.length) * 100}%` }} /></div>
-      <QuestionView q={q} record={p.data.records[q.id]} marked={marked} onMark={() => p.onMark(q.id)} />
+      {head}
+      <QuestionView q={q} record={p.data.records[q.id]} />
       <ol className="choices">
         {q.choices.map((c, k) => {
           const n = k + 1;
-          const isAns = q.answer.includes(n);
-          const cls = !reveal ? (sel.includes(n) ? 'is-picked' : '') : isAns ? 'is-answer' : picked!.includes(n) ? 'is-wrong' : 'is-dim';
           return (
             <li key={k}>
-              <button className={`choice ${cls}`} onClick={() => choose(n)} disabled={reveal}>
+              <button className={`choice ${sel.includes(n) ? 'is-picked' : ''}`} onClick={() => choose(n)} aria-pressed={sel.includes(n)}>
                 <span className="num">{n}</span>
                 <span className="txt">{c}</span>
               </button>
@@ -156,22 +203,103 @@ function Practice(p: Props & { qs: Question[] }) {
         })}
       </ol>
       {q.footnote && <p className="footnote">{q.footnote}</p>}
-      {reveal && (
-        <section className={`verdict ${q.excluded ? 'neutral' : ok ? 'good' : 'bad'}`}>
-          <h3>{q.excluded ? '採点対象外の問題' : ok ? '正解' : '不正解'}<span>{q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)'}</span></h3>
-          {q.note && <p className="note">{q.note}</p>}
-          <div className="explain">{q.explanation ?? '解説は準備中です。'}</div>
-          <SourceLine q={q} onSources={p.onSources} />
-        </section>
-      )}
-      <div className="bottom-bar">
-        {reveal
-          ? <button className="btn primary wide" onClick={next}>{i + 1 >= order.length ? '結果を見る' : '次の問題'}</button>
-          : need === 1
-            ? <p className="hint">答えだと思う番号を押してください</p>
-            : <button className="btn primary wide" disabled={sel.length !== need} onClick={() => judge(sel)}>{sel.length === need ? '答え合わせ' : `${need}つ選んでください(あと${need - sel.length}つ)`}</button>}
+      <div className="bottom-bar two">
+        <button className={`btn mark-wide ${marked ? 'on' : ''}`} onClick={() => p.onMark(q.id)} aria-pressed={marked}><IBookmark on={marked} size={20} />しるし</button>
+        <button className="btn primary next" disabled={sel.length !== need} onClick={() => judge(sel)}>
+          {sel.length === need ? <>答え合わせをする<IArrow size={18} /></> : need === 1 ? '答えを選んでください' : `${need}つ選んでください(あと${need - sel.length}つ)`}
+        </button>
       </div>
     </div>
+  );
+}
+
+/** 正解・不正解の帯 */
+function Verdict({ q, ok }: { q: Question; ok: boolean }) {
+  const ans = q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)';
+  if (q.excluded) {
+    return <section className="verdict neutral"><h3>採点対象外の問題<span>{ans}</span></h3>{q.note && <p className="note">{q.note}</p>}</section>;
+  }
+  return (
+    <section className={`verdict ${ok ? 'good' : 'bad'}`}>
+      <div className="v-main">
+        <span className="v-mark">{ok ? '○' : '×'}</span>
+        <div>
+          <h3>{ok ? '正解!' : '不正解'}<span>{ans}</span></h3>
+          <p className="v-sub">{ok ? 'よくできました!' : 'この問題は苦手ノートに残ります'}</p>
+        </div>
+      </div>
+      {ok && <img className="v-art" src={ART.girlOk} alt="" />}
+      {q.note && <p className="note">{q.note}</p>}
+    </section>
+  );
+}
+
+/** この問題の苦手ノートでの状態(連続正解 1/2 など)。2回続けて正解すると消える */
+function NigateStatus({ q, data, ok, wasNigate }: { q: Question; data: AppData; ok: boolean; wasNigate: boolean }) {
+  const r = data.records[q.id];
+  if (!r) return null;
+  const cleared = wasNigate && !isNigate(r);
+  if (!cleared && !isNigate(r)) return null;
+  const st = cleared ? CLEAR_STREAK : r.streak;
+  return (
+    <section className={`status ${cleared ? 'cleared' : ''}`}>
+      {cleared && (
+        <div className="status-party">
+          <p>やったね!<br />苦手を克服しました!</p>
+          <img src={ART.birdParty} alt="" />
+        </div>
+      )}
+      <p className="status-label">この問題のステータス</p>
+      <div className="status-box">
+        {!cleared && ok && <p className="status-hint">あと1回で<br />ノートから消えます!</p>}
+        <div className="dots" aria-hidden>
+          {Array.from({ length: CLEAR_STREAK }, (_, k) => <i key={k} className={k < st ? 'on' : ''} />)}
+        </div>
+        <p className="dots-cap">連続正解 <b>{st}</b> / {CLEAR_STREAK}</p>
+      </div>
+      <p className={`status-note ${cleared ? 'good' : ''}`}>
+        {cleared
+          ? 'この問題は苦手ノートから消えました。'
+          : ok ? 'もう一度、同じ問題に正解すると苦手ノートから消えます。この調子でがんばりましょう!'
+            : '苦手ノートに入りました。同じ問題に2回続けて正解すると消えます。'}
+      </p>
+    </section>
+  );
+}
+
+/** 解説: 正答の理由と、選択肢ごとの理由(解説の文は変えずに見出しで分けるだけ) */
+function Explanation({ q, picked }: { q: Question; picked: number[] }) {
+  const parts = splitExplanation(q.explanation);
+  const byNo = new Map(parts.choices.map((c) => [c.no, c]));
+  return (
+    <>
+      <section className="card exp-card">
+        <h2 className="card-title"><IBulb className="gold" />{parts.parsed ? '正答の理由' : '解説'}</h2>
+        <div className="explain">{parts.reason || '解説は準備中です。'}</div>
+      </section>
+      <section className="card exp-card">
+        <h2 className="card-title"><IDoc className="red" />選択肢ごとの解説</h2>
+        <ol className="ans-list">
+          {q.choices.map((c, k) => {
+            const n = k + 1;
+            const isAns = q.answer.includes(n);
+            const mine = picked.includes(n);
+            const why = byNo.get(n);
+            return (
+              <li key={k} className={`ans-choice ${isAns ? 'is-answer' : mine ? 'is-wrong' : ''}`}>
+                <div className="ans-head">
+                  <span className="num">{n}</span>
+                  {q.answer.length > 0 && (isAns ? <span className="tag ok">正答</span> : <span className="tag ng">誤り</span>)}
+                  {mine && <span className="tag mine">あなたの答え</span>}
+                </div>
+                <p className="ans-txt">{c}</p>
+                {why && <p className="ans-why">{why.text}</p>}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    </>
   );
 }
 
@@ -243,8 +371,9 @@ function MockRun(p: Props & { qs: Question[] }) {
     const wrong = qs.filter((x) => !x.excluded && !(ans[x.id] !== undefined && isCorrect(x, ans[x.id])));
     return (
       <div className="page result">
-        <TopBar title={p.session.title} onClose={p.onClose} />
+        <TopBar title={`${p.session.title} 結果`} onClose={p.onClose} close="x" />
         <section className="result-hero">
+          <Ring ok={result.score} total={result.total} label="点" />
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
           <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{!ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
           {sp && subTotal > 0 && (
@@ -256,7 +385,7 @@ function MockRun(p: Props & { qs: Question[] }) {
             : <p className="pass-line bad">0点の科目群があります: {zeros.join('/')}(1つでも0点だと総得点に関係なく不合格)</p>)}
           <p className="muted">かかった時間 {fmtTime(result.seconds)}・未回答 {qs.length - answeredCount}問</p>
         </section>
-        <table className="subject-table">
+        <table className="subject-table card">
           <thead><tr><th>科目</th><th>得点</th><th>正答率</th></tr></thead>
           <tbody>
             {EXAM.subjects.filter((s) => result.bySubject[s]).map((s) => {
@@ -267,15 +396,15 @@ function MockRun(p: Props & { qs: Question[] }) {
           </tbody>
         </table>
         <div className="result-actions">
-          <button className="btn primary" onClick={p.onNigate}>間違えた{wrong.length}問を苦手から解く</button>
-          <button className="btn ghost" onClick={p.onHome}>ホームへ</button>
+          <button className="btn soft-red" onClick={p.onNigate}><IDoc size={20} />間違えた{wrong.length}問を苦手から解く</button>
+          <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
         <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
 
-  if (!q) return <div className="page"><TopBar title={p.session.title} onClose={p.onClose} /><p className="empty">解ける問題がありません。</p></div>;
+  if (!q) return <div className="page"><TopBar title={p.session.title} onClose={p.onClose} close="x" /><p className="empty">解ける問題がありません。</p></div>;
 
   if (list) {
     return (
@@ -292,14 +421,13 @@ function MockRun(p: Props & { qs: Question[] }) {
 
   return (
     <div className="page quiz">
-      <TopBar
-        title={p.session.title}
-        onClose={p.onClose}
-        right={<span className="timer">{fmtTime(Math.round((now - startAt) / 1000))}</span>}
-      />
-      <div className="progress"><i style={{ width: `${(answeredCount / qs.length) * 100}%` }} /></div>
+      <TopBar title={p.session.title} onClose={p.onClose} close="x" right={<span className="timer">{fmtTime(Math.round((now - startAt) / 1000))}</span>} />
+      <div className="progress-row">
+        <div className="progress"><i style={{ width: `${(answeredCount / qs.length) * 100}%` }} /></div>
+        <button className="count link-count" onClick={() => setList(true)}>{i + 1}<small> / {qs.length}</small></button>
+      </div>
       <div className="mock-nav">
-        <button className="link" onClick={() => setList(true)}>{i + 1} / {qs.length}(回答 {answeredCount})</button>
+        <button className="link" onClick={() => setList(true)}>問題の一覧(回答 {answeredCount})<IChevron size={14} /></button>
       </div>
       <QuestionView q={q} />
       <ol className="choices">
@@ -315,7 +443,7 @@ function MockRun(p: Props & { qs: Question[] }) {
       <div className="bottom-bar two">
         <button className="btn" disabled={i === 0} onClick={() => setI(i - 1)}>前へ</button>
         {i + 1 < qs.length
-          ? <button className="btn primary" onClick={() => setI(i + 1)}>次へ</button>
+          ? <button className="btn primary" onClick={() => setI(i + 1)}>次へ<IArrow size={18} /></button>
           : <button className="btn primary" onClick={() => setConfirm(true)}>採点する</button>}
       </div>
       {i + 1 < qs.length && <button className="link submit-early" onClick={() => setConfirm(true)}>ここで採点する</button>}
@@ -348,7 +476,7 @@ function FullVersionNote(p: Props & { qs: Question[] }) {
   return (
     <section className="full-note">
       <p>{EXAM.name}の{examRange(s.from, s.to)}({s.count.toLocaleString('ja-JP')}問)と本番形式の模試は、完全版で解けます。</p>
-      <button className="btn" onClick={p.onPaywall}>完全版を見る</button>
+      <button className="btn" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
     </section>
   );
 }
@@ -370,15 +498,18 @@ function SourceLine({ q, onSources }: { q: Question; onSources?: () => void }) {
   );
 }
 
-function QuestionView({ q, record, marked, onMark }: { q: Question; record?: AppData['records'][string]; marked?: boolean; onMark?: () => void }) {
+function QuestionView({ q, record }: { q: Question; record?: AppData['records'][string] }) {
   return (
     <section className="question">
-      <div className="q-meta">
-        <span className="q-src">第{q.exam}回 {q.session} 問{q.no}</span>
-        <span className="q-subj">{short(q.subject)}</span>
-        {record && <span className={`q-hist ${isNigate(record) ? 'bad' : ''}`}>{record.n}回目 ・ 正解{record.ok}</span>}
-        {onMark && <button className={`star ${marked ? 'on' : ''}`} onClick={onMark} aria-label="しるし">{marked ? '★' : '☆'}</button>}
+      <div className="q-card">
+        <div className="q-meta">
+          <span className="q-src">第{q.exam}回 {q.session} 問{q.no}</span>
+          <span className="q-year">({yearOf(q.exam)}年)</span>
+          <span className="q-subj">{EXAM.name}・{short(q.subject)}</span>
+        </div>
+        {record && <span className={`q-hist ${isNigate(record) ? 'bad' : ''}`}>{isNigate(record) ? `苦手ノート・連続正解 ${record.streak}/${CLEAR_STREAK}` : `${record.n + 1}回目・これまで正解${record.ok}回`}</span>}
       </div>
+      <span className="q-no">問{q.no}</span>
       {q.case && (
         <details className="case" open>
           <summary>事例を読む</summary>
@@ -389,16 +520,6 @@ function QuestionView({ q, record, marked, onMark }: { q: Question; record?: App
       {pickCount(q) > 1 && <p className="pick-note">{pickCount(q)}つ選ぶ問題です</p>}
       {q.figure && <img className="figure" src={`./data/${EXAM.dir}/${q.figure}`} alt="問題の図" />}
     </section>
-  );
-}
-
-export function TopBar({ title, onClose, right }: { title: string; onClose: () => void; right?: React.ReactNode }) {
-  return (
-    <header className="topbar">
-      <button className="icon" onClick={onClose} aria-label="閉じる">‹</button>
-      <h1>{title}</h1>
-      <div className="topbar-right">{right}</div>
-    </header>
   );
 }
 

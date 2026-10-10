@@ -1,6 +1,6 @@
 import { APP, EXAM, yearOf } from '../domain/exam';
 import { LICENSE_FALLBACK, disclaimerOf, hasOwnPage, isMhlw, orgOf, sourcePageFor } from '../domain/sources';
-import { TopBar } from './Quiz';
+import { TopBar } from './parts';
 
 /** 外のページへのリンク(アプリの外のブラウザで開く。設定画面のリンクと同じ開き方) */
 export function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {

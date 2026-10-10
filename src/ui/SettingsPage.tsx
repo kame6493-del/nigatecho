@@ -4,7 +4,7 @@ import { APP, EXAM } from '../domain/exam';
 import { disclaimerOf } from '../domain/sources';
 import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
-import { TopBar } from './Quiz';
+import { TopBar } from './parts';
 
 const SITE = APP.site;
 
@@ -12,6 +12,8 @@ export function SettingsPage(p: {
   data: AppData; premium: boolean;
   onBack: () => void; onChange: (s: Partial<Settings>) => void; onReset: () => void;
   onPaywall: () => void; onRestored: () => void; onSources: () => void; onSwitchExam: () => void;
+  /** 下のタブから開いたとき(戻るボタンを出さない) */
+  asTab?: boolean;
 }) {
   const s = p.data.settings;
   const [confirm, setConfirm] = useState(false);
@@ -26,7 +28,7 @@ export function SettingsPage(p: {
 
   return (
     <div className="page settings">
-      <TopBar title="設定" onClose={p.onBack} />
+      {p.asTab ? <header className="tab-head"><h1>設定</h1></header> : <TopBar title="設定" onClose={p.onBack} />}
       <ul className="form">
         <li><span>試験</span><button className="btn small" onClick={p.onSwitchExam}>{EXAM.name}(切り替える)</button></li>
         <li>

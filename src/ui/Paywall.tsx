@@ -3,7 +3,9 @@ import type { Question } from '../domain/types';
 import { EXAM } from '../domain/exam';
 import { examRange } from '../domain/study';
 import { canBuy, purchase, restore, type BillingState } from '../platform/billing';
-import { TopBar } from './Quiz';
+import { TopBar } from './parts';
+import { lookOf } from './look';
+import { ICheck } from './Icons';
 
 /** いま選んでいる試験の完全版。商品は試験ごとに別(買った試験だけが開く) */
 export function Paywall(p: {
@@ -38,10 +40,16 @@ export function Paywall(p: {
 
   return (
     <div className="page paywall">
-      <TopBar title={`${EXAM.name} 完全版`} onClose={p.onClose} />
-      <section className="pw-hero">
+      <TopBar title={`${EXAM.name} 完全版`} onClose={p.onClose} close="x" />
+      <section className="pw-hero" style={{ background: lookOf(EXAM.dir).tint }}>
+        <img className="pw-art" src={lookOf(EXAM.dir).img} alt="" />
         <p className="pw-kicker">{EXAM.name}・買い切り・月額なし</p>
         <h2>{exams.length}年分 {p.all.length}問で、<br />苦手を本番までに0へ。</h2>
+        <ul className="checks">
+          <li><ICheck size={16} />{examRange(exams[0], exams[exams.length - 1])}の過去問すべて</li>
+          <li><ICheck size={16} />全問の解説・苦手の自動復習</li>
+          <li><ICheck size={16} />本番形式の模試</li>
+        </ul>
       </section>
       <table className="pw-table">
         <thead><tr><th></th><th>無料</th><th>完全版</th></tr></thead>

@@ -46,3 +46,14 @@
 - `python scripts/e2e.py`(管理栄養士の流れ。前と同じ)
 - `python scripts/e2e_multi.py`(試験の切り替え。main を組んだ dist を `npx vite preview --port 5193` で出しておくと、前の版で作った記録を新しい版で読む確認もする)
 - scripts/make_screenshots.py・shot_paywall.py は前の1試験の形のまま(public/data/questions.json を読む)。試験を選べる版の写真は make_store_multi.py
+
+## 見た目の作り直し(2026-10-10・Android 1.3.0 / versionCode 5)
+持ち主が ChatGPT に作らせた UI の見本(Downloads/nigatecho_ref_1〜5_941x1672.png)と新しいアイコン(store/icon_source_2026-10-10.png)に合わせた。機能・商品・問題データは変えていない。
+- 下のタブ: ホーム・問題を探す・苦手ノート・成績・設定。苦手ノート(科目ごと・連続正解 0/2・1/2)と成績(総合・科目別・推移・計画)は画面を新しく足したが、中の数はどれも前からある記録(records・daily・mocks)から出す
+- 問題は「選んでから答え合わせ」→ 解説の画面(正解/不正解・この問題のステータス・正答の理由・選択肢ごとの解説)。解説の文は src/domain/explain.ts で「正答 N:」と「N ×」の行で見出しに分けるだけ(文は変えない。全3,272問で元の文と一致するのを explain.test.ts が見る)
+- 絵は見本から切り出した(scripts/make_redesign_assets.py → src/assets/ill)。アイコンは scripts/make_icon_redesign.py(元の物は store/_icon_backup/、確かめの絵は store/_icon_check.png)
+- 確かめ: npm run test:all・python scripts/e2e_redesign.py(5試験×375/430、開発サーバー npx vite --port 5291)・python scripts/make_compare_redesign.py(docs/compare_redesign_*.png)
+- ストアの画像: python scripts/make_store_redesign.py → store/multi/iphone・ipad・play(前の物は store/_old_2026-10-10/)。写真に「無料」「¥」「円」が映ったら止まる。試験の切り替え画面は開発サーバーの ?shot=1 で値段と無料の行を消して撮る
+- 前の見た目用の scripts/e2e.py・e2e_multi.py・make_store_multi.py・make_screenshots.py は、画面の部品の名前が変わったので、そのままでは通らない(新しい見た目の確かめは e2e_redesign.py)
+- iOS はまだ出していない(1.2.1 が審査待ち)。App Review の録画用の自動操作 src/dev/reviewTour.ts は「選んでから答え合わせ」に合わせ直し、scripts/check_review_tour.py で最後(購入画面)まで進むのを確かめた
+- AAB は 27.9MB(図 約18MB・dex 約5MB)。10MB 未満にするには問題の図の画質を落とすしかないので、していない

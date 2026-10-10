@@ -35,6 +35,7 @@ android/local.properties
 scripts/e2e_out/
 **/store/raw/
 store/multi/raw/
+store/multi/raw_redesign/
 scripts/__pycache__/
 
 # scripts/use-exam.mjs が試験ごとに作る物

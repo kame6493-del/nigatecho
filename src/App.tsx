@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, selectExam } from './domain/exam';
-import { isLocked, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
+import { isLocked, isNigate, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
 import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
@@ -15,9 +15,17 @@ import { SettingsPage } from './ui/SettingsPage';
 import { MockHistory } from './ui/MockHistory';
 import { SourcesPage } from './ui/SourcesPage';
 import { ExamSwitch } from './ui/ExamSwitch';
+import { Search } from './ui/Search';
+import { NoteBook } from './ui/NoteBook';
+import { Stats } from './ui/Stats';
+import { TabBar, type Tab } from './ui/parts';
+import { setDailyReminder } from './platform/native';
 
 export type Route =
   | { name: 'home' }
+  | { name: 'search' }
+  | { name: 'note' }
+  | { name: 'stats' }
   | { name: 'quiz'; session: Session }
   | { name: 'exams'; mock: boolean }
   | { name: 'subjects' }
@@ -64,6 +72,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   const [billing, setBilling] = useState<BillingState>({ status: 'unavailable', reason: '読み込み中', access: EMPTY_ACCESS });
   const [stack, setStack] = useState<Route[]>([{ name: 'home' }]);
   const route = stack[stack.length - 1];
+  // 画面が替わったら上から見せる(前の画面のスクロールの位置を持ち越さない)
+  useEffect(() => { window.scrollTo(0, 0); }, [route]);
   const dataRef = useRef<AppData | null>(null);
 
   useEffect(() => {
@@ -99,12 +109,19 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   const push = useCallback((r: Route) => setStack((s) => [...s, r]), []);
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
   const home = useCallback(() => setStack([{ name: 'home' }]), []);
+  /** 下のタブ。押したタブを一番下にして積み直す */
+  const goTab = useCallback((t: Tab) => { setStack([{ name: t }]); window.scrollTo(0, 0); }, []);
+  /** 年度別と科目別の切り替え(戻る先は同じ) */
+  const swapTop = useCallback((r: Route) => setStack((s) => [...s.slice(0, -1), r]), []);
+  const [remindMsg, setRemindMsg] = useState('');
 
   // Android の戻るボタン
   useEffect(() => {
     const h = CapApp.addListener('backButton', () => {
       setStack((s) => {
         if (s.length > 1) return s.slice(0, -1);
+        // ホーム以外のタブからは、ホームへ戻る
+        if (s[0].name !== 'home') return [{ name: 'home' }];
         CapApp.minimizeApp().catch(() => {});
         return s;
       });
@@ -154,9 +171,21 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   if (!data || !all) return <div className="splash"><span>ニガテ帳</span></div>;
 
   const fontStyle = { ['--fs' as string]: String(data.settings.fontScale) };
+  const tabNames: Route['name'][] = ['home', 'search', 'note', 'stats', 'settings'];
+  const onTab = stack.length === 1 && tabNames.includes(route.name);
+  const nigateCount = open.filter((q) => isNigate(data.records[q.id])).length;
+  const onSubject = (s: string) => start(s, open.filter((q) => q.subject === s && !q.excluded).sort((a, b) => sortNigateFirst(a, b, data)));
+  /** 毎日のお知らせ(成績の「計画」から。設定の画面と同じ文で、端末に1つ) */
+  const setRemind = async (on: boolean) => {
+    const s = data.settings;
+    const ok = await setDailyReminder(on, s.remindAt, '前に間違えた問題を、今日も数問だけ。');
+    if (on && !ok) { setRemindMsg('お知らせが許可されていません。端末の設定から許可してください。'); return; }
+    setRemindMsg('');
+    update((d) => ({ ...d, settings: { ...d.settings, remind: on } }));
+  };
 
   return (
-    <div className="app" style={fontStyle}>
+    <div className={`app ${onTab ? 'has-tabs' : ''}`} style={fontStyle}>
       {route.name === 'home' && (
         <Home
           data={data} all={all} open={open} premium={premium}
@@ -167,13 +196,49 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onExams={() => push({ name: 'exams', mock: false })}
           onSubjects={() => push({ name: 'subjects' })}
           onMock={() => push({ name: 'exams', mock: true })}
-          onMockHistory={() => push({ name: 'mocks' })}
-          onSubject={(s) => start(s, open.filter((q) => q.subject === s && !q.excluded).sort((a, b) => sortNigateFirst(a, b, data)))}
           onPaywall={() => push({ name: 'paywall', from: 'home' })}
-          onSettings={() => push({ name: 'settings' })}
+          onSettings={() => goTab('settings')}
+          onNote={() => goTab('note')}
+          onStats={() => goTab('stats')}
           onSources={() => push({ name: 'sources' })}
           onSwitchExam={() => push({ name: 'switch' })}
           onExemptOnly={(on) => update((d) => ({ ...d, settings: { ...d.settings, exemptOnly: on } }))}
+        />
+      )}
+      {route.name === 'search' && (
+        <Search
+          all={all} open={open} data={data} premium={premium}
+          onExams={() => push({ name: 'exams', mock: false })}
+          onSubjects={() => push({ name: 'subjects' })}
+          onUnseen={starters.unseen}
+          onRandom={starters.random}
+          onMarks={starters.marks}
+          onMock={() => push({ name: 'exams', mock: true })}
+          onPaywall={() => push({ name: 'paywall', from: 'search' })}
+          onMockHistory={() => push({ name: 'mocks' })}
+        />
+      )}
+      {route.name === 'note' && (
+        <NoteBook
+          data={data} open={open}
+          onSolve={(title, qs) => start(title, qs)}
+          onNigate={() => starters.nigate()}
+          onRandom={starters.random}
+        />
+      )}
+      {route.name === 'stats' && (
+        <Stats
+          data={data} all={all} open={open}
+          onExemptOnly={(on) => update((d) => ({ ...d, settings: { ...d.settings, exemptOnly: on } }))}
+          onSubject={onSubject}
+          onNote={() => goTab('note')}
+          onNigate={() => starters.nigate()}
+          onUnseen={starters.unseen}
+          onRandom={starters.random}
+          onSettings={() => goTab('settings')}
+          onMockHistory={() => push({ name: 'mocks' })}
+          onRemind={setRemind}
+          remindMsg={remindMsg}
         />
       )}
       {route.name === 'switch' && (
@@ -193,6 +258,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onBack={back}
           onLocked={() => push({ name: 'paywall', from: 'exam' })}
           onStart={(title, qs, exam) => start(title, qs, route.mock ? 'mock' : 'practice', exam)}
+          onSubjects={route.mock ? undefined : () => swapTop({ name: 'subjects' })}
         />
       )}
       {route.name === 'subjects' && (
@@ -201,6 +267,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onBack={back}
           onPaywall={() => push({ name: 'paywall', from: 'subject' })}
           onStart={(title, qs) => start(title, qs)}
+          onExams={() => swapTop({ name: 'exams', mock: false })}
         />
       )}
       {route.name === 'quiz' && (
@@ -237,10 +304,12 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onRestored={() => loadBilling().then(setBilling)}
           onSources={() => push({ name: 'sources' })}
           onSwitchExam={() => push({ name: 'switch' })}
+          asTab={stack.length === 1}
         />
       )}
       {route.name === 'mocks' && <MockHistory data={data} onBack={back} />}
       {route.name === 'sources' && <SourcesPage exams={[...new Set(all.map((q) => q.exam))]} onBack={back} />}
+      {onTab && <TabBar tab={route.name as Tab} onTab={goTab} badge={nigateCount} />}
     </div>
   );
 

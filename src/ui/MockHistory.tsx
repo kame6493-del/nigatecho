@@ -1,7 +1,7 @@
 import type { AppData } from '../domain/types';
 import { EXAM } from '../domain/exam';
 import { passScoreOf } from '../domain/study';
-import { TopBar } from './Quiz';
+import { TopBar } from './parts';
 
 export function MockHistory({ data, onBack }: { data: AppData; onBack: () => void }) {
   const list = data.mocks.slice().reverse();
