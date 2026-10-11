@@ -6,7 +6,8 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const multi = JSON.parse(readFileSync('exams/multi.json', 'utf8'));
+// 引数で設定のファイルを替えられる(臨床検査技師の単体のアプリは exams/multi.rinsho.json)
+const multi = JSON.parse(readFileSync(process.argv[2] ?? 'exams/multi.json', 'utf8'));
 const read = (dir) => JSON.parse(readFileSync(join('exams', dir, 'exam.json'), 'utf8'));
 const app = read(multi.appExam);
 // まとめアプリの名前。ストアと capacitor は appName、ホーム画面(アイコンの下)は homeName。無ければ appExam の物
@@ -37,7 +38,7 @@ writeFileSync('capacitor.config.json', JSON.stringify({
   appId: app.appId,
   appName,
   webDir: 'dist',
-  backgroundColor: '#fbf8f1',
+  backgroundColor: multi.background ?? '#fbf8f1',
   android: { path: `exams/${multi.appExam}/android`, allowMixedContent: false },
   ios: { path: `exams/${multi.appExam}/ios`, contentInset: 'never' },
 }, null, 2) + '\n');

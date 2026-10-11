@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { AppData, Settings } from '../domain/types';
-import { APP, EXAM } from '../domain/exam';
+import { APP, EXAM, SINGLE } from '../domain/exam';
 import { disclaimerOf } from '../domain/sources';
 import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
@@ -30,7 +30,7 @@ export function SettingsPage(p: {
     <div className="page settings">
       {p.asTab ? <header className="tab-head"><h1>設定</h1></header> : <TopBar title="設定" onClose={p.onBack} />}
       <ul className="form">
-        <li><span>試験</span><button className="btn small" onClick={p.onSwitchExam}>{EXAM.name}(切り替える)</button></li>
+        <li><span>試験</span>{SINGLE ? <b>{EXAM.name}</b> : <button className="btn small" onClick={p.onSwitchExam}>{EXAM.name}(切り替える)</button>}</li>
         <li>
           <label htmlFor="exam-date">試験日</label>
           <input id="exam-date" type="date" value={s.examDate} onChange={(e) => p.onChange({ examDate: e.target.value })} />
@@ -76,7 +76,7 @@ export function SettingsPage(p: {
         <div className="sheet-backdrop" onClick={() => setConfirm(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <h3>{EXAM.name}の記録を消しますか</h3>
-            <p>{EXAM.name}の解いた記録・苦手・しるし・模試の結果がすべて消えます(ほかの試験の記録は消えません)。元には戻せません。完全版の購入は消えません。</p>
+            <p>{EXAM.name}の解いた記録・苦手・しるし・模試の結果がすべて消えます{SINGLE ? '' : '(ほかの試験の記録は消えません)'}。元には戻せません。完全版の購入は消えません。</p>
             <div className="sheet-actions">
               <button className="btn" onClick={() => setConfirm(false)}>やめる</button>
               <button className="btn danger" onClick={() => { p.onReset(); setConfirm(false); }}>消す</button>

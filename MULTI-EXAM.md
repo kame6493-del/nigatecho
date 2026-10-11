@@ -57,3 +57,12 @@
 - 前の見た目用の scripts/e2e.py・e2e_multi.py・make_store_multi.py・make_screenshots.py は、画面の部品の名前が変わったので、そのままでは通らない(新しい見た目の確かめは e2e_redesign.py)
 - iOS はまだ出していない(1.2.1 が審査待ち)。App Review の録画用の自動操作 src/dev/reviewTour.ts は「選んでから答え合わせ」に合わせ直し、scripts/check_review_tour.py で最後(購入画面)まで進むのを確かめた
 - AAB は 27.9MB(図 約18MB・dex 約5MB)。10MB 未満にするには問題の図の画質を落とすしかないので、していない
+
+## 臨床検査技師の単体のアプリを新しい見た目に(2026-10-11・Android 1.1.0 / versionCode 3。rinsho-1.1.0-redesign ブランチ)
+Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionCode 2)を、まとめ版の新しい見た目(6e0fc78)と同じ作りで組む。問題データ・商品(nigatecho_rinsho_full / entitlement full / ¥980)・無料の回・記録の保存先(nigatecho.rinsho-kensa.v1)は前の版のまま。iOS(1.0.2 は 4.3(a) の重複のおそれで止めている)には出さない。
+- 組み方: `node scripts/use-multi.mjs exams/multi.rinsho.json` → `npm run build` → `npx cap sync android` → `powershell -File scripts/build-android.ps1 -Exam rinsho`(終わったら `node scripts/use-multi.mjs` でまとめアプリに戻す)
+- 試験が1つだけのとき(src/domain/exam.ts の SINGLE)は、試験を切り替える所(ホームのボタン・設定のボタン・購入画面の「ほかの試験」の文)を出さない。ホームの頭は「臨床検査技師の過去問」
+- 地はクリームの無地にせず、淡い青の方眼(index.css の html[data-app="rinsho"])。試験のカードは淡い青(look.ts の rinsho)
+- アイコン: まとめ版の新しいアイコンから作る(新しく描かない)。`python scripts/make_icon_source_rinsho.py`(クリームを淡い青に・下の線の所に「臨床検査」の札)→ `python scripts/make_icon_redesign.py store/icon_source_rinsho.png rinsho`(Android・iOS の殻・exams/rinsho/store/play/icon_512.png・src/assets/logo_rinsho.png)
+- 確かめ: `npm run test:all`(まとめアプリと臨床検査技師の両方で組んで流す。臨床検査技師は src/domain/single.test.ts)・`python scripts/e2e_redesign.py http://localhost:<開発サーバー>/ --exams rinsho`(165項目)
+- 画面写真: docs/rinsho_1.1.0/

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
-import { EXAM } from '../domain/exam';
+import { EXAM, SINGLE } from '../domain/exam';
 import { dayKey, examRange, isNigate, streakDays, unseen } from '../domain/study';
 import { lastDays } from '../domain/summary';
 import { ART, lookOf, weekday } from './look';
@@ -51,11 +51,21 @@ export function Home(p: Props) {
       <header className="app-head">
         <div className="logo">
           <img src={ART.logo} alt="" />
-          <span><b>ニガテ帳</b><small>国家試験の過去問</small></span>
+          <span><b>ニガテ帳</b><small>{SINGLE ? `${EXAM.name}の過去問` : '国家試験の過去問'}</small></span>
         </div>
         <button className="icon" onClick={p.onSettings} aria-label="設定"><IGear /></button>
       </header>
 
+      {SINGLE ? (
+      <section className="exam-card single" style={{ background: look.tint }}>
+        <div className="exam-card-main">
+          <span className="exam-tag">受ける試験</span>
+          <span className="exam-name brand-sub" data-exam={EXAM.dir} style={{ color: look.ink }}>{EXAM.name}</span>
+          <img className="exam-art" src={look.img} alt="" />
+        </div>
+        <p className="exam-catch">{look.catch}</p>
+      </section>
+      ) : (
       <section className="exam-card" style={{ background: look.tint }}>
         <button className="exam-card-main" onClick={p.onSwitchExam} aria-label={`いまの試験 ${EXAM.name}`}>
           <span className="exam-tag">現在の試験</span>
@@ -65,6 +75,7 @@ export function Home(p: Props) {
         </button>
         <button className="btn primary wide exam-switch" onClick={p.onSwitchExam} aria-label="試験を切り替える">試験を切り替える<IRepeat size={18} /></button>
       </section>
+      )}
 
       {seen === 0 ? (
         <section className="card hero hero-first">
