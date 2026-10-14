@@ -25,23 +25,54 @@ describe('評価のお願いの時機', () => {
     expect(run([plain, { cleared: 3, nigateLeft: 4, correctRate: 0.6 }]).asked).toEqual([2]);
   });
 
+  it('苦手ノートから消せた数の合計が3問目になった回でお願いする(1問ずつでも)', () => {
+    const one = { cleared: 1, nigateLeft: 6, correctRate: 0.7 };
+    expect(run([one, one, one]).asked).toEqual([3]);
+    // 2問ずつなら2回目(合計4)
+    const two = { cleared: 2, nigateLeft: 6, correctRate: 0.7 };
+    expect(run([two, two]).asked).toEqual([2]);
+  });
+
   it('最後の苦手を片づけた(残り0)ときもお願いする', () => {
     expect(run([plain, { cleared: 1, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([2]);
   });
 
-  it('初めて解き終えた回では出さない(2回目から)', () => {
+  it('初めて解き終えた練習の回では出さない(2回目から)', () => {
     expect(run([{ cleared: 5, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([]);
+  });
+
+  it('最後の問題が不正解だった回では出さない(次のうれしい回まで待つ)', () => {
+    const lastWrong = { cleared: 3, nigateLeft: 2, correctRate: 0.8, lastOk: false };
+    const lastRight = { cleared: 1, nigateLeft: 2, correctRate: 0.8, lastOk: true };
+    expect(run([plain, lastWrong]).asked).toEqual([]);
+    expect(run([plain, lastWrong, lastRight]).asked).toEqual([3]);
+  });
+
+  it('苦手が外れていない回では出さない(合計が3を超えていても)', () => {
+    const win = { cleared: 3, nigateLeft: 2, correctRate: 0.6 };
+    const { s } = run([plain, win]);
+    expect(run([{ cleared: 0, nigateLeft: 2, correctRate: 0.9 }], s, T0 + 100 * DAY).asked).toEqual([]);
   });
 
   it('苦手が2問外れただけ・苦手がもともと無いだけでは出さない', () => {
     expect(run([plain, { cleared: 2, nigateLeft: 3, correctRate: 1 }, { cleared: 0, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([]);
   });
 
-  it('お願いしたら60日はあける', () => {
+  it('模試で合格点を超えたらお願いする(初めての模試でも)', () => {
+    const passed = { cleared: 0, nigateLeft: -1, correctRate: 0.75, passed: true };
+    const failed = { cleared: 0, nigateLeft: -1, correctRate: 0.5, passed: false };
+    expect(run([passed]).asked).toEqual([1]);
+    expect(run([failed, failed]).asked).toEqual([]);
+  });
+
+  it('お願いしたら60日はあける(Apple の年3回より少ない)', () => {
     const win = { cleared: 3, nigateLeft: 0, correctRate: 1 };
     // 毎日うれしい回が続いても、次は60日後
     const { asked } = run(Array.from({ length: 70 }, (_, i) => (i === 0 ? plain : win)));
     expect(asked).toEqual([2, 62]);
+    // 1年(365日)毎日うれしい回でも、お願いは最大7回(60日おき)。OS がさらに年3回に絞る
+    const year = run(Array.from({ length: 365 }, () => ({ cleared: 3, nigateLeft: 0, correctRate: 1, passed: true })));
+    for (let k = 1; k < year.asked.length; k++) expect(year.asked[k] - year.asked[k - 1]).toBeGreaterThanOrEqual(60);
   });
 
   it('苦手の動きが無いまま解き続けている人には、5回目以降のよく解けた回で1度だけ(前の条件)', () => {
@@ -54,21 +85,21 @@ describe('評価のお願いの時機', () => {
     expect(run([{ cleared: 3, nigateLeft: 2, correctRate: 0.6 }], first, T0 + 100 * DAY).asked).toEqual([1]);
   });
 
-  it('模試(苦手の出入りを数えない)は前の条件だけ', () => {
+  it('模試(苦手の出入りを数えない)は合格か前の条件だけ', () => {
     const mock = { cleared: 0, nigateLeft: -1, correctRate: 0.9 };
     expect(run([mock, mock]).asked).toEqual([]);
     expect(run([mock, mock, mock, mock, mock]).asked).toEqual([5]);
   });
 
-  it('数えた回とお願いした時刻を残す', () => {
+  it('数えた回・消せた数の合計・お願いした時刻を残す', () => {
     const { s } = run([plain, { cleared: 3, nigateLeft: 0, correctRate: 1 }, plain]);
-    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY });
+    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY, cleared: 3 });
   });
 
-  it('保存した記録が壊れていても0から数える', () => {
+  it('保存した記録が壊れていても0から数える(前の版の記録も読める)', () => {
     expect(normalizeReview(null)).toEqual(EMPTY_REVIEW);
     expect(normalizeReview({ sessions: 'x', askedAt: -5 })).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ sessions: 4, askedAt: T0 });
+    expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ sessions: 4, askedAt: T0, cleared: 0 });
   });
 });
 

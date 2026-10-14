@@ -144,6 +144,7 @@ function Practice(p: Props & { qs: Question[] }) {
         cleared: done.filter((d) => d.wasNigate && !isNigate(p.data.records[d.id])).length,
         nigateLeft: Object.values(p.data.records).filter(isNigate).length,
         correctRate: done.filter((d) => d.ok).length / n,
+        lastOk: done.length ? done[done.length - 1].ok : undefined,
       });
       return;
     }
@@ -352,12 +353,13 @@ function MockRun(p: Props & { qs: Question[] }) {
     // 答えていない問題は記録に残さない(解いていない物を「苦手」にしない)
     p.onMockDone(m, answers.filter((a) => (ans[a.q.id]?.length ?? 0) > 0));
     setResult(m);
-    // 模試は苦手の出入りを数えない(前の版と同じ「よく解けた回」だけで見る)
-    p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total) });
+    // 模試は苦手の出入りを数えない。合格点を超えたかと「よく解けた回」で見る
+    p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total), passed: judge(m).passed });
   };
 
-  if (result) {
-    const ps = passScoreOf(result.exam, result.total, EXAM);
+  /** 合格の判定(結果の画面と評価のお願いで同じ物を使う) */
+  function judge(m: MockResult) {
+    const ps = passScoreOf(m.exam, m.total, EXAM);
     const pass = ps.score;
     // 総得点とは別の基準(理学療法士の実地問題)。解いた問題の配点から数える
     const sp = EXAM.subPass;
@@ -366,8 +368,13 @@ function MockRun(p: Props & { qs: Question[] }) {
     const subScore = subQs.reduce((t, x) => t + (ans[x.id] !== undefined && isCorrect(x, ans[x.id]) ? pointsOf(x) : 0), 0);
     const subPassPts = sp ? Math.ceil(subTotal * sp.ratio) : 0;
     const subOk = !sp || subTotal === 0 || subScore >= subPassPts;
-    const zeros = zeroGroups(result.bySubject, EXAM);
-    const passed = result.score >= pass && subOk && zeros.length === 0;
+    const zeros = zeroGroups(m.bySubject, EXAM);
+    const passed = m.total > 0 && m.score >= pass && subOk && zeros.length === 0;
+    return { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed };
+  }
+
+  if (result) {
+    const { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed } = judge(result);
     const wrong = qs.filter((x) => !x.excluded && !(ans[x.id] !== undefined && isCorrect(x, ans[x.id])));
     return (
       <div className="page result">

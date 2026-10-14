@@ -165,6 +165,11 @@ def run(pg, width, exam, keys):
         pg.wait_for_selector(".note-page")
     check(pg.locator(f".note-items button[data-qid='{target}']").count() == 0, f"{exam}: 2回続けて正解した問題はノートから消える")
     check(nigate_count(pg, exam, key) == n_ng - 1, f"{exam}: 苦手が1つ減る")
+    # 評価のお願いの記録(1.3.1): 解き終えた回3つ・苦手ノートから消せた数1。合計がまだ3に届かないのでお願いしていない
+    pg.wait_for_timeout(300)
+    rv = pg.evaluate("() => JSON.parse(localStorage.getItem('CapacitorStorage.nigatecho.review') || 'null')")
+    check(rv is not None and rv.get("sessions") == 3 and rv.get("cleared") == 1 and rv.get("askedAt") == 0,
+          f"{exam}: 評価の記録 解き終えた3回・消せた1問・まだお願いしない({rv})")
 
     # 成績(見本データで予想点まで出す)
     pg.goto(f"{URL}?demo=1&exam={exam}&n=420&acc=0.68&premium=1")
