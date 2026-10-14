@@ -57,3 +57,13 @@
 - 前の見た目用の scripts/e2e.py・e2e_multi.py・make_store_multi.py・make_screenshots.py は、画面の部品の名前が変わったので、そのままでは通らない(新しい見た目の確かめは e2e_redesign.py)
 - iOS はまだ出していない(1.2.1 が審査待ち)。App Review の録画用の自動操作 src/dev/reviewTour.ts は「選んでから答え合わせ」に合わせ直し、scripts/check_review_tour.py で最後(購入画面)まで進むのを確かめた
 - AAB は 27.9MB(図 約18MB・dex 約5MB)。10MB 未満にするには問題の図の画質を落とすしかないので、していない
+
+## iOS 1.3.1(2026-10-14・ビルド 24・審査に提出)
+- 評価のお願い(src/domain/review.ts): OS の評価の画面(SKStoreReviewController、@capacitor-community/in-app-review)だけ。自前の星の画面は作らない
+  - 練習: 2回目以降に解き終えた回で、その回に苦手ノートから1問以上消せて、消せた数の合計が3問以上(または苦手が0)、かつ最後の答えが正解
+  - 模試: 合格点を超えた回(結果の画面と同じ判定)
+  - 前からの条件: 5回目以降で正答率70%以上の回に1度だけ
+  - 60日はあける。記録は Preferences の nigatecho.review(sessions・askedAt・cleared)
+- 確かめ: npm run test:all 72件・python scripts/e2e_redesign.py 821/0(評価の記録の確認を足した)
+- 掲載(ASC): 名前「介護福祉士 社会福祉士 過去問2027 ニガテ帳」・サブタイトル「精神保健福祉士・管理栄養士・理学療法士の国試」・キーワード・写真の並び(1枚目の見出しと5試験を3枚目へ)。作り方は ios_release/aso_2026-10-14/v131/(prep_131.py・make_shots_131.py)
+- 年齢区分 16+ は据え置き: 医療・治療を扱う科目が収録の3分の1を超えるので「医療または治療情報=頻繁」が事実どおり
