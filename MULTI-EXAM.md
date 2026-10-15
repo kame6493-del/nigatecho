@@ -66,3 +66,12 @@ Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionC
 - アイコン: まとめ版の新しいアイコンから作る(新しく描かない)。`python scripts/make_icon_source_rinsho.py`(クリームを淡い青に・下の線の所に「臨床検査」の札)→ `python scripts/make_icon_redesign.py store/icon_source_rinsho.png rinsho`(Android・iOS の殻・exams/rinsho/store/play/icon_512.png・src/assets/logo_rinsho.png)
 - 確かめ: `npm run test:all`(まとめアプリと臨床検査技師の両方で組んで流す。臨床検査技師は src/domain/single.test.ts)・`python scripts/e2e_redesign.py http://localhost:<開発サーバー>/ --exams rinsho`(165項目)
 - 画面写真: docs/rinsho_1.1.0/
+
+## 理学療法士・介護福祉士の単体のアプリを新しい見た目に(2026-10-15・Android 1.1.0。ptkaigo-1.1.0-redesign ブランチ)
+臨床検査技師(rinsho-1.1.0-redesign)と同じ組み方。宣伝のずんだもん動画 v3 と同じ見た目(地はまとめ版のまま)。
+- 理学療法士 jp.nigatecho.rigakuryouhoushi: 1.1.0 / versionCode 3(前 1.0.1 / 2)。`node scripts/use-multi.mjs exams/multi.pt.json` → `npm run build` → `npx cap sync android` → `powershell -File scripts/build-android.ps1 -Exam pt`
+- 介護福祉士 jp.kaigonigate.app: 1.1.0 / versionCode 4(前 1.0.2 / 3、別リポジトリ kaigonigate)。殻 exams/kaigo/android・ios・assets は kaigonigate から写した物。署名は %LOCALAPPDATA%\KaigoNigateBuild の鍵(build-android.ps1 -Exam kaigo が KN_UPLOAD_* で渡す。無ければ止まる)
+- 商品・entitlement・記録の保存先・問題データは前の版のまま。介護の科目パック(pack_<id>)は売らないが、買った人の科目は開く(multi.kaigo.json の packs・study.ts の setUnlockedSubjects)
+- 端末がダークモードでもステータスバーの文字を黒に(multi.*.json の plugins.SystemBars と殻の styles.xml。介護 1.0.2 の直しを理学にも)
+- アイコン: `python scripts/make_icon_source_single.py <pt|kaigo>` → `python scripts/make_icon_redesign.py store/icon_source_<試験>.png <試験>`
+- 確かめ: `npm run test:all`(まとめ+臨床+理学+介護)・`python scripts/e2e_redesign.py <URL> --exams pt`(164)/`kaigo`(165)

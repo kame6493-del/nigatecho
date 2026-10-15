@@ -24,7 +24,13 @@ export function isCorrect(q: Question, picked: number | number[]): boolean {
 }
 
 export function isLocked(q: Question, premium: boolean, cfg: ExamConfig): boolean {
-  return !premium && !cfg.freeExams.includes(q.exam);
+  return !premium && !cfg.freeExams.includes(q.exam) && !unlockedSubjects.has(q.subject);
+}
+
+/** 前に買った科目パックで開いている科目(介護福祉士の単体のアプリだけ。App.tsx が課金の状態から入れる) */
+let unlockedSubjects = new Set<string>();
+export function setUnlockedSubjects(subjects: string[]) {
+  unlockedSubjects = new Set(subjects);
 }
 
 /** 苦手 = 間違えたことがあって、まだ2回続けて正解していない問題 */

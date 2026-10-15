@@ -15,8 +15,17 @@ if (!(Test-Path "$env:JAVA_HOME\bin\java.exe")) { throw 'JDK が見つかりま�
 
 $secretDir = Join-Path $env:LOCALAPPDATA 'NigatechoBuild\signing'
 if ($Exam -ne 'kanri') { $secretDir = Join-Path $secretDir $Exam }
-New-Item -ItemType Directory -Force $secretDir | Out-Null
 $store = Join-Path $secretDir 'nigatecho-upload.jks'
+$envName = 'NG'
+# 介護福祉士の単体のアプリ(jp.kaigonigate.app)は別リポジトリ kaigonigate で出したので、鍵もその時の物(KaigoNigateBuild)。
+# 殻の build.gradle は KN_UPLOAD_STORE / KN_UPLOAD_PASSWORD と別名 kaigonigate-upload を読む。鍵が無ければ作らずに止める
+if ($Exam -eq 'kaigo') {
+  $secretDir = Join-Path $env:LOCALAPPDATA 'KaigoNigateBuild\signing'
+  $store = Join-Path $secretDir 'kaigonigate-upload.jks'
+  $envName = 'KN'
+  if (!(Test-Path $store)) { throw "介護福祉士の署名鍵がありません: $store(作り直さない)" }
+}
+New-Item -ItemType Directory -Force $secretDir | Out-Null
 $passFile = Join-Path $secretDir 'upload-password.dpapi'
 if (!(Test-Path $store)) {
   if (Test-Path $passFile) { throw 'パスワードだけ残っていて鍵がありません。鍵を復元してください(作り直さない)' }
@@ -34,12 +43,14 @@ if (!(Test-Path $store)) {
   Write-Output "署名鍵を作りました: $store (PC を替える前に、このフォルダごと安全な場所へ控えてください)"
 } else {
   $secure = Get-Content $passFile | ConvertTo-SecureString
-  $env:NG_UPLOAD_PASSWORD = [System.Net.NetworkCredential]::new('', $secure).Password
+  Set-Item "Env:${envName}_UPLOAD_PASSWORD" ([System.Net.NetworkCredential]::new('', $secure).Password)
 }
-$env:NG_UPLOAD_STORE = $store
+Set-Item "Env:${envName}_UPLOAD_STORE" $store
 
-$drive = 'K:'
-if (Test-Path "$drive\") { throw "$drive は使用中です" }
+# 空いているドライブ文字を選ぶ(ほかの作業が K: などを使っていることがある)
+$drive = $null
+foreach ($l in 'K','Q','R','T','U','V','W','X','Y') { if (!(Test-Path "${l}:\")) { $drive = "${l}:"; break } }
+if (!$drive) { throw '空いているドライブ文字がありません' }
 subst $drive (Split-Path $repo -Parent)
 try {
   $proj = "$drive\$(Split-Path $repo -Leaf)\exams\$Exam\android"
@@ -53,5 +64,5 @@ try {
   Write-Output "出力: $out"
 } finally {
   subst $drive /D
-  Remove-Item Env:NG_UPLOAD_PASSWORD, Env:NG_UPLOAD_STORE -ErrorAction SilentlyContinue
+  Remove-Item Env:NG_UPLOAD_PASSWORD, Env:NG_UPLOAD_STORE, Env:KN_UPLOAD_PASSWORD, Env:KN_UPLOAD_STORE -ErrorAction SilentlyContinue
 }

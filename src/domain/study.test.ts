@@ -111,7 +111,8 @@ describe('集計と推定', () => {
     let d = emptyData();
     for (const x of qs) d = record(d, x, true, T0);
     let est = estimate(subjectStats(qs, d, EXAM), subjectWeights(qs, EXAM), EXAM)!;
-    expect(est).toMatchObject({ score: TOTAL, pass: Math.ceil(TOTAL * EXAM.passRatio), total: TOTAL, coverage: 1 });
+    // 回ごとの公式の合格点がある試験(介護福祉士など)は、合格点はそちらで決まるのでここでは見ない
+    expect(est).toMatchObject({ score: TOTAL, total: TOTAL, coverage: 1, ...(EXAM.passScores ? {} : { pass: Math.ceil(TOTAL * EXAM.passRatio) }) });
 
     d = emptyData();
     // 前半5科目だけ、各科目20問中10問正解。残りの科目は平均(5割)で埋まる

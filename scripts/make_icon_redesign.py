@@ -28,6 +28,10 @@ BG = (251, 246, 239)         # アプリの地の色(スプラッシュ)
 if EXAM == "rinsho":         # 臨床検査技師: 淡い青(index.css の html[data-app="rinsho"] の --bg)
     CREAM = (222, 234, 247)
     BG = (237, 244, 248)
+elif EXAM == "pt":           # 理学療法士: アイコンのカードは淡い紫(look.ts の pt)。地(スプラッシュ)はアプリの地のまま
+    CREAM = (234, 231, 250)
+elif EXAM == "kaigo":        # 介護福祉士: アイコンのカードは淡い桃色(look.ts の kaigo)
+    CREAM = (244, 230, 230)
 SRC = sys.argv[1]
 
 

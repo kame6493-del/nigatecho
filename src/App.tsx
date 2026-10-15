@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, selectExam } from './domain/exam';
-import { isLocked, isNigate, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
+import { isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
 import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
@@ -96,6 +96,10 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
 
   /** いま選んでいる試験の完全版を持っているか */
   const premium = !!billing.access[EXAM.dir];
+  /** 前に買った科目パックの科目(介護福祉士の単体のアプリだけ。無ければ空) */
+  const packSubjects = billing.status === 'ready' ? (billing.subjects ?? []) : [];
+  const packKey = packSubjects.join('|');
+  setUnlockedSubjects(packSubjects);
 
   const update = useCallback((f: (d: AppData) => AppData) => {
     const cur = dataRef.current;
@@ -130,7 +134,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   }, []);
 
   /** 鍵の無い問題(買っていなければ無料の回だけ) */
-  const open = useMemo(() => (all ?? []).filter((q) => !isLocked(q, premium, EXAM)), [all, premium]);
+  const open = useMemo(() => (all ?? []).filter((q) => !isLocked(q, premium, EXAM)), [all, premium, packKey]);
   const byId = useMemo(() => new Map((all ?? []).map((q) => [q.id, q])), [all]);
 
   const start = useCallback((title: string, qs: Question[], mode: Session['mode'] = 'practice', exam?: number) => {
@@ -143,7 +147,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
     unseen: () => data && start('まだ解いていない問題', shuffle(unseen(open, data), rng(Date.now())).slice(0, 20)),
     random: () => start('ランダム10問', shuffle(open.filter((q) => !q.excluded), rng(Date.now())).slice(0, 10)),
     marks: () => data && start('しるしを付けた問題', data.marks.map((id) => byId.get(id)).filter((q): q is Question => !!q && !isLocked(q, premium, EXAM))),
-  }), [data, open, byId, premium, start]);
+  }), [data, open, byId, premium, start, packKey]);
 
   const finishMock = useCallback((m: MockResult, answers: { q: Question; ok: boolean }[]) => {
     update((d) => {
