@@ -1,12 +1,17 @@
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { AppData, Settings } from '../domain/types';
 import { APP, EXAM, SINGLE } from '../domain/exam';
 import { disclaimerOf } from '../domain/sources';
+import { storeReviewUrl } from '../domain/review';
 import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
 import { TopBar } from './parts';
 
 const SITE = APP.site;
+/** ストアの評価を書くページ(見返りは無し。押したい人だけ) */
+const REVIEW_URL = storeReviewUrl(Capacitor.getPlatform(), APP.appId);
+const STORE_NAME = Capacitor.getPlatform() === 'ios' ? 'App Store' : 'Google Play';
 
 export function SettingsPage(p: {
   data: AppData; premium: boolean;
@@ -65,6 +70,7 @@ export function SettingsPage(p: {
 
       <ul className="links">
         <li><button className="linkish" onClick={p.onSources}>出典と参考文献</button></li>
+        {REVIEW_URL && <li><a href={REVIEW_URL} target="_blank" rel="noreferrer">{STORE_NAME}で評価する</a></li>}
         <li><a href={`${SITE}support.html`} target="_blank" rel="noreferrer">問い合わせ・問題の誤りの報告</a></li>
         <li><a href={`${SITE}privacy.html`} target="_blank" rel="noreferrer">プライバシーポリシー</a></li>
         <li><a href={`${SITE}terms.html`} target="_blank" rel="noreferrer">利用規約</a></li>

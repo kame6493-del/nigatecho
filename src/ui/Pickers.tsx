@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { examRange, isLocked, isNigate } from '../domain/study';
+import { byAmPm, examRange, halfName, isLocked, isNigate, type AmPm } from '../domain/study';
 import { subjectColor } from './look';
-import { TopBar } from './parts';
+import { AmPmSwitch, TopBar } from './parts';
 import { ICheck, IChevron, ILock } from './Icons';
 
 const byNo = (a: Question, b: Question) => (a.session === b.session ? a.no - b.no : a.session === '午前' ? -1 : 1);
@@ -23,21 +23,28 @@ export function ExamPicker(p: {
   onBack: () => void; onLocked: () => void;
   onStart: (title: string, qs: Question[], exam: number) => void;
   onSubjects?: () => void;
+  /** 模試の範囲(午前だけ・午後だけ)。null は出さない(年度別の一覧・午前と午後の区分が無い試験) */
+  ampm?: AmPm | null; onAmPm?: (v: AmPm) => void;
 }) {
+  const ampm = (p.mock && p.ampm) || 'both';
+  const half = ampm === 'both' ? null : ampm;
+  const halfLabel = half ? halfName(half, EXAM) : '';
   const exams = useMemo(() => [...new Set(p.all.map((q) => q.exam))].sort((a, b) => b - a), [p.all]);
   const lockedExams = exams.filter((e) => !EXAM.freeExams.includes(e));
   return (
     <div className="page list-page">
       <TopBar title={p.mock ? '本番形式の模試' : '問題一覧'} onClose={p.onBack} />
       {!p.mock && p.onSubjects && <ListTabs on="exams" onExams={() => {}} onSubjects={p.onSubjects} />}
-      {p.mock && <p className="lead">本番と同じ{EXAM.perExam}問を、答え合わせなしで最後まで解きます。時間を計り、最後に科目ごとの点数を出します。</p>}
+      {p.mock && <p className="lead">{half ? `本番の${halfLabel}の問題だけを` : `本番と同じ${EXAM.perExam}問を`}、答え合わせなしで最後まで解きます。時間を計り、最後に科目ごとの点数を出します。</p>}
+      {p.mock && p.ampm && p.onAmPm && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} />}
       <ul className="rows">
         {exams.map((exam) => {
           const qs = p.all.filter((q) => q.exam === exam).sort(byNo);
           const locked = isLocked(qs[0], p.premium, EXAM);
           const seen = qs.filter((q) => p.data.records[q.id]).length;
           const ng = qs.filter((q) => isNigate(p.data.records[q.id])).length;
-          const last = p.data.mocks.filter((m) => m.exam === exam).at(-1);
+          const last = p.data.mocks.filter((m) => m.exam === exam && (m.session ?? null) === half).at(-1);
+          const mockQs = byAmPm(qs, ampm);
           const free = !p.premium && EXAM.freeExams.includes(exam);
           return (
             <li key={exam} className={`exam-row ${locked ? 'locked' : ''}`}>
@@ -61,7 +68,7 @@ export function ExamPicker(p: {
                 {locked ? (
                   <button className="btn small" onClick={p.onLocked}>完全版で解く<IChevron size={16} /></button>
                 ) : p.mock ? (
-                  <button className="btn small primary" onClick={() => p.onStart(`第${exam}回 模試`, qs, exam)}>始める</button>
+                  <button className="btn small primary" onClick={() => p.onStart(half ? `第${exam}回 模試(${halfLabel})` : `第${exam}回 模試`, mockQs, exam)} data-mock-start={exam}>始める{half ? `(${mockQs.length}問)` : ''}</button>
                 ) : (
                   <>
                     <button className="btn small" onClick={() => p.onStart(`第${exam}回 ${EXAM.sessionNames?.午前 ?? '午前'}`, qs.filter((q) => q.session === '午前'), exam)}>{EXAM.sessionNames?.午前 ?? '午前'}</button>

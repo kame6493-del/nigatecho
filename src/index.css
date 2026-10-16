@@ -528,3 +528,11 @@ html[data-app="rinsho"] .btn { border-color: #cfdde6; }
 html[data-app="rinsho"] .seg-tabs { background: #dde9f0; }
 html[data-app="rinsho"] .subj-bar { background: #e2ebf1; }
 html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
+
+/* ---- 午前・午後の切り替え(苦手を解く・未回答・ランダム10問・模試の範囲) ---- */
+.ampm { margin: 0 0 12px; }
+.ampm-row { display: flex; align-items: center; gap: 10px; }
+.ampm-cap { flex: none; font-size: .84em; font-weight: 800; color: var(--ink-2); }
+.ampm-tabs { flex: 1; margin: 0; }
+.ampm-tabs button { flex: 1 1 auto; font-size: .84em; padding: 7px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ampm-note { margin: 4px 2px 0; font-size: .78em; color: var(--ink-3); }

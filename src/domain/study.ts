@@ -24,7 +24,13 @@ export function isCorrect(q: Question, picked: number | number[]): boolean {
 }
 
 export function isLocked(q: Question, premium: boolean, cfg: ExamConfig): boolean {
-  return !premium && !cfg.freeExams.includes(q.exam);
+  return !premium && !cfg.freeExams.includes(q.exam) && !unlockedSubjects.has(q.subject);
+}
+
+/** 前に買った科目パックで開いている科目(介護福祉士の単体のアプリだけ。App.tsx が課金の状態から入れる) */
+let unlockedSubjects = new Set<string>();
+export function setUnlockedSubjects(subjects: string[]) {
+  unlockedSubjects = new Set(subjects);
 }
 
 /** 苦手 = 間違えたことがあって、まだ2回続けて正解していない問題 */
@@ -297,4 +303,45 @@ export function lockedSummary(all: Iterable<Question>, cfg: ExamConfig): { from:
     if (q.exam > to) to = q.exam;
   }
   return count ? { from, to, count } : null;
+}
+
+/* ---------- 午前・午後(苦手を解く・未回答・ランダム10問・模試で、片方だけを解く) ---------- */
+
+export type Half = '午前' | '午後';
+/** 解く範囲。both = 午前と午後の両方 */
+export type AmPm = 'both' | Half;
+
+/** 問題データに午前と午後の両方があるか(無い試験には切り替えを出さない) */
+export function hasAmPm(all: Iterable<Question>): boolean {
+  let am = false, pm = false;
+  for (const q of all) {
+    if (q.session === '午前') am = true;
+    else if (q.session === '午後') pm = true;
+    if (am && pm) return true;
+  }
+  return false;
+}
+
+/** 保存した設定から、いま効かせる範囲を出す。午前・午後の区分が無い試験では常に両方 */
+export function ampmOf(setting: unknown, enabled: boolean): AmPm {
+  return enabled && (setting === '午前' || setting === '午後') ? setting : 'both';
+}
+
+/** 範囲で問題をしぼる(both はそのまま) */
+export function byAmPm<T extends Pick<Question, 'session'>>(qs: T[], ampm: AmPm): T[] {
+  return ampm === 'both' ? qs : qs.filter((q) => q.session === ampm);
+}
+
+/** 「午前」「午後」の画面での呼び方(精神保健福祉士は「午前(共通科目)」など) */
+export function halfName(h: Half, cfg: ExamConfig): string {
+  return cfg.sessionNames?.[h] ?? h;
+}
+
+/**
+ * 模試の合格の線。午前だけ・午後だけの模試は、公式の合格点(1回分の点)と比べられないので、
+ * 解いた分の満点 × 合格基準の割合を目安にする。両方のときは passScoreOf と同じ。
+ */
+export function mockPassLine(m: { exam: number; total: number; session?: Half }, cfg: ExamConfig): PassLine {
+  if (m.session) return { score: Math.ceil(m.total * cfg.passRatio), official: false };
+  return passScoreOf(m.exam, m.total, cfg);
 }

@@ -4,7 +4,8 @@ import { hasOwnPage, sourcePageFor } from './sources';
 import type { ExamConfig } from './types';
 
 describe('出典のリンク', () => {
-  it('いま組んでいる試験は、収録した5回すべてに厚生労働省のリンクが出る', () => {
+  // 厚生労働省の試験だけ(介護福祉士の単体のアプリは社会福祉振興・試験センター。全試験の出典は multi.test.ts が見る)
+  it.skipIf(!EXAM.sources?.license.url.includes('digital.go.jp'))('いま組んでいる試験は、収録した5回すべてに厚生労働省のリンクが出る', () => {
     expect(EXAM.sources).toBeTruthy();
     expect(EXAM.sources!.license.url).toMatch(/^https:\/\/www\.digital\.go\.jp\//);
     for (let n = EXAM.latestExam - 4; n <= EXAM.latestExam; n++) {

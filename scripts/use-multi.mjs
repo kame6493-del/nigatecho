@@ -41,6 +41,8 @@ writeFileSync('capacitor.config.json', JSON.stringify({
   backgroundColor: multi.background ?? '#fbf8f1',
   android: { path: `exams/${multi.appExam}/android`, allowMixedContent: false },
   ios: { path: `exams/${multi.appExam}/ios`, contentInset: 'never' },
+  // 単体のアプリの設定に plugins があれば入れる(理学療法士・介護福祉士: 端末がダークモードでもステータスバーの文字を黒に)
+  ...(multi.plugins ? { plugins: multi.plugins } : {}),
 }, null, 2) + '\n');
 
 // ホーム画面の名前を iOS / Android の殻に書く(npx cap sync はここを書き換えないので、組むたびに合わせておく)

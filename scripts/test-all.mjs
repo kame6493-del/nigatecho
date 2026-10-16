@@ -10,7 +10,10 @@ const run = (cmd) => {
 };
 execSync('node scripts/use-multi.mjs', { stdio: 'inherit' });
 run('npx vitest run');
-execSync('node scripts/use-multi.mjs exams/multi.rinsho.json', { stdio: 'inherit' });
-run('npx vitest run --exclude src/domain/multi.test.ts');
+// 単体のアプリ(臨床検査技師・理学療法士・介護福祉士)もそれぞれ組んで流す
+for (const one of ['rinsho', 'pt', 'kaigo']) {
+  execSync(`node scripts/use-multi.mjs exams/multi.${one}.json`, { stdio: 'inherit' });
+  run('npx vitest run --exclude src/domain/multi.test.ts');
+}
 execSync('node scripts/use-multi.mjs', { stdio: 'inherit' });
 if (failed) process.exit(1);

@@ -58,6 +58,16 @@
 - iOS はまだ出していない(1.2.1 が審査待ち)。App Review の録画用の自動操作 src/dev/reviewTour.ts は「選んでから答え合わせ」に合わせ直し、scripts/check_review_tour.py で最後(購入画面)まで進むのを確かめた
 - AAB は 27.9MB(図 約18MB・dex 約5MB)。10MB 未満にするには問題の図の画質を落とすしかないので、していない
 
+## iOS 1.3.1(2026-10-14・ビルド 24・審査に提出)
+- 評価のお願い(src/domain/review.ts): OS の評価の画面(SKStoreReviewController、@capacitor-community/in-app-review)だけ。自前の星の画面は作らない
+  - 練習: 2回目以降に解き終えた回で、その回に苦手ノートから1問以上消せて、消せた数の合計が3問以上(または苦手が0)、かつ最後の答えが正解
+  - 模試: 合格点を超えた回(結果の画面と同じ判定)
+  - 前からの条件: 5回目以降で正答率70%以上の回に1度だけ
+  - 60日はあける。記録は Preferences の nigatecho.review(sessions・askedAt・cleared)
+- 確かめ: npm run test:all 72件・python scripts/e2e_redesign.py 821/0(評価の記録の確認を足した)
+- 掲載(ASC): 名前「介護福祉士 社会福祉士 過去問2027 ニガテ帳」・サブタイトル「精神保健福祉士・管理栄養士・理学療法士の国試」・キーワード・写真の並び(1枚目の見出しと5試験を3枚目へ)。作り方は ios_release/aso_2026-10-14/v131/(prep_131.py・make_shots_131.py)
+- 年齢区分 16+ は据え置き: 医療・治療を扱う科目が収録の3分の1を超えるので「医療または治療情報=頻繁」が事実どおり
+
 ## 臨床検査技師の単体のアプリを新しい見た目に(2026-10-11・Android 1.1.0 / versionCode 3。rinsho-1.1.0-redesign ブランチ)
 Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionCode 2)を、まとめ版の新しい見た目(6e0fc78)と同じ作りで組む。問題データ・商品(nigatecho_rinsho_full / entitlement full / ¥980)・無料の回・記録の保存先(nigatecho.rinsho-kensa.v1)は前の版のまま。iOS(1.0.2 は 4.3(a) の重複のおそれで止めている)には出さない。
 - 組み方: `node scripts/use-multi.mjs exams/multi.rinsho.json` → `npm run build` → `npx cap sync android` → `powershell -File scripts/build-android.ps1 -Exam rinsho`(終わったら `node scripts/use-multi.mjs` でまとめアプリに戻す)
@@ -66,3 +76,21 @@ Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionC
 - アイコン: まとめ版の新しいアイコンから作る(新しく描かない)。`python scripts/make_icon_source_rinsho.py`(クリームを淡い青に・下の線の所に「臨床検査」の札)→ `python scripts/make_icon_redesign.py store/icon_source_rinsho.png rinsho`(Android・iOS の殻・exams/rinsho/store/play/icon_512.png・src/assets/logo_rinsho.png)
 - 確かめ: `npm run test:all`(まとめアプリと臨床検査技師の両方で組んで流す。臨床検査技師は src/domain/single.test.ts)・`python scripts/e2e_redesign.py http://localhost:<開発サーバー>/ --exams rinsho`(165項目)
 - 画面写真: docs/rinsho_1.1.0/
+
+## 理学療法士・介護福祉士の単体のアプリを新しい見た目に(2026-10-15・Android 1.1.0。ptkaigo-1.1.0-redesign ブランチ)
+臨床検査技師(rinsho-1.1.0-redesign)と同じ組み方。宣伝のずんだもん動画 v3 と同じ見た目(地はまとめ版のまま)。
+- 理学療法士 jp.nigatecho.rigakuryouhoushi: 1.1.0 / versionCode 3(前 1.0.1 / 2)。`node scripts/use-multi.mjs exams/multi.pt.json` → `npm run build` → `npx cap sync android` → `powershell -File scripts/build-android.ps1 -Exam pt`
+- 介護福祉士 jp.kaigonigate.app: 1.1.0 / versionCode 4(前 1.0.2 / 3、別リポジトリ kaigonigate)。殻 exams/kaigo/android・ios・assets は kaigonigate から写した物。署名は %LOCALAPPDATA%\KaigoNigateBuild の鍵(build-android.ps1 -Exam kaigo が KN_UPLOAD_* で渡す。無ければ止まる)
+- 商品・entitlement・記録の保存先・問題データは前の版のまま。介護の科目パック(pack_<id>)は売らないが、買った人の科目は開く(multi.kaigo.json の packs・study.ts の setUnlockedSubjects)
+- 端末がダークモードでもステータスバーの文字を黒に(multi.*.json の plugins.SystemBars と殻の styles.xml。介護 1.0.2 の直しを理学にも)
+- アイコン: `python scripts/make_icon_source_single.py <pt|kaigo>` → `python scripts/make_icon_redesign.py store/icon_source_<試験>.png <試験>`
+- 確かめ: `npm run test:all`(まとめ+臨床+理学+介護)・`python scripts/e2e_redesign.py <URL> --exams pt`(164)/`kaigo`(165)
+
+## iOS 1.3.2(2026-10-17・ios-multi-1.3.2 ブランチ)
+1.3.1(12bc2e1)に、午前・午後の絞り込み(2617a18、単体アプリの作り直しごと)を合わせ、評価のお願いの条件を持ち主の決定(10/17)に合わせた。
+- 評価のお願い(src/domain/review.ts): OS の評価の画面だけ(iOS SKStoreReviewController / Android Play In-App Review、@capacitor-community/in-app-review の requestReview)。前置きの「好きですか?」・見返りは無し
+  - 出すのは回を解き終えた画面でだけ。どれか1つ: 練習でその回に苦手ノートから1問以上消せた(最後の答えが正解のとき)/模試を全問答えて最後まで解いた(または合格点を超えた)/7日続けて開いた日に1回解き終えた
+  - 初めて開いた日は出さない(前の版から使っている人は除く)。前のお願いから120日あける(前の版の60日の記録もそのまま数える)
+  - 開いた日は起動と裏から戻ったときに数える(Preferences の nigatecho.review に firstAt・lastOpenDay・openStreak を足した)
+- 設定の下のリンクに「App Store で評価する」(apps.apple.com/app/id<ID>?action=write-review。まとめ版と臨床だけ)/Android は「Google Play で評価する」。ブラウザ版には出さない
+- 確かめ: npm run test:all(まとめ 90・単体3本 各66)・python scripts/e2e_redesign.py 829/0・python scripts/e2e_ampm.py --exams kaigo,kanri 83/0

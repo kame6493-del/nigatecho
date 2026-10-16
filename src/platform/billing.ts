@@ -23,7 +23,7 @@ export type Access = Record<string, boolean>;
 
 export type BillingState =
   | { status: 'unavailable'; reason: string; access: Access }
-  | { status: 'ready'; access: Access; prices: Record<string, string>; pkgs: Record<string, PurchasesPackage> };
+  | { status: 'ready'; access: Access; prices: Record<string, string>; pkgs: Record<string, PurchasesPackage>; subjects?: string[] };
 
 export const EMPTY_ACCESS: Access = {};
 
@@ -49,6 +49,14 @@ export function accessFrom(active: string[]): Access {
 
 const accessOf = (info: CustomerInfo) => accessFrom(Object.keys(info.entitlements.active));
 
+/** 前に買った科目パック(entitlement "pack_<id>")で開く科目。パックのある試験(介護福祉士の単体のアプリ)だけ */
+export function packSubjectsFrom(active: string[]): string[] {
+  return EXAMS.flatMap((e) => (e.packs ?? []).filter((p) => active.includes(`pack_${p.id}`)).flatMap((p) => p.subjects));
+}
+/** 前に買った科目パックの名前 */
+const packNamesFrom = (active: string[]) =>
+  EXAMS.flatMap((e) => (e.packs ?? []).filter((p) => active.includes(`pack_${p.id}`)).map((p) => `${e.name} ${p.name}`));
+
 let configured = false;
 async function ensure() {
   if (configured) return;
@@ -72,7 +80,7 @@ export async function loadBilling(): Promise<BillingState> {
       pkgs[pkg.product.identifier] = pkg;
       prices[pkg.product.identifier] = pkg.product.priceString;
     }
-    return { status: 'ready', access: accessOf(customerInfo), prices, pkgs };
+    return { status: 'ready', access: accessOf(customerInfo), prices, pkgs, subjects: packSubjectsFrom(Object.keys(customerInfo.entitlements.active)) };
   } catch (e) {
     console.error('[nigatecho] billing', e);
     return { status: 'unavailable', reason: 'ストアに接続できませんでした', access: EMPTY_ACCESS };
@@ -105,13 +113,15 @@ export async function purchase(state: BillingState, exam: ExamConfig): Promise<b
 
 /** 復元。開いた試験の名前(何も無ければ空) */
 export async function restore(): Promise<string[]> {
+  let packs: string[] = [];
   const a = mock ? mockAccess() : await (async () => {
     if (!key) return EMPTY_ACCESS;
     await ensure();
     const { customerInfo } = await Purchases.restorePurchases();
+    packs = packNamesFrom(Object.keys(customerInfo.entitlements.active));
     return accessOf(customerInfo);
   })();
-  return EXAMS.filter((e) => a[e.dir]).map((e) => e.name);
+  return [...EXAMS.filter((e) => a[e.dir]).map((e) => e.name), ...packs];
 }
 
 export function resetMock() {
