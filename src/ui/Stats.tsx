@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { daysLeft, examView, isNigate, passScoreOf, streakDays, subjectStats, unseen } from '../domain/study';
+import { daysLeft, examView, isNigate, mockPassLine, streakDays, subjectStats, unseen } from '../domain/study';
 import { dailyPace, lastDays } from '../domain/summary';
 import { ART, subjectColor } from './look';
 import { ExamDateCard, ForecastCard, SubjectBars } from './parts';
@@ -149,7 +149,7 @@ function MockChart({ mocks }: { mocks: AppData['mocks'] }) {
     return { x, y, m };
   });
   const last = mocks[mocks.length - 1];
-  const pass = passScoreOf(last.exam, last.total, EXAM).score / Math.max(1, last.total);
+  const pass = mockPassLine(last, EXAM).score / Math.max(1, last.total);
   const py = H - pad - pass * (H - pad * 2);
   return (
     <svg className="mock-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="模試の点数の移り変わり">

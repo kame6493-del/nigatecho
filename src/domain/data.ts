@@ -41,7 +41,13 @@ export function normalize(raw: unknown): AppData {
   }
   const marks = Array.isArray(r.marks) ? [...new Set(r.marks.filter((m): m is string => typeof m === 'string'))] : [];
   const mocks = Array.isArray(r.mocks)
-    ? r.mocks.filter((m): m is MockResult => !!m && typeof m === 'object' && typeof m.score === 'number' && typeof m.total === 'number')
+    ? r.mocks
+      .filter((m): m is MockResult => !!m && typeof m === 'object' && typeof m.score === 'number' && typeof m.total === 'number')
+      .map((m) => {
+        if (m.session === undefined || m.session === '午前' || m.session === '午後') return m;
+        const { session: _drop, ...rest } = m;
+        return rest;
+      })
     : [];
   const s = (r.settings ?? {}) as Partial<Settings>;
   const settings: Settings = {
@@ -50,6 +56,7 @@ export function normalize(raw: unknown): AppData {
     remindAt: typeof s.remindAt === 'string' && /^\d{2}:\d{2}$/.test(s.remindAt) ? s.remindAt : base.settings.remindAt,
     remind: !!s.remind,
     ...(s.exemptOnly ? { exemptOnly: true } : {}),
+    ...(s.ampm === '午前' || s.ampm === '午後' ? { ampm: s.ampm } : {}),
   };
   const daily: Record<string, number> = {};
   if (r.daily && typeof r.daily === 'object') {

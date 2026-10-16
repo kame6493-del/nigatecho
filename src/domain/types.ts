@@ -155,6 +155,8 @@ export interface MockResult {
   total: number;
   bySubject: Record<string, { ok: number; n: number }>;
   seconds: number;
+  /** 午前だけ・午後だけで解いた模試。無ければ両方(前の版の記録も両方) */
+  session?: '午前' | '午後';
 }
 
 export interface Settings {
@@ -165,6 +167,8 @@ export interface Settings {
   remind: boolean;
   /** 予想点を「免除された科目を除いた受け方」で出す(exempt のある試験だけ。試験ごとに残る) */
   exemptOnly?: boolean;
+  /** 苦手を解く・未回答・ランダム10問・模試で解く範囲(午前だけ/午後だけ)。無ければ両方。試験ごとに残る */
+  ampm?: '午前' | '午後';
 }
 
 export interface AppData {
