@@ -356,8 +356,8 @@ function MockRun(p: Props & { qs: Question[] }) {
     // 答えていない問題は記録に残さない(解いていない物を「苦手」にしない)
     p.onMockDone(m, answers.filter((a) => (ans[a.q.id]?.length ?? 0) > 0));
     setResult(m);
-    // 模試は苦手の出入りを数えない。合格点を超えたかと「よく解けた回」で見る
-    p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total), passed: judge(m).passed });
+    // 模試は苦手の出入りを数えない。全問答えて最後まで解いたか・合格点を超えたかで見る
+    p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total), passed: judge(m).passed, completed: qs.length > 0 && answeredCount === qs.length });
   };
 
   /** 合格の判定(結果の画面と評価のお願いで同じ物を使う)。午前・午後だけの模試は目安の線 */

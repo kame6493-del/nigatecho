@@ -4,7 +4,7 @@ import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
 import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
-import { reviewOnSessionEnd, type SessionEnd } from './domain/review';
+import { reviewOnOpen, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
 import { askReview } from './platform/native';
 import { Home } from './ui/Home';
@@ -38,6 +38,13 @@ export type Route =
 /** 評価のお願いの記録は読んで書くまでを1本ずつ(続けて解き終えても数え漏れない) */
 let reviewChain: Promise<void> = Promise.resolve();
 
+/** 開いた日を数える(初めて開いた日・何日続けて開いたか)。ここではお願いしない */
+function markOpened() {
+  reviewChain = reviewChain.then(async () => {
+    await saveReview(reviewOnOpen(await loadReview(), Date.now()));
+  }).catch((err) => console.error('[nigatecho] review open', err));
+}
+
 /** 試験をまたいで同じにする設定(文字の大きさ・毎日のお知らせ。お知らせは端末に1つだけ) */
 type Carry = Pick<Settings, 'fontScale' | 'remind' | 'remindAt'>;
 
@@ -51,6 +58,10 @@ export default function Root() {
 
   useEffect(() => {
     loadExamChoice().then((d) => setDir(selectExam(d).dir));
+    // 起動したときと、裏から戻ったとき(日をまたいで開きっぱなしの人も数える)
+    markOpened();
+    const h = CapApp.addListener('appStateChange', ({ isActive }) => { if (isActive) markOpened(); });
+    return () => { h.then((x) => x.remove()).catch(() => {}); };
   }, []);
 
   const switchExam = useCallback((next: string, c: Carry) => {

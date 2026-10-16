@@ -1,105 +1,131 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_REVIEW, normalizeReview, reviewOnSessionEnd, type ReviewState, type SessionEnd } from './review';
+import { EMPTY_REVIEW, REVIEW_GAP_DAYS, normalizeReview, reviewOnOpen, reviewOnSessionEnd, storeReviewUrl, type ReviewState, type SessionEnd } from './review';
 import { examRange, lockedSummary } from './study';
 import { EXAMS } from './exam';
 import type { Question } from './types';
 
 const DAY = 86400000;
-const T0 = new Date(2026, 9, 7, 12).getTime();
-const plain: SessionEnd = { cleared: 0, nigateLeft: 5, correctRate: 0.5 };
+const HOUR = 3600000;
+const T0 = new Date(2026, 9, 7, 9).getTime();
+const plain: SessionEnd = { cleared: 0, nigateLeft: 5, correctRate: 0.5, lastOk: true };
+const clearOne: SessionEnd = { cleared: 1, nigateLeft: 4, correctRate: 0.7, lastOk: true };
+const mockDone: SessionEnd = { cleared: 0, nigateLeft: -1, correctRate: 0.5, passed: false, completed: true };
+const mockHalf: SessionEnd = { cleared: 0, nigateLeft: -1, correctRate: 0.3, passed: false, completed: false };
 
-/** 解き終えた回を順に流して、お願いした回の番号(1始まり)を返す */
-function run(ends: SessionEnd[], start: ReviewState = EMPTY_REVIEW, t = T0, step = DAY) {
+/** 初めて開いた日から days 日目(0始まり)に開いた記録 */
+function openedOn(days: number[], start: ReviewState = EMPTY_REVIEW) {
+  return days.reduce((s, d) => reviewOnOpen(s, T0 + d * DAY), start);
+}
+
+/** 1日1回開いて1回解き終える流れ。お願いした日(0始まり)を返す */
+function daily(ends: SessionEnd[], start: ReviewState = EMPTY_REVIEW, from = 0) {
   let s = start;
   const asked: number[] = [];
   ends.forEach((e, i) => {
-    const r = reviewOnSessionEnd(s, e, t + i * step);
+    const t = T0 + (from + i) * DAY;
+    s = reviewOnOpen(s, t);
+    const r = reviewOnSessionEnd(s, e, t + HOUR);
     s = r.state;
-    if (r.ask) asked.push(i + 1);
+    if (r.ask) asked.push(from + i);
   });
   return { s, asked };
 }
 
 describe('評価のお願いの時機', () => {
-  it('1回の練習で苦手が3問外れたらお願いする', () => {
-    expect(run([plain, { cleared: 3, nigateLeft: 4, correctRate: 0.6 }]).asked).toEqual([2]);
+  it('苦手ノートから問題を消せた(2回続けて正解した)回の終わりにお願いする', () => {
+    expect(daily([plain, clearOne]).asked).toEqual([1]);
   });
 
-  it('苦手ノートから消せた数の合計が3問目になった回でお願いする(1問ずつでも)', () => {
-    const one = { cleared: 1, nigateLeft: 6, correctRate: 0.7 };
-    expect(run([one, one, one]).asked).toEqual([3]);
-    // 2問ずつなら2回目(合計4)
-    const two = { cleared: 2, nigateLeft: 6, correctRate: 0.7 };
-    expect(run([two, two]).asked).toEqual([2]);
+  it('初めて開いた日には、うれしい回でも出さない', () => {
+    const s = reviewOnOpen(EMPTY_REVIEW, T0);
+    expect(reviewOnSessionEnd(s, clearOne, T0 + HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(s, mockDone, T0 + 5 * HOUR).ask).toBe(false);
+    // 次の日なら出す
+    expect(reviewOnSessionEnd(reviewOnOpen(s, T0 + DAY), clearOne, T0 + DAY + HOUR).ask).toBe(true);
   });
 
-  it('最後の苦手を片づけた(残り0)ときもお願いする', () => {
-    expect(run([plain, { cleared: 1, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([2]);
+  it('解き終えた回の終わりでしか判断しない(開いただけではお願いしない)', () => {
+    const s = openedOn([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    // reviewOnOpen はお願いの印を付けない
+    expect(s.askedAt).toBe(0);
   });
 
-  it('初めて解き終えた練習の回では出さない(2回目から)', () => {
-    expect(run([{ cleared: 5, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([]);
+  it('最後の問題が不正解だった回では出さない', () => {
+    expect(daily([plain, { ...clearOne, lastOk: false }]).asked).toEqual([]);
+    expect(daily([plain, { ...clearOne, lastOk: false }, clearOne]).asked).toEqual([2]);
   });
 
-  it('最後の問題が不正解だった回では出さない(次のうれしい回まで待つ)', () => {
-    const lastWrong = { cleared: 3, nigateLeft: 2, correctRate: 0.8, lastOk: false };
-    const lastRight = { cleared: 1, nigateLeft: 2, correctRate: 0.8, lastOk: true };
-    expect(run([plain, lastWrong]).asked).toEqual([]);
-    expect(run([plain, lastWrong, lastRight]).asked).toEqual([3]);
+  it('苦手が外れていない練習の回では出さない(正答率が高くても)', () => {
+    expect(daily([plain, { cleared: 0, nigateLeft: 0, correctRate: 1, lastOk: true }, plain]).asked).toEqual([]);
   });
 
-  it('苦手が外れていない回では出さない(合計が3を超えていても)', () => {
-    const win = { cleared: 3, nigateLeft: 2, correctRate: 0.6 };
-    const { s } = run([plain, win]);
-    expect(run([{ cleared: 0, nigateLeft: 2, correctRate: 0.9 }], s, T0 + 100 * DAY).asked).toEqual([]);
+  it('模試を全問答えて最後まで解いたらお願いする。途中で終えた模試では出さない', () => {
+    expect(daily([plain, mockDone]).asked).toEqual([1]);
+    expect(daily([plain, mockHalf]).asked).toEqual([]);
   });
 
-  it('苦手が2問外れただけ・苦手がもともと無いだけでは出さない', () => {
-    expect(run([plain, { cleared: 2, nigateLeft: 3, correctRate: 1 }, { cleared: 0, nigateLeft: 0, correctRate: 1 }]).asked).toEqual([]);
+  it('模試で合格点を超えたらお願いする(未回答があっても)', () => {
+    expect(daily([plain, { ...mockHalf, passed: true }]).asked).toEqual([1]);
   });
 
-  it('模試で合格点を超えたらお願いする(初めての模試でも)', () => {
-    const passed = { cleared: 0, nigateLeft: -1, correctRate: 0.75, passed: true };
-    const failed = { cleared: 0, nigateLeft: -1, correctRate: 0.5, passed: false };
-    expect(run([passed]).asked).toEqual([1]);
-    expect(run([failed, failed]).asked).toEqual([]);
+  it('7日続けて開いて、7日目に解き終えたらお願いする', () => {
+    const ends = Array.from({ length: 7 }, () => plain);
+    expect(daily(ends).asked).toEqual([6]);
+    // 6日続けただけでは出さない
+    expect(daily(ends.slice(0, 6)).asked).toEqual([]);
   });
 
-  it('お願いしたら60日はあける(Apple の年3回より少ない)', () => {
-    const win = { cleared: 3, nigateLeft: 0, correctRate: 1 };
-    // 毎日うれしい回が続いても、次は60日後
-    const { asked } = run(Array.from({ length: 70 }, (_, i) => (i === 0 ? plain : win)));
-    expect(asked).toEqual([2, 62]);
-    // 1年(365日)毎日うれしい回でも、お願いは最大7回(60日おき)。OS がさらに年3回に絞る
-    const year = run(Array.from({ length: 365 }, () => ({ cleared: 3, nigateLeft: 0, correctRate: 1, passed: true })));
-    for (let k = 1; k < year.asked.length; k++) expect(year.asked[k] - year.asked[k - 1]).toBeGreaterThanOrEqual(60);
+  it('1日でも空くと、続けた日数は1から数え直す', () => {
+    const s = openedOn([0, 1, 2, 3, 4, 5, 7]);
+    expect(s.openStreak).toBe(1);
+    expect(openedOn([0, 1, 2, 3, 4, 5, 6]).openStreak).toBe(7);
+    // 同じ日に何度開いても1日
+    expect(openedOn([0, 0, 0, 1, 1]).openStreak).toBe(2);
+    expect(reviewOnOpen(openedOn([0]), T0 + 3 * HOUR).openStreak).toBe(1);
   });
 
-  it('苦手の動きが無いまま解き続けている人には、5回目以降のよく解けた回で1度だけ(前の条件)', () => {
-    const good = { cleared: 0, nigateLeft: 0, correctRate: 0.8 };
-    expect(run([good, good, good, good]).asked).toEqual([]);
-    expect(run([good, good, good, good, good]).asked).toEqual([5]);
-    // 2度目以降は前の条件では出さない(苦手が減った直後だけ)
-    const first = run([good, good, good, good, good]).s;
-    expect(run([good], first, T0 + 100 * DAY).asked).toEqual([]);
-    expect(run([{ cleared: 3, nigateLeft: 2, correctRate: 0.6 }], first, T0 + 100 * DAY).asked).toEqual([1]);
+  it('お願いしたら120日はあける(Apple の年3回と同じくらい)', () => {
+    expect(REVIEW_GAP_DAYS).toBe(120);
+    // 毎日うれしい回が続いても、次は120日後
+    const { asked } = daily(Array.from({ length: 250 }, (_, i) => (i === 0 ? plain : clearOne)));
+    expect(asked).toEqual([1, 121, 241]);
+    // 1年毎日うれしい回でも、こちらからのお願いは 2日目・122日目・242日目・362日目の4回まで(さらに OS が年3回に絞る)
+    const year = daily(Array.from({ length: 365 }, () => ({ ...mockDone, passed: true })));
+    expect(year.asked).toEqual([1, 121, 241, 361]);
+    for (let k = 1; k < year.asked.length; k++) expect(year.asked[k] - year.asked[k - 1]).toBeGreaterThanOrEqual(120);
   });
 
-  it('模試(苦手の出入りを数えない)は合格か前の条件だけ', () => {
-    const mock = { cleared: 0, nigateLeft: -1, correctRate: 0.9 };
-    expect(run([mock, mock]).asked).toEqual([]);
-    expect(run([mock, mock, mock, mock, mock]).asked).toEqual([5]);
+  it('前の版から使っている人(解き終えた回がある)は、更新した日でもお願いできる', () => {
+    const old = normalizeReview({ sessions: 12, askedAt: 0, cleared: 2 });
+    const s = reviewOnOpen(old, T0);
+    expect(s.firstAt).toBe(1);
+    expect(reviewOnSessionEnd(s, clearOne, T0 + HOUR).ask).toBe(true);
+    // 前の版で60日前にお願いしていたら、まだ出さない(120日あける)
+    const asked = reviewOnOpen(normalizeReview({ sessions: 12, askedAt: T0 - 60 * DAY, cleared: 2 }), T0);
+    expect(reviewOnSessionEnd(asked, clearOne, T0 + HOUR).ask).toBe(false);
   });
 
-  it('数えた回・消せた数の合計・お願いした時刻を残す', () => {
-    const { s } = run([plain, { cleared: 3, nigateLeft: 0, correctRate: 1 }, plain]);
-    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY, cleared: 3 });
+  it('数えた回・消せた数の合計・お願いした時刻・開いた日を残す', () => {
+    const { s } = daily([plain, clearOne, plain]);
+    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY + HOUR, cleared: 1, firstAt: T0, lastOpenDay: '2026-10-09', openStreak: 3 });
   });
 
   it('保存した記録が壊れていても0から数える(前の版の記録も読める)', () => {
     expect(normalizeReview(null)).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ sessions: 'x', askedAt: -5 })).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ sessions: 4, askedAt: T0, cleared: 0 });
+    expect(normalizeReview({ sessions: 'x', askedAt: -5, lastOpenDay: 'きのう', openStreak: 9 })).toEqual(EMPTY_REVIEW);
+    expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ ...EMPTY_REVIEW, sessions: 4, askedAt: T0 });
+  });
+});
+
+describe('設定の「ストアで評価する」のリンク', () => {
+  it('iOS は App Store の評価を書くページ(公開中の2本だけ)', () => {
+    expect(storeReviewUrl('ios', 'jp.nigatecho.kanrieiyoushi')).toBe('https://apps.apple.com/app/id6818535389?action=write-review');
+    expect(storeReviewUrl('ios', 'jp.nigatecho.rinshokensa')).toBe('https://apps.apple.com/app/id6818536142?action=write-review');
+    expect(storeReviewUrl('ios', 'jp.kaigonigate.app')).toBeNull();
+  });
+  it('Android は Google Play のアプリのページ、ブラウザ版は出さない', () => {
+    expect(storeReviewUrl('android', 'jp.kaigonigate.app')).toBe('https://play.google.com/store/apps/details?id=jp.kaigonigate.app&showAllReviews=true');
+    expect(storeReviewUrl('web', 'jp.nigatecho.kanrieiyoushi')).toBeNull();
   });
 });
 

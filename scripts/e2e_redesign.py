@@ -166,11 +166,12 @@ def run(pg, width, exam, keys):
         pg.wait_for_selector(".note-page")
     check(pg.locator(f".note-items button[data-qid='{target}']").count() == 0, f"{exam}: 2回続けて正解した問題はノートから消える")
     check(nigate_count(pg, exam, key) == n_ng - 1, f"{exam}: 苦手が1つ減る")
-    # 評価のお願いの記録(1.3.1): 解き終えた回3つ・苦手ノートから消せた数1。合計がまだ3に届かないのでお願いしていない
+    # 評価のお願いの記録(1.3.2): 解き終えた回3つ・苦手ノートから消せた数1・開いた日1。初めて開いた日なのでお願いしていない
     pg.wait_for_timeout(300)
     rv = pg.evaluate("() => JSON.parse(localStorage.getItem('CapacitorStorage.nigatecho.review') || 'null')")
-    check(rv is not None and rv.get("sessions") == 3 and rv.get("cleared") == 1 and rv.get("askedAt") == 0,
-          f"{exam}: 評価の記録 解き終えた3回・消せた1問・まだお願いしない({rv})")
+    check(rv is not None and rv.get("sessions") == 3 and rv.get("cleared") == 1 and rv.get("askedAt") == 0
+          and rv.get("firstAt", 0) > 1 and rv.get("openStreak") == 1,
+          f"{exam}: 評価の記録 解き終えた3回・消せた1問・初めての日なのでお願いしない({rv})")
 
     # 成績(見本データで予想点まで出す)
     pg.goto(f"{URL}?demo=1&exam={exam}&n=420&acc=0.68&premium=1")
@@ -212,6 +213,8 @@ def run(pg, width, exam, keys):
     pg.wait_for_selector(".settings")
     if single:
         check(pg.locator(".settings .form li").first.locator("button").count() == 0, f"{exam}: 設定に切り替えのボタンが無い")
+    # ブラウザ版にはストアの評価のリンクを出さない(iOS・Android の殻の中だけ)
+    check(pg.locator(".settings a", has_text="で評価する").count() == 0, f"{exam}: ブラウザ版の設定に評価のリンクが無い")
     shot(pg, d, "16_settings")
     # 完全版(未購入の見本データで)
     pg.goto(f"{URL}?demo=1&exam={exam}&n=60&acc=0.6")

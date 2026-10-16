@@ -85,3 +85,12 @@ Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionC
 - 端末がダークモードでもステータスバーの文字を黒に(multi.*.json の plugins.SystemBars と殻の styles.xml。介護 1.0.2 の直しを理学にも)
 - アイコン: `python scripts/make_icon_source_single.py <pt|kaigo>` → `python scripts/make_icon_redesign.py store/icon_source_<試験>.png <試験>`
 - 確かめ: `npm run test:all`(まとめ+臨床+理学+介護)・`python scripts/e2e_redesign.py <URL> --exams pt`(164)/`kaigo`(165)
+
+## iOS 1.3.2(2026-10-17・ios-multi-1.3.2 ブランチ)
+1.3.1(12bc2e1)に、午前・午後の絞り込み(2617a18、単体アプリの作り直しごと)を合わせ、評価のお願いの条件を持ち主の決定(10/17)に合わせた。
+- 評価のお願い(src/domain/review.ts): OS の評価の画面だけ(iOS SKStoreReviewController / Android Play In-App Review、@capacitor-community/in-app-review の requestReview)。前置きの「好きですか?」・見返りは無し
+  - 出すのは回を解き終えた画面でだけ。どれか1つ: 練習でその回に苦手ノートから1問以上消せた(最後の答えが正解のとき)/模試を全問答えて最後まで解いた(または合格点を超えた)/7日続けて開いた日に1回解き終えた
+  - 初めて開いた日は出さない(前の版から使っている人は除く)。前のお願いから120日あける(前の版の60日の記録もそのまま数える)
+  - 開いた日は起動と裏から戻ったときに数える(Preferences の nigatecho.review に firstAt・lastOpenDay・openStreak を足した)
+- 設定の下のリンクに「App Store で評価する」(apps.apple.com/app/id<ID>?action=write-review。まとめ版と臨床だけ)/Android は「Google Play で評価する」。ブラウザ版には出さない
+- 確かめ: npm run test:all(まとめ 90・単体3本 各66)・python scripts/e2e_redesign.py 829/0・python scripts/e2e_ampm.py --exams kaigo,kanri 83/0
