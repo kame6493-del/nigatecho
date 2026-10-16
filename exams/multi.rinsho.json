@@ -1,0 +1,11 @@
+{
+  "_": "臨床検査技師の単体のアプリ(jp.nigatecho.rinshokensa・Play はクローズドテスト中)を、まとめ版と同じ新しい見た目で組む設定。node scripts/use-multi.mjs exams/multi.rinsho.json。試験は臨床検査技師だけなので、試験を切り替える所は出ない(src/domain/exam.ts の SINGLE)。商品・entitlement・記録の保存先(nigatecho.rinsho-kensa.v1)は前の版のまま。",
+  "appExam": "rinsho",
+  "appName": "ニガテ帳 臨床検査技師",
+  "homeName": "ニガテ帳",
+  "background": "#edf4f8",
+  "exams": ["rinsho"],
+  "products": {
+    "rinsho": { "productId": "nigatecho_rinsho_full", "entitlement": "full", "price": "¥980" }
+  }
+}

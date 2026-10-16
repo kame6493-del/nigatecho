@@ -1,0 +1,85 @@
+{
+  "_": "介護福祉士の単体のアプリ(jp.kaigonigate.app・別リポジトリ kaigonigate の 1.0.2 / versionCode 3 まで)を、まとめ版と同じ新しい見た目で組む設定。node scripts/use-multi.mjs exams/multi.kaigo.json。殻(exams/kaigo/android・ios)と署名鍵は kaigonigate の物。商品・entitlement・記録の保存先(nigatecho.kaigo-fukushishi.v1)は前の版のまま。科目パックは売らないが、前に買った人の科目は開く。",
+  "appExam": "kaigo",
+  "appName": "ニガテ帳 介護福祉士",
+  "homeName": "介護ニガテ帳",
+  "background": "#fbf6ef",
+  "exams": [
+    "kaigo"
+  ],
+  "products": {
+    "kaigo": {
+      "productId": "nigatecho_kaigo_full",
+      "entitlement": "full",
+      "price": "¥900",
+      "packs": [
+        {
+          "id": "ningen",
+          "name": "人間と社会",
+          "productId": "nigatecho_kaigo_pack_ningen",
+          "price": "¥300",
+          "subjects": [
+            "人間の尊厳と自立",
+            "社会の理解",
+            "人間関係とコミュニケーション"
+          ]
+        },
+        {
+          "id": "kihon",
+          "name": "介護の基本・コミュニケーション技術",
+          "productId": "nigatecho_kaigo_pack_kihon",
+          "price": "¥300",
+          "subjects": [
+            "介護の基本",
+            "コミュニケーション技術"
+          ]
+        },
+        {
+          "id": "seikatsu",
+          "name": "生活支援技術",
+          "productId": "nigatecho_kaigo_pack_seikatsu",
+          "price": "¥300",
+          "subjects": [
+            "生活支援技術"
+          ]
+        },
+        {
+          "id": "kokoro",
+          "name": "こころとからだ・発達と老化",
+          "productId": "nigatecho_kaigo_pack_kokoro",
+          "price": "¥300",
+          "subjects": [
+            "こころとからだのしくみ",
+            "発達と老化の理解"
+          ]
+        },
+        {
+          "id": "ninchi",
+          "name": "認知症・障害の理解",
+          "productId": "nigatecho_kaigo_pack_ninchi",
+          "price": "¥300",
+          "subjects": [
+            "認知症の理解",
+            "障害の理解"
+          ]
+        },
+        {
+          "id": "katei",
+          "name": "医療的ケア・介護過程・総合問題",
+          "productId": "nigatecho_kaigo_pack_katei",
+          "price": "¥300",
+          "subjects": [
+            "医療的ケア",
+            "介護過程",
+            "総合問題"
+          ]
+        }
+      ]
+    }
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "LIGHT"
+    }
+  }
+}

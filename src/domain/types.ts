@@ -77,6 +77,11 @@ export interface ExamConfig {
   notice?: { title: string; body: string };
   /** 合格に「すべての群で得点」が要る科目群(介護福祉士の11科目群、社会福祉士の6科目群) */
   groups?: { name: string; subjects: string[] }[];
+  /**
+   * 科目パック(介護福祉士の単体のアプリ 1.0.x だけが売っていた買い切り。entitlement "pack_<id>")。
+   * 新しい見た目では売らないが、前に買った人の科目はそのまま開く。単体のアプリの設定(exams/multi.kaigo.json)にだけ入る
+   */
+  packs?: { id: string; name: string; productId: string; price: string; subjects: string[] }[];
   /** 回ごとの公式の合格点(問題の難易度で補正された点)。{"38": 64} */
   passScores?: Record<string, number>;
   /** 年度別の画面の「午前」「午後」の呼び方(精神保健福祉士: 午前=共通科目、午後=専門科目) */
@@ -150,6 +155,8 @@ export interface MockResult {
   total: number;
   bySubject: Record<string, { ok: number; n: number }>;
   seconds: number;
+  /** 午前だけ・午後だけで解いた模試。無ければ両方(前の版の記録も両方) */
+  session?: '午前' | '午後';
 }
 
 export interface Settings {
@@ -160,6 +167,8 @@ export interface Settings {
   remind: boolean;
   /** 予想点を「免除された科目を除いた受け方」で出す(exempt のある試験だけ。試験ごとに残る) */
   exemptOnly?: boolean;
+  /** 苦手を解く・未回答・ランダム10問・模試で解く範囲(午前だけ/午後だけ)。無ければ両方。試験ごとに残る */
+  ampm?: '午前' | '午後';
 }
 
 export interface AppData {

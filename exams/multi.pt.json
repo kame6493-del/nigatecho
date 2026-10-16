@@ -1,0 +1,22 @@
+{
+  "_": "理学療法士の単体のアプリ(jp.nigatecho.rigakuryouhoushi・Play はクローズドテスト中・1.0.1 / versionCode 2)を、まとめ版と同じ新しい見た目で組む設定。node scripts/use-multi.mjs exams/multi.pt.json。商品・entitlement・記録の保存先(nigatecho.rigaku-ryouhoushi.v1)は前の版のまま。",
+  "appExam": "pt",
+  "appName": "ニガテ帳 理学療法士",
+  "homeName": "ニガテ帳",
+  "background": "#fbf6ef",
+  "exams": [
+    "pt"
+  ],
+  "products": {
+    "pt": {
+      "productId": "nigatecho_pt_full",
+      "entitlement": "full",
+      "price": "¥980"
+    }
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "LIGHT"
+    }
+  }
+}

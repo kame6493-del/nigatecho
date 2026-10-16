@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
-import { EXAM } from '../domain/exam';
-import { dayKey, examRange, isNigate, streakDays, unseen } from '../domain/study';
+import { EXAM, SINGLE } from '../domain/exam';
+import { byAmPm, dayKey, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
 import { ART, lookOf, weekday } from './look';
-import { ExamDateCard, ForecastCard } from './parts';
+import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
 
 interface Props {
@@ -29,6 +29,9 @@ interface Props {
   /** 苦手ノート・成績のタブへ */
   onNote: () => void;
   onStats: () => void;
+  /** 苦手を解く・未回答・ランダム10問・模試の範囲。null は午前・午後の区分が無い試験(切り替えを出さない) */
+  ampm: AmPm | null;
+  onAmPm: (v: AmPm) => void;
 }
 
 export function Home(p: Props) {
@@ -36,6 +39,12 @@ export function Home(p: Props) {
   const look = lookOf(EXAM.dir);
   const nigate = p.open.filter((q) => isNigate(p.data.records[q.id])).length;
   const fresh = unseen(p.open, p.data).length;
+  const ampm = p.ampm ?? 'both';
+  const half = ampm === 'both' ? '' : halfName(ampm, EXAM);
+  const openIn = byAmPm(p.open, ampm);
+  /** 範囲の中の苦手・未回答(ボタンの数。上の「あと N 問」は苦手ノート全体の数のまま) */
+  const nigateIn = openIn.filter((q) => isNigate(p.data.records[q.id])).length;
+  const freshIn = unseen(openIn, p.data).length;
   const scorable = p.open.filter((q) => !q.excluded).length;
   const seen = p.open.filter((q) => p.data.records[q.id]).length;
   const streak = streakDays(p.data.daily, now);
@@ -51,11 +60,21 @@ export function Home(p: Props) {
       <header className="app-head">
         <div className="logo">
           <img src={ART.logo} alt="" />
-          <span><b>ニガテ帳</b><small>国家試験の過去問</small></span>
+          <span><b>ニガテ帳</b><small>{SINGLE ? `${EXAM.name}の過去問` : '国家試験の過去問'}</small></span>
         </div>
         <button className="icon" onClick={p.onSettings} aria-label="設定"><IGear /></button>
       </header>
 
+      {SINGLE ? (
+      <section className="exam-card single" style={{ background: look.tint }}>
+        <div className="exam-card-main">
+          <span className="exam-tag">受ける試験</span>
+          <span className="exam-name brand-sub" data-exam={EXAM.dir} style={{ color: look.ink }}>{EXAM.name}</span>
+          <img className="exam-art" src={look.img} alt="" />
+        </div>
+        <p className="exam-catch">{look.catch}</p>
+      </section>
+      ) : (
       <section className="exam-card" style={{ background: look.tint }}>
         <button className="exam-card-main" onClick={p.onSwitchExam} aria-label={`いまの試験 ${EXAM.name}`}>
           <span className="exam-tag">現在の試験</span>
@@ -65,6 +84,9 @@ export function Home(p: Props) {
         </button>
         <button className="btn primary wide exam-switch" onClick={p.onSwitchExam} aria-label="試験を切り替える">試験を切り替える<IRepeat size={18} /></button>
       </section>
+      )}
+
+      {p.ampm && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} note="苦手を解く・未回答・ランダム10問・模試に効きます" />}
 
       {seen === 0 ? (
         <section className="card hero hero-first">
@@ -87,9 +109,11 @@ export function Home(p: Props) {
             </span>
             <IChevron />
           </button>
-          {nigate > 0
-            ? <button className="btn primary wide big" onClick={p.onNigate}>苦手を解く({nigate}問)<IArrow size={18} /></button>
-            : fresh > 0 && <button className="btn primary wide big" onClick={p.onUnseen}>まだ解いていない問題へ<IArrow size={18} /></button>}
+          {nigateIn > 0
+            ? <button className="btn primary wide big" onClick={p.onNigate} data-home="nigate">苦手を解く{half ? `・${half}` : ''}({nigateIn}問)<IArrow size={18} /></button>
+            : nigate > 0
+              ? <button className="btn primary wide big" disabled data-home="nigate">{half}の苦手はありません</button>
+              : freshIn > 0 && <button className="btn primary wide big" onClick={p.onUnseen}>まだ解いていない問題へ<IArrow size={18} /></button>}
         </>
       )}
 
@@ -99,10 +123,10 @@ export function Home(p: Props) {
       <section className="quick menu">
         <button onClick={p.onExams}><IBook className="c-red" /><b>年度別</b><span>{examRange(exams[exams.length - 1], exams[0])}</span></button>
         <button onClick={p.onSubjects}><ILayers className="c-blue" /><b>科目別</b><span>{EXAM.subjects.length}科目</span></button>
-        <button onClick={p.onUnseen} disabled={fresh === 0}><IDoc className="c-green" /><b>未回答</b><span>まだ解いていない {fresh}問</span></button>
-        <button onClick={p.onRandom}><IShuffle className="c-teal" /><b>ランダム10問</b><span>すきま時間に</span></button>
+        <button onClick={p.onUnseen} disabled={freshIn === 0}><IDoc className="c-green" /><b>未回答</b><span>まだ解いていない {freshIn}問</span></button>
+        <button onClick={p.onRandom}><IShuffle className="c-teal" /><b>ランダム10問</b><span>{half ? `${half}から` : 'すきま時間に'}</span></button>
         <button onClick={p.onMarks} disabled={p.data.marks.length === 0}><IStar className="c-yellow" /><b>しるし</b><span>{p.data.marks.length}問</span></button>
-        <button onClick={p.premium ? p.onMock : p.onPaywall}><IClip className="c-purple" /><b>模試</b><span>{p.premium ? `本番形式 ${EXAM.perExam}問` : '本番形式(完全版)'}</span></button>
+        <button onClick={p.premium ? p.onMock : p.onPaywall}><IClip className="c-purple" /><b>模試</b><span>{p.premium ? (half ? `本番形式・${half}` : `本番形式 ${EXAM.perExam}問`) : '本番形式(完全版)'}</span></button>
       </section>
 
       <ForecastCard data={p.data} all={p.all} open={p.open} onExemptOnly={p.onExemptOnly} more={p.onStats} />

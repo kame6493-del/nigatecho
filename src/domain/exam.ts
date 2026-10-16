@@ -13,6 +13,9 @@ export const APP: { appId: string; appName: string; site: string; revenuecat?: {
 /** はじめて開いたとき(選んだ試験の記録が無いとき)の試験 */
 export const FIRST_EXAM = EXAMS[0];
 
+/** 試験が1つだけのアプリ(臨床検査技師の単体のアプリ)。試験を切り替える所を出さない */
+export const SINGLE = EXAMS.length === 1;
+
 export const examByDir = (dir: string | null | undefined): ExamConfig | undefined => EXAMS.find((e) => e.dir === dir);
 
 /**

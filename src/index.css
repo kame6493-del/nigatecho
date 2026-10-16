@@ -502,3 +502,37 @@ a.ext { color: var(--navy); word-break: break-all; }
 .tabbar button.on { color: var(--red); }
 .tab-ico { position: relative; display: grid; place-items: center; height: 26px; }
 .tab-badge { position: absolute; top: -4px; left: 15px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10px; font-style: normal; font-weight: 800; display: grid; place-items: center; line-height: 1; border: 2px solid #fff; }
+
+/* ---- 臨床検査技師の単体のアプリ(html[data-app="rinsho"])。地は淡い青の方眼(検査の記録用紙)。クリームの無地にしない ---- */
+.exam-card.single { padding-bottom: 12px; }
+.exam-card.single .exam-card-main { min-height: 96px; }
+.exam-catch { margin: 4px 0 0; font-size: .84em; color: var(--ink-2); padding-right: 104px; line-height: 1.5; }
+html[data-app="rinsho"] {
+  --bg: #edf4f8;
+  --paper: #edf4f8;
+  --line: #d9e5ec;
+  --rule: #d9e5ec;
+  --ink-2: #4f5d66;
+  --ink-3: #8a979f;
+  --shadow: 0 2px 10px rgba(30, 70, 100, .08);
+}
+html[data-app="rinsho"] body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(40, 110, 150, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(40, 110, 150, .055) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+html[data-app="rinsho"] .btn { border-color: #cfdde6; }
+html[data-app="rinsho"] .seg-tabs { background: #dde9f0; }
+html[data-app="rinsho"] .subj-bar { background: #e2ebf1; }
+html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
+
+/* ---- 午前・午後の切り替え(苦手を解く・未回答・ランダム10問・模試の範囲) ---- */
+.ampm { margin: 0 0 12px; }
+.ampm-row { display: flex; align-items: center; gap: 10px; }
+.ampm-cap { flex: none; font-size: .84em; font-weight: 800; color: var(--ink-2); }
+.ampm-tabs { flex: 1; margin: 0; }
+.ampm-tabs button { flex: 1 1 auto; font-size: .84em; padding: 7px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ampm-note { margin: 4px 2px 0; font-size: .78em; color: var(--ink-3); }

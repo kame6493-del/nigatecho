@@ -1,5 +1,7 @@
 """2026-10-10 の新しいアイコン(赤いリングノートに「苦」と赤鉛筆。持ち主が用意した絵)を、iOS・Android・ストア・アプリ内に入れる。
-python scripts/make_icon_redesign.py <正方形のアイコン 1024px>
+python scripts/make_icon_redesign.py <正方形のアイコン 1024px> [殻の試験(既定 kanri)]
+- 臨床検査技師の単体のアプリ: python scripts/make_icon_redesign.py store/icon_source_rinsho.png rinsho
+  (元の絵は scripts/make_icon_source_rinsho.py。色は淡い青、ストアは exams/rinsho/store/play、アプリ内は src/assets/logo_rinsho.png、PWA は触らない)
 - 元のファイルは store/_icon_backup/ に同じ並びで残す(1回目だけ。2回目以降は上書きしない)
 - iOS: AppIcon 1024(不透明。角の外の白をカードのクリーム色で埋める)・スプラッシュ
 - Android: 適応アイコン(前景=この絵・背景=なじむ単色。安全域 66% の円に絵の中身が入る大きさ)・丸・従来の四角・スプラッシュ
@@ -15,12 +17,21 @@ from PIL import Image, ImageDraw, ImageFilter
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHELL = os.path.join(ROOT, "exams", "kanri")
+EXAM = sys.argv[2] if len(sys.argv) > 2 else "kanri"
+KANRI = EXAM == "kanri"
+SHELL = os.path.join(ROOT, "exams", EXAM)
 RES = os.path.join(SHELL, "android", "app", "src", "main", "res")
 XC = os.path.join(SHELL, "ios", "App", "App", "Assets.xcassets")
-BACKUP = os.path.join(ROOT, "store", "_icon_backup")
+BACKUP = os.path.join(ROOT, "store", "_icon_backup" if KANRI else f"_icon_backup_{EXAM}")
 CREAM = (248, 241, 228)      # アイコンのカードの色(適応アイコンの背景もこの色)
 BG = (251, 246, 239)         # アプリの地の色(スプラッシュ)
+if EXAM == "rinsho":         # 臨床検査技師: 淡い青(index.css の html[data-app="rinsho"] の --bg)
+    CREAM = (222, 234, 247)
+    BG = (237, 244, 248)
+elif EXAM == "pt":           # 理学療法士: アイコンのカードは淡い紫(look.ts の pt)。地(スプラッシュ)はアプリの地のまま
+    CREAM = (234, 231, 250)
+elif EXAM == "kaigo":        # 介護福祉士: アイコンのカードは淡い桃色(look.ts の kaigo)
+    CREAM = (244, 230, 230)
 SRC = sys.argv[1]
 
 
@@ -148,10 +159,14 @@ save(foreground(1024).convert("RGBA"), os.path.join(A, "icon-foreground.png"))
 save(Image.new("RGB", (1024, 1024), CREAM), os.path.join(A, "icon-background.png"))
 save(splash(2732, 2732), os.path.join(A, "splash.png"))
 save(splash(2732, 2732), os.path.join(A, "splash-dark.png"))
-save(square.resize((512, 512), Image.LANCZOS), os.path.join(ROOT, "store", "multi", "play", "icon_512.png"))
-save(square.resize((144, 144), Image.LANCZOS), os.path.join(ROOT, "src", "assets", "logo.png"), optimize=True)
-for n in (48, 72, 96, 128, 192, 256, 512):
-    save(square.resize((n, n), Image.LANCZOS), os.path.join(ROOT, "icons", f"icon-{n}.webp"), quality=90)
+if KANRI:
+    save(square.resize((512, 512), Image.LANCZOS), os.path.join(ROOT, "store", "multi", "play", "icon_512.png"))
+    save(square.resize((144, 144), Image.LANCZOS), os.path.join(ROOT, "src", "assets", "logo.png"), optimize=True)
+    for n in (48, 72, 96, 128, 192, 256, 512):
+        save(square.resize((n, n), Image.LANCZOS), os.path.join(ROOT, "icons", f"icon-{n}.webp"), quality=90)
+else:
+    save(square.resize((512, 512), Image.LANCZOS), os.path.join(SHELL, "store", "play", "icon_512.png"))
+    save(square.resize((144, 144), Image.LANCZOS), os.path.join(ROOT, "src", "assets", f"logo_{EXAM}.png"), optimize=True)
 
 # 6) 確かめの絵: 安全域(66% の円)に中身が入っているか・丸/角丸/四角で切った見え方
 px = 432
@@ -183,5 +198,5 @@ for i, shape in enumerate(("circle", "squircle", "square")):
     else:
         ImageDraw.Draw(mask).rectangle([0, 0, px - 1, px - 1], fill=255)
     check.paste(c.convert("RGB"), ((px + 10) * (i + 1), 0), mask)
-check.save(os.path.join(ROOT, "store", "_icon_check.png"))
+check.save(os.path.join(ROOT, "store", "_icon_check.png" if KANRI else f"_icon_check_{EXAM}.png"))
 print("ok")

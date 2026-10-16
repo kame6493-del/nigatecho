@@ -13,7 +13,12 @@ import birdParty from '../assets/ill/bird_party.webp';
 import birdQ from '../assets/ill/bird_q.webp';
 import birdPencil from '../assets/ill/bird_pencil.webp';
 import womanCheer from '../assets/ill/woman_cheer.webp';
-import logo from '../assets/logo.png';
+import logoMulti from '../assets/logo.png';
+import logoRinsho from '../assets/logo_rinsho.png';
+import { EXAMS, SINGLE } from '../domain/exam';
+
+/** アプリの頭のアイコン。臨床検査技師の単体のアプリは、そのアプリのアイコン(淡い青に「臨床検査」の札) */
+const logo = SINGLE && EXAMS[0].dir === 'rinsho' ? logoRinsho : logoMulti;
 
 export const ART = { tulip, girlOk, birdParty, birdQ, birdPencil, womanCheer, logo };
 
@@ -32,6 +37,7 @@ const LOOKS: Record<string, ExamLook> = {
   shakai: { tint: '#e5effc', ink: '#1f4f9a', img: shakai, catch: '人と社会の暮らしを支える専門職。福祉に関する幅広い知識を問う国家試験です。' },
   seishin: { tint: '#e3f4e8', ink: '#1f6b3a', img: seishin, catch: 'こころの健康と社会復帰を支える専門職。精神保健に関する知識を問う国家試験です。' },
   kanri: { tint: '#fff2d9', ink: '#8a5a00', img: kanri, catch: '食と健康の専門職。栄養学や食事療法に関する知識を問う国家試験です。' },
+  rinsho: { tint: '#dceef5', ink: '#145a73', img: birdPencil, catch: '検査で医療を支える専門職。臨床検査の幅広い知識を問う国家試験です。' },
   pt: { tint: '#eeeafc', ink: '#4b3a9c', img: pt, catch: '運動機能の回復を支援する専門職。医学・リハビリテーションに関する知識を問う国家試験です。' },
 };
 

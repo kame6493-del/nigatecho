@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { daysLeft, estimate, examView, subEstimate, subjectStats, subjectWeights } from '../domain/study';
+import { daysLeft, estimate, examView, halfName, subEstimate, subjectStats, subjectWeights, type AmPm } from '../domain/study';
 import { ART, fmtDate, subjectColor } from './look';
 import { IBack, IChart, IChevron, IGear, IHome, INote, ISearch, ITarget, IX, ICalendar } from './Icons';
 
@@ -151,6 +151,31 @@ export function Ring({ ok, total, label }: { ok: number; total: number; label?: 
           strokeDasharray={`${c * v} ${c}`} transform="rotate(-90 64 64)" />
       </svg>
       <div className="ring-txt"><b>{ok}</b><span>/ {total} {label ?? '問'}</span><small>正解率 {Math.round(v * 100)}%</small></div>
+    </div>
+  );
+}
+
+/**
+ * 午前・午後の切り替え(苦手を解く・未回答・ランダム10問・模試の範囲)。
+ * 選んだ物は試験ごとの記録の settings.ampm に残る。午前・午後の区分が無い試験では出さない(呼ぶ側で enabled を見る)。
+ */
+export function AmPmSwitch({ value, onChange, note }: { value: AmPm; onChange: (v: AmPm) => void; note?: string }) {
+  const opts: { v: AmPm; label: string }[] = [
+    { v: 'both', label: '両方' },
+    { v: '午前', label: halfName('午前', EXAM) },
+    { v: '午後', label: halfName('午後', EXAM) },
+  ];
+  return (
+    <div className="ampm" data-ampm={value}>
+      <div className="ampm-row">
+        <span className="ampm-cap">解く範囲</span>
+        <div className="seg-tabs ampm-tabs" role="radiogroup" aria-label="午前・午後">
+          {opts.map((o) => (
+            <button key={o.v} role="radio" aria-checked={value === o.v} className={value === o.v ? 'on' : ''} onClick={() => onChange(o.v)} data-ampm-opt={o.v}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+      {note && <p className="ampm-note">{note}</p>}
     </div>
   );
 }

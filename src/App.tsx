@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, selectExam } from './domain/exam';
-import { isLocked, isNigate, nigateOrder, record, rng, shuffle, toggleMark, unseen } from './domain/study';
+import { ampmOf, byAmPm, halfName, hasAmPm, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
 import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
@@ -96,6 +96,10 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
 
   /** いま選んでいる試験の完全版を持っているか */
   const premium = !!billing.access[EXAM.dir];
+  /** 前に買った科目パックの科目(介護福祉士の単体のアプリだけ。無ければ空) */
+  const packSubjects = billing.status === 'ready' ? (billing.subjects ?? []) : [];
+  const packKey = packSubjects.join('|');
+  setUnlockedSubjects(packSubjects);
 
   const update = useCallback((f: (d: AppData) => AppData) => {
     const cur = dataRef.current;
@@ -130,20 +134,32 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   }, []);
 
   /** 鍵の無い問題(買っていなければ無料の回だけ) */
-  const open = useMemo(() => (all ?? []).filter((q) => !isLocked(q, premium, EXAM)), [all, premium]);
+  const open = useMemo(() => (all ?? []).filter((q) => !isLocked(q, premium, EXAM)), [all, premium, packKey]);
   const byId = useMemo(() => new Map((all ?? []).map((q) => [q.id, q])), [all]);
+  /** 午前・午後の区分がある試験か(問題データで決める)。ある試験だけ切り替えを出す */
+  const ampmOn = useMemo(() => hasAmPm(all ?? []), [all]);
+  /** 苦手を解く・未回答・ランダム10問・模試で解く範囲(試験ごとの記録に残る) */
+  const ampm = ampmOf(data?.settings.ampm, ampmOn);
+  /** 範囲でしぼった、鍵の無い問題 */
+  const openAmPm = useMemo(() => byAmPm(open, ampm), [open, ampm]);
+  /** 題名に範囲を足す(両方のときは足さない) */
+  const withHalf = useCallback((t: string) => (ampm === 'both' ? t : `${t}(${halfName(ampm, EXAM)})`), [ampm]);
+  const setAmPm = useCallback((v: AmPm) => update((d) => {
+    const { ampm: _old, ...rest } = d.settings;
+    return { ...d, settings: v === 'both' ? rest : { ...rest, ampm: v } };
+  }), [update]);
 
-  const start = useCallback((title: string, qs: Question[], mode: Session['mode'] = 'practice', exam?: number) => {
+  const start = useCallback((title: string, qs: Question[], mode: Session['mode'] = 'practice', exam?: number, half?: Session['half']) => {
     if (qs.length === 0) return;
-    push({ name: 'quiz', session: { title, ids: qs.map((q) => q.id), mode, exam, seed: Date.now() } });
+    push({ name: 'quiz', session: { title, ids: qs.map((q) => q.id), mode, exam, seed: Date.now(), ...(half ? { half } : {}) } });
   }, [push]);
 
   const starters = useMemo(() => ({
-    nigate: (limit = 20) => data && start('苦手を解く', nigateOrder(open, data).slice(0, limit)),
-    unseen: () => data && start('まだ解いていない問題', shuffle(unseen(open, data), rng(Date.now())).slice(0, 20)),
-    random: () => start('ランダム10問', shuffle(open.filter((q) => !q.excluded), rng(Date.now())).slice(0, 10)),
+    nigate: (limit = 20) => data && start(withHalf('苦手を解く'), nigateOrder(openAmPm, data).slice(0, limit)),
+    unseen: () => data && start(withHalf('まだ解いていない問題'), shuffle(unseen(openAmPm, data), rng(Date.now())).slice(0, 20)),
+    random: () => start(withHalf('ランダム10問'), shuffle(openAmPm.filter((q) => !q.excluded), rng(Date.now())).slice(0, 10)),
     marks: () => data && start('しるしを付けた問題', data.marks.map((id) => byId.get(id)).filter((q): q is Question => !!q && !isLocked(q, premium, EXAM))),
-  }), [data, open, byId, premium, start]);
+  }), [data, open, openAmPm, withHalf, byId, premium, start, packKey]);
 
   const finishMock = useCallback((m: MockResult, answers: { q: Question; ok: boolean }[]) => {
     update((d) => {
@@ -203,6 +219,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onSources={() => push({ name: 'sources' })}
           onSwitchExam={() => push({ name: 'switch' })}
           onExemptOnly={(on) => update((d) => ({ ...d, settings: { ...d.settings, exemptOnly: on } }))}
+          ampm={ampmOn ? ampm : null} onAmPm={setAmPm}
         />
       )}
       {route.name === 'search' && (
@@ -216,6 +233,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onMock={() => push({ name: 'exams', mock: true })}
           onPaywall={() => push({ name: 'paywall', from: 'search' })}
           onMockHistory={() => push({ name: 'mocks' })}
+          ampm={ampmOn ? ampm : null} onAmPm={setAmPm}
         />
       )}
       {route.name === 'note' && (
@@ -224,6 +242,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onSolve={(title, qs) => start(title, qs)}
           onNigate={() => starters.nigate()}
           onRandom={starters.random}
+          ampm={ampmOn ? ampm : null} onAmPm={setAmPm}
         />
       )}
       {route.name === 'stats' && (
@@ -257,8 +276,9 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           all={all} data={data} premium={premium} mock={route.mock}
           onBack={back}
           onLocked={() => push({ name: 'paywall', from: 'exam' })}
-          onStart={(title, qs, exam) => start(title, qs, route.mock ? 'mock' : 'practice', exam)}
+          onStart={(title, qs, exam) => start(title, qs, route.mock ? 'mock' : 'practice', exam, route.mock && ampm !== 'both' ? ampm : undefined)}
           onSubjects={route.mock ? undefined : () => swapTop({ name: 'subjects' })}
+          ampm={route.mock && ampmOn ? ampm : null} onAmPm={setAmPm}
         />
       )}
       {route.name === 'subjects' && (

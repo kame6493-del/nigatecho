@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { CLEAR_STREAK, isNigate, nigateOrder } from '../domain/study';
+import { CLEAR_STREAK, byAmPm, halfName, isNigate, nigateOrder, type AmPm } from '../domain/study';
 import { ART, subjectColor } from './look';
 import { IArrow, IChevron, IInfo } from './Icons';
+import { AmPmSwitch } from './parts';
 
 /**
  * 苦手ノート(見本の4枚目)。間違えた問題が科目ごとに残り、同じ問題に2回続けて正解すると消える。
@@ -14,8 +15,15 @@ export function NoteBook(p: {
   onSolve: (title: string, qs: Question[]) => void;
   onNigate: () => void;
   onRandom: () => void;
+  /** 解く範囲(午前だけ・午後だけ)。null は午前・午後の区分が無い試験 */
+  ampm: AmPm | null;
+  onAmPm: (v: AmPm) => void;
 }) {
-  const list = useMemo(() => nigateOrder(p.open, p.data), [p.open, p.data]);
+  const ampm = p.ampm ?? 'both';
+  const half = ampm === 'both' ? '' : halfName(ampm, EXAM);
+  const list = useMemo(() => nigateOrder(byAmPm(p.open, ampm), p.data), [p.open, p.data, ampm]);
+  /** 範囲の外も含めた苦手の数(範囲でしぼって 0 のときの案内に使う) */
+  const allNigate = useMemo(() => p.open.filter((q) => isNigate(p.data.records[q.id])).length, [p.open, p.data]);
   const groups = useMemo(() => EXAM.subjects
     .map((s, i) => ({ s, i, qs: list.filter((q) => q.subject === s) }))
     .filter((g) => g.qs.length > 0), [list]);
@@ -31,8 +39,16 @@ export function NoteBook(p: {
         <IInfo size={20} />
         <p>まちがえた問題が残り、同じ問題に<b>2回続けて正解</b>するとノートから消えます。</p>
       </section>
+      {p.ampm && <AmPmSwitch value={p.ampm} onChange={(v) => { setFilter(null); p.onAmPm(v); }} />}
 
-      {list.length === 0 ? (
+      {list.length === 0 && allNigate > 0 ? (
+        <section className="card empty-note">
+          <img src={ART.birdParty} alt="" />
+          <p className="empty-title">{half}の苦手は 0問 です</p>
+          <p className="muted">ほかの範囲に苦手が {allNigate}問 残っています。上の「両方」で見られます。</p>
+          <button className="btn primary wide" onClick={p.onRandom}>{half}からランダム10問を解く<IArrow size={18} /></button>
+        </section>
+      ) : list.length === 0 ? (
         <section className="card empty-note">
           <img src={seen ? ART.birdParty : ART.birdQ} alt="" />
           <p className="empty-title">{seen ? '苦手は 0問 です' : 'まだ苦手はありません'}</p>
@@ -84,7 +100,7 @@ export function NoteBook(p: {
             );
           })}
           <div className="bottom-bar over-tab">
-            <button className="btn primary wide big" onClick={p.onNigate}>苦手をまとめて解く({Math.min(20, list.length)}問)<IArrow size={18} /></button>
+            <button className="btn primary wide big" onClick={p.onNigate} data-note="solve-all">{half ? `${half}の苦手を解く` : '苦手をまとめて解く'}({Math.min(20, list.length)}問)<IArrow size={18} /></button>
           </div>
         </>
       )}

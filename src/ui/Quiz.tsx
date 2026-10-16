@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { CLEAR_STREAK, examRange, isCorrect, isLocked, isNigate, lockedSummary, passScoreOf, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { CLEAR_STREAK, examRange, halfName, isCorrect, isLocked, isNigate, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { splitExplanation } from '../domain/explain';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
@@ -18,6 +18,8 @@ export interface Session {
   mode: 'practice' | 'mock';
   /** 模試で解いた回 */
   exam?: number;
+  /** 午前だけ・午後だけで解く模試 */
+  half?: '午前' | '午後';
   seed: number;
 }
 
@@ -349,6 +351,7 @@ function MockRun(p: Props & { qs: Question[] }) {
       total: answers.reduce((t, a) => t + pointsOf(a.q), 0),
       bySubject,
       seconds: Math.round((Date.now() - startAt) / 1000),
+      ...(p.session.half ? { session: p.session.half } : {}),
     };
     // 答えていない問題は記録に残さない(解いていない物を「苦手」にしない)
     p.onMockDone(m, answers.filter((a) => (ans[a.q.id]?.length ?? 0) > 0));
@@ -357,9 +360,9 @@ function MockRun(p: Props & { qs: Question[] }) {
     p.onEnd({ cleared: 0, nigateLeft: -1, correctRate: m.score / Math.max(1, m.total), passed: judge(m).passed });
   };
 
-  /** 合格の判定(結果の画面と評価のお願いで同じ物を使う) */
+  /** 合格の判定(結果の画面と評価のお願いで同じ物を使う)。午前・午後だけの模試は目安の線 */
   function judge(m: MockResult) {
-    const ps = passScoreOf(m.exam, m.total, EXAM);
+    const ps = mockPassLine(m, EXAM);
     const pass = ps.score;
     // 総得点とは別の基準(理学療法士の実地問題)。解いた問題の配点から数える
     const sp = EXAM.subPass;
@@ -382,13 +385,15 @@ function MockRun(p: Props & { qs: Question[] }) {
         <section className="result-hero">
           <Ring ok={result.score} total={result.total} label="点" />
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
-          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{!ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{result.session ? `${halfName(result.session, EXAM)}の合格基準の目安` : !ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
           {sp && subTotal > 0 && (
             <p className={`pass-line ${subOk ? 'good' : 'bad'}`}>{sp.label} {subScore}/{subTotal}点(基準の目安 {subPassPts}点){subOk ? '' : ` あと${subPassPts - subScore}点`}</p>
           )}
           {sp && <p className="muted small">合格は総得点と{sp.label}の両方の基準を満たしたとき。{passed ? '今回は両方とも届いています。' : ''}</p>}
           {EXAM.groups && (zeros.length === 0
-            ? <p className="pass-line good">{EXAM.groups.length}科目群すべてで得点できています</p>
+            ? <p className="pass-line good">{result.session
+              ? `${halfName(result.session, EXAM)}にある${EXAM.groups.filter((g) => g.subjects.some((s) => result.bySubject[s]?.n)).length}科目群すべてで得点できています`
+              : `${EXAM.groups.length}科目群すべてで得点できています`}</p>
             : <p className="pass-line bad">0点の科目群があります: {zeros.join('/')}(1つでも0点だと総得点に関係なく不合格)</p>)}
           <p className="muted">かかった時間 {fmtTime(result.seconds)}・未回答 {qs.length - answeredCount}問</p>
         </section>

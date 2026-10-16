@@ -1,4 +1,5 @@
 """作り直した見た目(2026-10-10)の全画面の確認。python scripts/e2e_redesign.py [URL] [--widths 375,430] [--exams kanri,pt]
+臨床検査技師の単体のアプリ: node scripts/use-multi.mjs exams/multi.rinsho.json で組んで --exams rinsho(試験の切り替えが無いことを見る)
 開発サーバー(npx vite --port 5291)を出しておく。5試験すべてで
 ホーム(はじめて)→ 問題 → 答え合わせ → 解説(不正解・正解)→ 結果 → ホーム → 苦手ノート → 苦手を2回正解で消す → 成績(4つ)
 → 問題を探す → 年度別・科目別 → 試験の切り替え → 設定 → 完全版、を 375 と 430 の幅で回し、画面写真を scripts/e2e_out/redesign/<幅>/ に置く。
@@ -18,7 +19,7 @@ for i, a in enumerate(sys.argv):
         EXAMS = sys.argv[i + 1].split(",")
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "e2e_out", "redesign")
-NAMES = {"kanri": "管理栄養士", "pt": "理学療法士", "kaigo": "介護福祉士", "shakai": "社会福祉士", "seishin": "精神保健福祉士"}
+NAMES = {"kanri": "管理栄養士", "pt": "理学療法士", "kaigo": "介護福祉士", "shakai": "社会福祉士", "seishin": "精神保健福祉士", "rinsho": "臨床検査技師"}
 errors, fails, oks = [], [], [0]
 
 
@@ -194,14 +195,23 @@ def run(pg, width, exam, keys):
     shot(pg, d, "14_subjects")
     pg.click(".topbar .icon")
     tab(pg, "home")
-    pg.click(".exam-card-main")
-    pg.wait_for_selector(".ex-list")
-    check(pg.locator(".ex-item").count() == 5, f"{exam}: 試験は5つ")
-    check(pg.locator(".ex-item.on").get_attribute("data-exam") == exam, f"{exam}: いまの試験に印")
-    shot(pg, d, "15_switch")
-    pg.click(".topbar .icon")
+    single = len(keys) == 1
+    if single:
+        # 単体のアプリ: 試験を切り替える所が無い(ホームのボタン・設定のボタン)
+        check(pg.locator(".exam-switch").count() == 0, f"{exam}: 切り替えのボタンが無い")
+        check(pg.locator("button.exam-card-main").count() == 0, f"{exam}: 試験のカードは押せない")
+        check(pg.locator(".exam-catch").count() == 1, f"{exam}: 試験のひとこと")
+    else:
+        pg.click(".exam-card-main")
+        pg.wait_for_selector(".ex-list")
+        check(pg.locator(".ex-item").count() == len(keys), f"{exam}: 試験は{len(keys)}つ")
+        check(pg.locator(".ex-item.on").get_attribute("data-exam") == exam, f"{exam}: いまの試験に印")
+        shot(pg, d, "15_switch")
+        pg.click(".topbar .icon")
     tab(pg, "settings")
     pg.wait_for_selector(".settings")
+    if single:
+        check(pg.locator(".settings .form li").first.locator("button").count() == 0, f"{exam}: 設定に切り替えのボタンが無い")
     shot(pg, d, "16_settings")
     # 完全版(未購入の見本データで)
     pg.goto(f"{URL}?demo=1&exam={exam}&n=60&acc=0.6")
