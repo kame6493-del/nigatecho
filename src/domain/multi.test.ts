@@ -35,7 +35,7 @@ describe('試験の並びと商品', () => {
   });
 
   it('理学療法士・介護福祉士・社会福祉士・精神保健福祉士が入っていて、臨床検査技師は入れていない(単体のアプリで売っているため)', () => {
-    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai', 'seishin']);
+    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai', 'seishin', 'nurse']);
   });
 
   it('記録の保存先・商品・entitlement は試験ごとに別(重なると記録が混ざる/1つ買うとほかも開く)', () => {
@@ -49,11 +49,12 @@ describe('試験の並びと商品', () => {
   });
 
   it('買った entitlement の試験だけが開く', () => {
-    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false, seishin: false });
-    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true, seishin: false });
+    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false });
+    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true, seishin: false, nurse: false });
     // 社会福祉士の完全版では精神保健福祉士は開かない(別の商品)
-    expect(accessFrom(['seishin_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: true });
-    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false });
+    expect(accessFrom(['seishin_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: true, nurse: false });
+    expect(accessFrom(['nurse_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: true });
+    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false });
   });
 
   it('試験を切り替えると EXAM と試験日が替わる。知らない試験は管理栄養士', () => {
@@ -84,8 +85,10 @@ describe('試験ごとの問題データ', () => {
       }
       // 無料の回は開き、ほかの回は完全版
       const free = qs.find((q) => q.exam === e.latestExam)!;
-      const old = qs.find((q) => q.exam !== e.latestExam)!;
       expect(isLocked(free, false, e)).toBe(false);
+      // 看護師は準備の版で第115回(無料の回)だけを入れている。第111〜114回を足したら、この行は要らない
+      if (e.dir === 'nurse' && rounds.length === 1) return;
+      const old = qs.find((q) => q.exam !== e.latestExam)!;
       expect(isLocked(old, false, e)).toBe(true);
       expect(isLocked(old, true, e)).toBe(false);
     });
@@ -100,9 +103,9 @@ describe('試験ごとの問題データ', () => {
 });
 
 describe('試験ごとの出典', () => {
-  it('管理栄養士・理学療法士は厚生労働省、介護福祉士・社会福祉士は社会福祉振興・試験センター', () => {
+  it('管理栄養士・理学療法士・看護師は厚生労働省、介護福祉士・社会福祉士は社会福祉振興・試験センター', () => {
     for (const e of EXAMS) {
-      const mhlw = ['kanri', 'pt'].includes(e.dir);
+      const mhlw = ['kanri', 'pt', 'nurse'].includes(e.dir);
       expect(isMhlw(e)).toBe(mhlw);
       for (const n of e.rounds!) {
         const link = sourcePageFor(n, e)!;

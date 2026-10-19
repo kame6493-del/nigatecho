@@ -19,7 +19,7 @@ for i, a in enumerate(sys.argv):
         EXAMS = sys.argv[i + 1].split(",")
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "e2e_out", "redesign")
-NAMES = {"kanri": "管理栄養士", "pt": "理学療法士", "kaigo": "介護福祉士", "shakai": "社会福祉士", "seishin": "精神保健福祉士", "rinsho": "臨床検査技師"}
+NAMES = {"kanri": "管理栄養士", "pt": "理学療法士", "kaigo": "介護福祉士", "shakai": "社会福祉士", "seishin": "精神保健福祉士", "nurse": "看護師", "rinsho": "臨床検査技師"}
 errors, fails, oks = [], [], [0]
 
 

@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { daysLeft, estimate, examView, halfName, subEstimate, subjectStats, subjectWeights, type AmPm } from '../domain/study';
+import { daysLeft, estimate, examView, halfName, mainView, subEstimate, subjectStats, subjectWeights, type AmPm } from '../domain/study';
 import { ART, fmtDate, subjectColor } from './look';
 import { IBack, IChart, IChevron, IGear, IHome, INote, ISearch, ITarget, IX, ICalendar } from './Icons';
 
@@ -42,10 +42,12 @@ export function TabBar({ tab, onTab, badge }: { tab: Tab; onTab: (t: Tab) => voi
 /** 本番の予想点(ホームと成績の画面)。共通科目の免除の切り替えもここ */
 export function ForecastCard(p: { data: AppData; all: Question[]; open: Question[]; onExemptOnly: (on: boolean) => void; more?: () => void }) {
   const exemptOnly = !!(EXAM.exempt && p.data.settings.exemptOnly);
-  const view = useMemo(() => examView(EXAM, exemptOnly), [exemptOnly]);
+  // 看護師は必修問題を除いた一般・状況設定の点で合格点と比べる(必修問題は下の別の基準)
+  const view = useMemo(() => mainView(examView(EXAM, exemptOnly)), [exemptOnly]);
   const stats = useMemo(() => subjectStats(p.open, p.data, view), [p.open, p.data, view]);
   const weights = useMemo(() => subjectWeights(p.all, view), [p.all, view]);
   const est = estimate(stats, weights, view);
+  const restLabel = EXAM.subPass?.separate ? EXAM.subPass.restLabel : undefined;
   const sub = useMemo(() => subEstimate(p.open, p.all, p.data, EXAM), [p.open, p.all, p.data]);
   const seen = stats.reduce((s, x) => s + x.seen, 0);
   // 毎年の合格点が変わる試験は、直近の回の公式の合格点を線にする(6割の線は実際の合格点よりずっと高い)
@@ -63,7 +65,7 @@ export function ForecastCard(p: { data: AppData; all: Question[]; open: Question
       {est ? (
         <>
           <div className="fc-row">
-            <p className="fc-score"><b>{est.score}</b><span>/ {est.total}点</span></p>
+            <p className="fc-score">{restLabel && <small className="fc-rest">{restLabel}</small>}<b>{est.score}</b><span>/ {est.total}点</span></p>
             <p className="fc-pass"><small>{est.passExam ? '合格点' : '合格ライン'}</small><b>{est.pass}</b></p>
           </div>
           <div className="fc-bar" aria-hidden>

@@ -26,6 +26,13 @@ export interface Question {
   case?: string;
   /** 選択肢の後ろに付いている用語の注「（注）…」(原文のまま。社会福祉士) */
   footnote?: string;
+  /** 看護師の区分(必修問題・一般問題・状況設定問題)。表示用 */
+  part?: string;
+  /**
+   * 計算問題(看護師): 丸数字の欄 slots 個に 0〜9 を1つずつ入れる。answer は欄の順の数字(「42」なら [4, 2])。
+   * 選択肢は無い(choices は空)
+   */
+  calc?: { slots: number; unit: string };
   /** 選択肢が図の中にだけある問題(図の番号を選ぶ) */
   figChoices?: boolean;
 }
@@ -58,7 +65,7 @@ export interface ExamConfig {
    * 総得点とは別の合格基準(理学療法士の実地問題: 配点3の問題で約35%以上)。
    * 回ごとに基準の点は少し違うので、ここは目安の割合。
    */
-  subPass?: { label: string; points: number; ratio: number };
+  subPass?: SubPass;
   /** 無料で解ける回 */
   freeExams: number[];
   /** 出題基準の科目(並び順もこのまま使う) */
@@ -100,6 +107,23 @@ export interface ExamConfig {
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */
   entitlement?: string;
+}
+
+/**
+ * 総得点とは別の合格基準。どの問題がそれに当たるかは points(配点)か subjects(科目)で決める。
+ * 理学療法士: 実地問題(配点3)で約35%。看護師: 必修問題で8割(separate)。
+ */
+export interface SubPass {
+  label: string;
+  points?: number;
+  subjects?: string[];
+  ratio: number;
+  /**
+   * true なら、合格点(passScores・passRatio)はこの問題を除いた残り(restLabel)の点に対するもの。
+   * 看護師: 必修問題 40/50 と、一般問題・状況設定問題の合計が合格点以上、の2つを別々に満たす
+   */
+  separate?: boolean;
+  restLabel?: string;
 }
 
 export interface ExemptOption {

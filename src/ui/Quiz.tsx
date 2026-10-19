@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { CLEAR_STREAK, examRange, halfName, isCorrect, isLocked, isNigate, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { CLEAR_STREAK, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { splitExplanation } from '../domain/explain';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
@@ -192,6 +192,7 @@ function Practice(p: Props & { qs: Question[] }) {
     <div className="page quiz">
       {head}
       <QuestionView q={q} record={p.data.records[q.id]} />
+      {q.calc && <CalcInput q={q} value={sel} onPick={(slot, d) => setSel((cur) => { const n = [...cur]; n[slot] = d; return n; })} />}
       <ol className="choices">
         {q.choices.map((c, k) => {
           const n = k + 1;
@@ -208,8 +209,8 @@ function Practice(p: Props & { qs: Question[] }) {
       {q.footnote && <p className="footnote">{q.footnote}</p>}
       <div className="bottom-bar two">
         <button className={`btn mark-wide ${marked ? 'on' : ''}`} onClick={() => p.onMark(q.id)} aria-pressed={marked}><IBookmark on={marked} size={20} />しるし</button>
-        <button className="btn primary next" disabled={sel.length !== need} onClick={() => judge(sel)}>
-          {sel.length === need ? <>答え合わせをする<IArrow size={18} /></> : need === 1 ? '答えを選んでください' : `${need}つ選んでください(あと${need - sel.length}つ)`}
+        <button className="btn primary next" disabled={!isAnswered(q, sel)} onClick={() => judge(sel)}>
+          {isAnswered(q, sel) ? <>答え合わせをする<IArrow size={18} /></> : q.calc ? '数字を入れてください' : need === 1 ? '答えを選んでください' : `${need}つ選んでください(あと${need - sel.length}つ)`}
         </button>
       </div>
     </div>
@@ -218,7 +219,7 @@ function Practice(p: Props & { qs: Question[] }) {
 
 /** 正解・不正解の帯 */
 function Verdict({ q, ok }: { q: Question; ok: boolean }) {
-  const ans = q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)';
+  const ans = q.calc ? `正答 ${q.answer.join('')}${q.calc.unit}` : q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)';
   if (q.excluded) {
     return <section className="verdict neutral"><h3>採点対象外の問題<span>{ans}</span></h3>{q.note && <p className="note">{q.note}</p>}</section>;
   }
@@ -280,6 +281,12 @@ function Explanation({ q, picked }: { q: Question; picked: number[] }) {
         <h2 className="card-title"><IBulb className="gold" />{parts.parsed ? '正答の理由' : '解説'}</h2>
         <div className="explain">{parts.reason || '解説は準備中です。'}</div>
       </section>
+      {q.calc ? (
+        <section className="card exp-card">
+          <h2 className="card-title"><IDoc className="red" />答え</h2>
+          <p className="calc-result">正答 <b>{q.answer.join('')}</b>{q.calc.unit}　あなたの答え <b>{Array.from({ length: q.calc.slots }, (_, k) => (typeof picked[k] === 'number' ? picked[k] : '−')).join('')}</b>{q.calc.unit}</p>
+        </section>
+      ) : (
       <section className="card exp-card">
         <h2 className="card-title"><IDoc className="red" />選択肢ごとの解説</h2>
         <ol className="ans-list">
@@ -302,6 +309,7 @@ function Explanation({ q, picked }: { q: Question; picked: number[] }) {
           })}
         </ol>
       </section>
+      )}
     </>
   );
 }
@@ -327,7 +335,7 @@ function MockRun(p: Props & { qs: Question[] }) {
   useEffect(() => { window.scrollTo(0, 0); }, [i, result]);
 
   /** 選ぶ数だけ選んだ問題を「回答済み」と数える */
-  const answeredCount = qs.filter((x) => (ans[x.id]?.length ?? 0) >= pickCount(x)).length;
+  const answeredCount = qs.filter((x) => isAnswered(x, ans[x.id])).length;
   const toggle = (x: Question, n: number) => {
     const need = pickCount(x);
     const cur = ans[x.id] ?? [];
@@ -337,7 +345,7 @@ function MockRun(p: Props & { qs: Question[] }) {
 
   const submit = () => {
     const scored = qs.filter((x) => !x.excluded);
-    const answers = scored.map((x) => ({ q: x, ok: ans[x.id] !== undefined && isCorrect(x, ans[x.id]) }));
+    const answers = scored.map((x) => ({ q: x, ok: isAnswered(x, ans[x.id]) && isCorrect(x, ans[x.id]) }));
     const bySubject: MockResult['bySubject'] = {};
     for (const a of answers) {
       const s = (bySubject[a.q.subject] ??= { ok: 0, n: 0 });
@@ -362,22 +370,25 @@ function MockRun(p: Props & { qs: Question[] }) {
 
   /** 合格の判定(結果の画面と評価のお願いで同じ物を使う)。午前・午後だけの模試は目安の線 */
   function judge(m: MockResult) {
-    const ps = mockPassLine(m, EXAM);
-    const pass = ps.score;
-    // 総得点とは別の基準(理学療法士の実地問題)。解いた問題の配点から数える
+    // 総得点とは別の基準(理学療法士の実地問題・看護師の必修問題)。解いた問題の配点から数える
     const sp = EXAM.subPass;
-    const subQs = sp ? qs.filter((x) => !x.excluded && pointsOf(x) === sp.points) : [];
+    const subQs = sp ? qs.filter((x) => !x.excluded && inSubPass(x, EXAM)) : [];
     const subTotal = subQs.reduce((t, x) => t + pointsOf(x), 0);
-    const subScore = subQs.reduce((t, x) => t + (ans[x.id] !== undefined && isCorrect(x, ans[x.id]) ? pointsOf(x) : 0), 0);
+    const subScore = subQs.reduce((t, x) => t + (isAnswered(x, ans[x.id]) && isCorrect(x, ans[x.id]) ? pointsOf(x) : 0), 0);
     const subPassPts = sp ? Math.ceil(subTotal * sp.ratio) : 0;
     const subOk = !sp || subTotal === 0 || subScore >= subPassPts;
+    // 看護師: 合格点は必修問題を除いた一般問題・状況設定問題の点に対するもの
+    const mainScore = sp?.separate ? m.score - subScore : m.score;
+    const mainTotal = sp?.separate ? m.total - subTotal : m.total;
+    const ps = mockPassLine({ ...m, total: mainTotal }, EXAM);
+    const pass = ps.score;
     const zeros = zeroGroups(m.bySubject, EXAM);
-    const passed = m.total > 0 && m.score >= pass && subOk && zeros.length === 0;
-    return { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed };
+    const passed = m.total > 0 && mainScore >= pass && subOk && zeros.length === 0;
+    return { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed, mainScore, mainTotal };
   }
 
   if (result) {
-    const { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed } = judge(result);
+    const { ps, pass, sp, subTotal, subScore, subPassPts, subOk, zeros, passed, mainScore, mainTotal } = judge(result);
     const wrong = qs.filter((x) => !x.excluded && !(ans[x.id] !== undefined && isCorrect(x, ans[x.id])));
     return (
       <div className="page result">
@@ -385,11 +396,11 @@ function MockRun(p: Props & { qs: Question[] }) {
         <section className="result-hero">
           <Ring ok={result.score} total={result.total} label="点" />
           <div className="result-score"><b>{result.score}</b><span>/ {result.total} 点</span></div>
-          <p className={`pass-line ${result.score >= pass ? 'good' : 'bad'}`}>{result.session ? `${halfName(result.session, EXAM)}の合格基準の目安` : !ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{result.score >= pass ? `${result.score - pass}点の余裕` : `あと${pass - result.score}点`}</p>
+          <p className={`pass-line ${mainScore >= pass ? 'good' : 'bad'}`}>{sp?.separate ? `${sp.restLabel ?? '残り'} ${mainScore}/${mainTotal}点・` : ''}{result.session ? `${halfName(result.session, EXAM)}の合格基準の目安` : !ps.official ? '合格基準' : ps.exam === result.exam ? `第${result.exam}回の合格点` : `直近の合格点(第${ps.exam}回)`} {pass}点 に{mainScore >= pass ? `${mainScore - pass}点の余裕` : `あと${pass - mainScore}点`}</p>
           {sp && subTotal > 0 && (
             <p className={`pass-line ${subOk ? 'good' : 'bad'}`}>{sp.label} {subScore}/{subTotal}点(基準の目安 {subPassPts}点){subOk ? '' : ` あと${subPassPts - subScore}点`}</p>
           )}
-          {sp && <p className="muted small">合格は総得点と{sp.label}の両方の基準を満たしたとき。{passed ? '今回は両方とも届いています。' : ''}</p>}
+          {sp && <p className="muted small">合格は{sp.separate ? sp.restLabel : '総得点'}と{sp.label}の両方の基準を満たしたとき。{passed ? '今回は両方とも届いています。' : ''}</p>}
           {EXAM.groups && (zeros.length === 0
             ? <p className="pass-line good">{result.session
               ? `${halfName(result.session, EXAM)}にある${EXAM.groups.filter((g) => g.subjects.some((s) => result.bySubject[s]?.n)).length}科目群すべてで得点できています`
@@ -424,7 +435,7 @@ function MockRun(p: Props & { qs: Question[] }) {
         <TopBar title="問題の一覧" onClose={() => setList(false)} />
         <div className="grid-nums">
           {qs.map((x, k) => (
-            <button key={x.id} className={`${(ans[x.id]?.length ?? 0) >= pickCount(x) ? 'done' : ''} ${k === i ? 'cur' : ''}`} onClick={() => { setI(k); setList(false); }}>{k + 1}</button>
+            <button key={x.id} className={`${isAnswered(x, ans[x.id]) ? 'done' : ''} ${k === i ? 'cur' : ''}`} onClick={() => { setI(k); setList(false); }}>{k + 1}</button>
           ))}
         </div>
       </div>
@@ -442,6 +453,7 @@ function MockRun(p: Props & { qs: Question[] }) {
         <button className="link" onClick={() => setList(true)}>問題の一覧(回答 {answeredCount})<IChevron size={14} /></button>
       </div>
       <QuestionView q={q} />
+      {q.calc && <CalcInput q={q} value={ans[q.id] ?? []} onPick={(slot, d) => { const n = [...(ans[q.id] ?? [])]; n[slot] = d; setAns({ ...ans, [q.id]: n }); }} />}
       <ol className="choices">
         {q.choices.map((c, k) => (
           <li key={k}>
@@ -529,8 +541,31 @@ function QuestionView({ q, record }: { q: Question; record?: AppData['records'][
         </details>
       )}
       <p className="stem">{q.stem}</p>
-      {pickCount(q) > 1 && <p className="pick-note">{pickCount(q)}つ選ぶ問題です</p>}
+      {pickCount(q) > 1 && !q.calc && <p className="pick-note">{pickCount(q)}つ選ぶ問題です</p>}
       {q.figure && <img className="figure" src={`./data/${EXAM.dir}/${q.figure}`} alt="問題の図" />}
+    </section>
+  );
+}
+
+const CIRC = '①②③④⑤⑥⑦⑧⑨⑩';
+
+/** 計算問題の入力: 丸数字の欄ごとに 0〜9 を1つ選ぶ(本番の答案用紙と同じ形) */
+function CalcInput({ q, value, onPick }: { q: Question; value: (number | undefined)[]; onPick: (slot: number, d: number) => void }) {
+  const slots = q.calc!.slots;
+  return (
+    <section className="calc card" aria-label="計算問題の答え">
+      <p className="calc-now">
+        {Array.from({ length: slots }, (_, k) => <span key={k} className="calc-box">{typeof value[k] === 'number' ? value[k] : CIRC[k]}</span>)}
+        <span className="calc-unit">{q.calc!.unit}</span>
+      </p>
+      {Array.from({ length: slots }, (_, k) => (
+        <div key={k} className="calc-row" role="group" aria-label={`${CIRC[k]}の数字`}>
+          <span className="calc-label">{CIRC[k]}</span>
+          {Array.from({ length: 10 }, (_, d) => (
+            <button key={d} className={`calc-d ${value[k] === d ? 'is-picked' : ''}`} onClick={() => onPick(k, d)} aria-pressed={value[k] === d}>{d}</button>
+          ))}
+        </div>
+      ))}
     </section>
   );
 }

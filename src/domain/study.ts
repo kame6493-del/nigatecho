@@ -7,7 +7,28 @@ export const CLEAR_STREAK = 2;
 export const pointsOf = (q: Question) => q.points ?? 1;
 
 /** 選ぶ数(「2つ選べ」なら2) */
-export const pickCount = (q: Question) => Math.max(1, q.pick ?? 1);
+export const pickCount = (q: Question) => (q.calc ? q.calc.slots : Math.max(1, q.pick ?? 1));
+
+/** 計算問題で、すべての欄に数字を入れたか(欄の順に並べた配列。空きは undefined) */
+export const isAnswered = (q: Question, picked: (number | undefined)[] | undefined) =>
+  !!picked && (q.calc ? picked.length === q.calc.slots && Array.from({ length: q.calc.slots }, (_, k) => picked[k]).every((v) => typeof v === 'number') : picked.length >= pickCount(q));
+
+/** 総得点とは別の基準(subPass)に当たる問題か */
+export function inSubPass(q: Question, cfg: ExamConfig): boolean {
+  const sp = cfg.subPass;
+  if (!sp) return false;
+  return sp.subjects ? sp.subjects.includes(q.subject) : pointsOf(q) === sp.points;
+}
+
+/**
+ * 合格点を数える側の見方。subPass が separate(看護師の必修問題)なら、その科目を除いた科目で数える。
+ * それ以外は cfg のまま
+ */
+export function mainView(cfg: ExamConfig): ExamConfig {
+  const sp = cfg.subPass;
+  if (!sp?.separate || !sp.subjects) return cfg;
+  return { ...cfg, subjects: cfg.subjects.filter((s) => !sp.subjects!.includes(s)) };
+}
 
 /**
  * 1つ選ぶ問題: 選んだ番号が正答のどれかなら正解(複数正答はどれでもよい)。
@@ -15,6 +36,12 @@ export const pickCount = (q: Question) => Math.max(1, q.pick ?? 1);
  * accepted がある問題: 選んだ組が、公式が正解とした組のどれかと一致すれば正解。
  */
 export function isCorrect(q: Question, picked: number | number[]): boolean {
+  // 計算問題: 欄ごとの数字が順に一致したとき
+  if (q.calc) {
+    const ds = Array.isArray(picked) ? picked : [picked];
+    const eq = (b: number[]) => b.length === ds.length && b.every((v, i) => v === ds[i]);
+    return ds.length === q.calc.slots && (q.accepted?.length ? q.accepted.some(eq) : eq(q.answer));
+  }
   const xs = [...new Set(Array.isArray(picked) ? picked : [picked])].sort((x, y) => x - y);
   if (xs.length !== pickCount(q)) return false;
   const same = (b: number[]) => b.length === xs.length && [...b].sort((x, y) => x - y).every((v, i) => v === xs[i]);
@@ -196,7 +223,7 @@ export interface SubEstimate {
 export function subEstimate(open: Question[], all: Question[], data: AppData, cfg: ExamConfig, minSeen = 10): SubEstimate | null {
   const sp = cfg.subPass;
   if (!sp) return null;
-  const mine = open.filter((q) => pointsOf(q) === sp.points && !q.excluded);
+  const mine = open.filter((q) => inSubPass(q, cfg) && !q.excluded);
   let seen = 0, ok = 0;
   for (const q of mine) {
     const r = data.records[q.id];
@@ -206,7 +233,7 @@ export function subEstimate(open: Question[], all: Question[], data: AppData, cf
   }
   if (seen < minSeen) return null;
   const latest = Math.max(...all.map((q) => q.exam));
-  const total = all.filter((q) => q.exam === latest && !q.excluded && pointsOf(q) === sp.points).reduce((t, q) => t + pointsOf(q), 0);
+  const total = all.filter((q) => q.exam === latest && !q.excluded && inSubPass(q, cfg)).reduce((t, q) => t + pointsOf(q), 0);
   return { label: sp.label, score: Math.round((total * ok) / seen), total, pass: Math.ceil(total * sp.ratio) };
 }
 

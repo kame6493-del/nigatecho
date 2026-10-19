@@ -1,0 +1,76 @@
+{
+  "key": "kangoshi",
+  "dir": "nurse",
+  "name": "看護師",
+  "homeName": "ニガテ帳",
+  "productId": "nigatecho_multi_nurse_full",
+  "price": "¥980",
+  "site": "https://kame6493-del.github.io/nigatecho-site/",
+  "examDate": "2027-02-14",
+  "examDateNote": "第116回 看護師国家試験(令和9年2月14日 日曜日)。出典: 厚生労働省「看護師国家試験の施行」https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/kangoshi/(2026-10-19 確認)",
+  "latestExam": 115,
+  "latestYear": 2026,
+  "perExam": 240,
+  "passRatio": 0.6,
+  "subPass": {
+    "label": "必修問題",
+    "subjects": [
+      "必修問題"
+    ],
+    "ratio": 0.8,
+    "separate": true,
+    "restLabel": "一般・状況設定"
+  },
+  "freeExams": [
+    115
+  ],
+  "subjects": [
+    "必修問題",
+    "人体の構造と機能",
+    "疾病の成り立ちと回復の促進",
+    "健康支援と社会保障制度",
+    "基礎看護学",
+    "地域・在宅看護論",
+    "成人看護学",
+    "老年看護学",
+    "小児看護学",
+    "母性看護学",
+    "精神看護学",
+    "看護の統合と実践"
+  ],
+  "short": {
+    "必修問題": "必修",
+    "人体の構造と機能": "人体",
+    "疾病の成り立ちと回復の促進": "疾病",
+    "健康支援と社会保障制度": "健康支援",
+    "基礎看護学": "基礎看護",
+    "地域・在宅看護論": "地域・在宅",
+    "成人看護学": "成人看護",
+    "老年看護学": "老年看護",
+    "小児看護学": "小児看護",
+    "母性看護学": "母性看護",
+    "精神看護学": "精神看護",
+    "看護の統合と実践": "統合と実践"
+  },
+  "passScores": {
+    "115": 166
+  },
+  "credit": "出典: 厚生労働省ホームページ「第112回保健師国家試験、第109回助産師国家試験、第115回看護師国家試験の問題および正答について」ほか各回。選択肢の番号付けと表示を編集・加工しています(疾患名などに添えられた英語の表記は省いています)。解説は本アプリの独自作成です。",
+  "sources": {
+    "top": {
+      "title": "看護師国家試験の施行",
+      "url": "https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/kangoshi/"
+    },
+    "pages": {
+      "115": {
+        "title": "第112回保健師国家試験、第109回助産師国家試験、第115回看護師国家試験の問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp260424-03_04_05.html"
+      }
+    },
+    "license": {
+      "title": "公共データ利用規約(第1.0版)",
+      "url": "https://www.digital.go.jp/resources/open_data/public_data_license_v1.0"
+    }
+  },
+  "entitlement": "nurse_full"
+}

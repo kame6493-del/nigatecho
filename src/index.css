@@ -536,3 +536,15 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .ampm-tabs { flex: 1; margin: 0; }
 .ampm-tabs button { flex: 1 1 auto; font-size: .84em; padding: 7px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ampm-note { margin: 4px 2px 0; font-size: .78em; color: var(--ink-3); }
+
+/* 計算問題(看護師): 丸数字の欄ごとに 0〜9 を選ぶ */
+.calc { margin: 12px 0; padding: 14px 12px; }
+.calc-now { display: flex; align-items: center; gap: 6px; font-size: 20px; margin: 0 0 10px; }
+.calc-box { min-width: 36px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #c9c2b6; border-radius: 8px; font-weight: 700; background: #fff; }
+.calc-unit { margin-left: 4px; font-size: 16px; }
+.calc-row { display: flex; align-items: center; gap: 3px; margin: 6px 0; }
+.calc-label { flex: 0 0 22px; font-size: 18px; }
+.calc-d { flex: 1 1 0; min-width: 0; height: 38px; border-radius: 8px; border: 1px solid #d6d0c4; background: #fff; font-size: 16px; padding: 0; }
+.calc-d.is-picked { background: #e8524f; border-color: #e8524f; color: #fff; font-weight: 700; }
+.calc-result b { font-size: 20px; margin: 0 2px; }
+.fc-rest { display: block; font-size: 12px; color: #8a8378; font-weight: 400; }
