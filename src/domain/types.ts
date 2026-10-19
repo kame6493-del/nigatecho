@@ -30,9 +30,9 @@ export interface Question {
   part?: string;
   /**
    * 計算問題(看護師): 丸数字の欄 slots 個に 0〜9 を1つずつ入れる。answer は欄の順の数字(「42」なら [4, 2])。
-   * 選択肢は無い(choices は空)
+   * 選択肢は無い(choices は空)。tpl は欄の並びが「①②+単位」でない回の形(第111回「①.②mL」、第113回「2023年①②月③④日」)
    */
-  calc?: { slots: number; unit: string };
+  calc?: { slots: number; unit: string; tpl?: string };
   /** 選択肢が図の中にだけある問題(図の番号を選ぶ) */
   figChoices?: boolean;
 }

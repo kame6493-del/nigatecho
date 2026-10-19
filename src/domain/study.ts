@@ -7,6 +7,16 @@ export const CLEAR_STREAK = 2;
 export const pointsOf = (q: Question) => q.points ?? 1;
 
 /** 選ぶ数(「2つ選べ」なら2) */
+/** 計算問題の答えを冊子の形で文字にする。digits の k 番目が欄 ⓚ。埋まっていない欄は blank(既定は丸数字) */
+export function calcText(q: Question, digits: (number | undefined)[], blank?: string): string {
+  const c = q.calc!;
+  const tpl = c.tpl ?? Array.from({ length: c.slots }, (_, k) => String.fromCharCode(0x2460 + k)).join('') + c.unit;
+  return tpl.replace(/[①-⑳]/g, (ch) => {
+    const k = ch.charCodeAt(0) - 0x2460;
+    return typeof digits[k] === 'number' ? String(digits[k]) : blank ?? ch;
+  });
+}
+
 export const pickCount = (q: Question) => (q.calc ? q.calc.slots : Math.max(1, q.pick ?? 1));
 
 /** 計算問題で、すべての欄に数字を入れたか(欄の順に並べた配列。空きは undefined) */

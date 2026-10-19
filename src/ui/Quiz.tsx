@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { CLEAR_STREAK, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { CLEAR_STREAK, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, calcText, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { splitExplanation } from '../domain/explain';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
@@ -219,7 +219,7 @@ function Practice(p: Props & { qs: Question[] }) {
 
 /** 正解・不正解の帯 */
 function Verdict({ q, ok }: { q: Question; ok: boolean }) {
-  const ans = q.calc ? `正答 ${q.answer.join('')}${q.calc.unit}` : q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)';
+  const ans = q.calc ? `正答 ${calcText(q, q.answer)}` : q.answer.length ? `正答 ${q.answer.join('・')}` : '正答なし(全員正解の扱い)';
   if (q.excluded) {
     return <section className="verdict neutral"><h3>採点対象外の問題<span>{ans}</span></h3>{q.note && <p className="note">{q.note}</p>}</section>;
   }
@@ -284,7 +284,7 @@ function Explanation({ q, picked }: { q: Question; picked: number[] }) {
       {q.calc ? (
         <section className="card exp-card">
           <h2 className="card-title"><IDoc className="red" />答え</h2>
-          <p className="calc-result">正答 <b>{q.answer.join('')}</b>{q.calc.unit}　あなたの答え <b>{Array.from({ length: q.calc.slots }, (_, k) => (typeof picked[k] === 'number' ? picked[k] : '−')).join('')}</b>{q.calc.unit}</p>
+          <p className="calc-result">正答 <b>{calcText(q, q.answer)}</b>　あなたの答え <b>{calcText(q, picked, '−')}</b></p>
         </section>
       ) : (
       <section className="card exp-card">
@@ -555,8 +555,17 @@ function CalcInput({ q, value, onPick }: { q: Question; value: (number | undefin
   return (
     <section className="calc card" aria-label="計算問題の答え">
       <p className="calc-now">
-        {Array.from({ length: slots }, (_, k) => <span key={k} className="calc-box">{typeof value[k] === 'number' ? value[k] : CIRC[k]}</span>)}
-        <span className="calc-unit">{q.calc!.unit}</span>
+        {q.calc!.tpl
+          ? q.calc!.tpl.split(/([①-⑳])/).filter(Boolean).map((part, i) => {
+              const k = part.charCodeAt(0) - 0x2460;
+              return part.length === 1 && k >= 0 && k < 20
+                ? <span key={i} className="calc-box">{typeof value[k] === 'number' ? value[k] : CIRC[k]}</span>
+                : <span key={i} className="calc-unit">{part}</span>;
+            })
+          : <>
+              {Array.from({ length: slots }, (_, k) => <span key={k} className="calc-box">{typeof value[k] === 'number' ? value[k] : CIRC[k]}</span>)}
+              <span className="calc-unit">{q.calc!.unit}</span>
+            </>}
       </p>
       {Array.from({ length: slots }, (_, k) => (
         <div key={k} className="calc-row" role="group" aria-label={`${CIRC[k]}の数字`}>

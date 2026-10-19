@@ -7,6 +7,7 @@ import shakai from '../assets/ill/exam_shakai.webp';
 import seishin from '../assets/ill/exam_seishin.webp';
 import kanri from '../assets/ill/exam_kanri.webp';
 import pt from '../assets/ill/exam_pt.webp';
+import nurse from '../assets/ill/exam_nurse.webp';
 import tulip from '../assets/ill/tulip.webp';
 import girlOk from '../assets/ill/girl_ok.webp';
 import birdParty from '../assets/ill/bird_party.webp';
@@ -39,6 +40,7 @@ const LOOKS: Record<string, ExamLook> = {
   kanri: { tint: '#fff2d9', ink: '#8a5a00', img: kanri, catch: '食と健康の専門職。栄養学や食事療法に関する知識を問う国家試験です。' },
   rinsho: { tint: '#dceef5', ink: '#145a73', img: birdPencil, catch: '検査で医療を支える専門職。臨床検査の幅広い知識を問う国家試験です。' },
   pt: { tint: '#eeeafc', ink: '#4b3a9c', img: pt, catch: '運動機能の回復を支援する専門職。医学・リハビリテーションに関する知識を問う国家試験です。' },
+  nurse: { tint: '#dff1f4', ink: '#16606e', img: nurse, catch: '患者さんのいちばん近くで療養を支える専門職。看護と医学の幅広い知識を問う国家試験です。' },
 };
 
 export const lookOf = (dir: string): ExamLook => LOOKS[dir] ?? { tint: '#f4efe6', ink: '#5b524b', img: kanri, catch: '' };

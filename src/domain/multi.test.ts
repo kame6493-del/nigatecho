@@ -86,8 +86,6 @@ describe('試験ごとの問題データ', () => {
       // 無料の回は開き、ほかの回は完全版
       const free = qs.find((q) => q.exam === e.latestExam)!;
       expect(isLocked(free, false, e)).toBe(false);
-      // 看護師は準備の版で第115回(無料の回)だけを入れている。第111〜114回を足したら、この行は要らない
-      if (e.dir === 'nurse' && rounds.length === 1) return;
       const old = qs.find((q) => q.exam !== e.latestExam)!;
       expect(isLocked(old, false, e)).toBe(true);
       expect(isLocked(old, true, e)).toBe(false);

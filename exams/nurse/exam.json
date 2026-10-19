@@ -53,6 +53,10 @@
     "看護の統合と実践": "統合と実践"
   },
   "passScores": {
+    "111": 167,
+    "112": 152,
+    "113": 158,
+    "114": 148,
     "115": 166
   },
   "credit": "出典: 厚生労働省ホームページ「第112回保健師国家試験、第109回助産師国家試験、第115回看護師国家試験の問題および正答について」ほか各回。選択肢の番号付けと表示を編集・加工しています(疾患名などに添えられた英語の表記は省いています)。解説は本アプリの独自作成です。",
@@ -62,6 +66,22 @@
       "url": "https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/kangoshi/"
     },
     "pages": {
+      "111": {
+        "title": "第108回保健師国家試験、第105回助産師国家試験、第111回看護師国家試験の問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp220421-03_04_05.html"
+      },
+      "112": {
+        "title": "第109回保健師国家試験、第106回助産師国家試験、第112回看護師国家試験の問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp230524-03_04_05.html"
+      },
+      "113": {
+        "title": "第110回保健師国家試験、第107回助産師国家試験、第113回看護師国家試験の問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp240424-03_04_05.html"
+      },
+      "114": {
+        "title": "第111回保健師国家試験、第108回助産師国家試験、第114回看護師国家試験の問題および正答について",
+        "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp250428-03_04_05.html"
+      },
       "115": {
         "title": "第112回保健師国家試験、第109回助産師国家試験、第115回看護師国家試験の問題および正答について",
         "url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryou/topics/tp260424-03_04_05.html"

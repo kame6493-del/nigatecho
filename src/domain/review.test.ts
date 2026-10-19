@@ -149,8 +149,6 @@ describe('結果画面の完全版の案内に出す数', () => {
     for (const e of EXAMS) {
       const rounds = e.rounds ?? [];
       const locked = rounds.filter((r) => !e.freeExams.includes(r));
-      // 看護師は準備の版で無料の第115回だけ。鍵のかかる回が無いので案内は出さない
-      if (e.dir === 'nurse' && locked.length === 0) { expect(lockedSummary(rounds.map((r) => q(r, 1)), e)).toBeNull(); continue; }
       expect(locked.length, e.name).toBeGreaterThan(0);
       // 1回分の問題数で並べた見本で、範囲が「第(最小)〜(最大)回」になる
       const all = rounds.flatMap((r) => [q(r, 1), q(r, 2)]);
