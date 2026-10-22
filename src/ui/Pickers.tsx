@@ -88,7 +88,7 @@ export function ExamPicker(p: {
           <p className="plan-title">完全版で、{examRange(lockedExams[lockedExams.length - 1], lockedExams[0])}も解けます</p>
           <ul className="checks">
             <li><ICheck size={16} />{EXAM.name}の過去の回の問題すべて</li>
-            <li><ICheck size={16} />本番形式の模試</li>
+            <li><ICheck size={16} />その回の本番形式の模試</li>
             <li><ICheck size={16} />買い切り(月額はかかりません)</li>
           </ul>
           <button className="btn primary wide" onClick={p.onLocked}>完全版を見る<IChevron size={16} /></button>

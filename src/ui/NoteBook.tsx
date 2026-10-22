@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { CLEAR_STREAK, byAmPm, halfName, isNigate, nigateOrder, type AmPm } from '../domain/study';
+import { CLEAR_STREAK, byAmPm, examRange, halfName, isNigate, lockedSummary, nigateOrder, type AmPm } from '../domain/study';
 import { ART, subjectColor } from './look';
 import { IArrow, IChevron, IInfo } from './Icons';
-import { AmPmSwitch } from './parts';
+import { AmPmSwitch, UpsellLine } from './parts';
 
 /**
  * 苦手ノート(見本の4枚目)。間違えた問題が科目ごとに残り、同じ問題に2回続けて正解すると消える。
@@ -12,6 +12,8 @@ import { AmPmSwitch } from './parts';
  */
 export function NoteBook(p: {
   data: AppData; open: Question[];
+  /** 完全版の1行に使う(全問・買ったか・購入画面へ) */
+  all?: Question[]; premium?: boolean; onPaywall?: () => void;
   onSolve: (title: string, qs: Question[]) => void;
   onNigate: () => void;
   onRandom: () => void;
@@ -31,6 +33,7 @@ export function NoteBook(p: {
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const seen = p.open.some((q) => p.data.records[q.id]);
   const shown = filter ? groups.filter((g) => g.s === filter) : groups;
+  const locked = !p.premium && p.all && p.onPaywall ? lockedSummary(p.all, EXAM) : null;
 
   return (
     <div className="page note-page">
@@ -40,6 +43,10 @@ export function NoteBook(p: {
         <p>まちがえた問題が残り、同じ問題に<b>2回続けて正解</b>するとノートから消えます。</p>
       </section>
       {p.ampm && <AmPmSwitch value={p.ampm} onChange={(v) => { setFilter(null); p.onAmPm(v); }} />}
+      {locked && seen && p.onPaywall && (
+        <UpsellLine where="note" onPaywall={p.onPaywall}
+          text={`ノートに入るのは、いま解ける第${EXAM.freeExams.join('・')}回の問題だけです。完全版なら${examRange(locked.from, locked.to)}の${locked.count.toLocaleString('ja-JP')}問も入ります。`} />
+      )}
 
       {list.length === 0 && allNigate > 0 ? (
         <section className="card empty-note">

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { daysLeft, examView, isNigate, mockPassLine, streakDays, subjectStats, unseen } from '../domain/study';
+import { daysLeft, examRange, examView, isNigate, mockPassLine, streakDays, subjectStats, unseen } from '../domain/study';
 import { dailyPace, lastDays } from '../domain/summary';
 import { ART, subjectColor } from './look';
-import { ExamDateCard, ForecastCard, SubjectBars } from './parts';
+import { ExamDateCard, ForecastCard, SubjectBars, UpsellLine } from './parts';
 import { IArrow, IBell, ICalendar, IChevron, INote } from './Icons';
 
 type StatTab = 'all' | 'subjects' | 'trend' | 'plan';
@@ -15,6 +15,8 @@ const TABS: { id: StatTab; label: string }[] = [
 /** 成績(見本の5枚目): 総合・科目別・推移・計画 */
 export function Stats(p: {
   data: AppData; all: Question[]; open: Question[];
+  /** 完全版の1行に使う */
+  premium?: boolean; onPaywall?: () => void;
   onExemptOnly: (on: boolean) => void;
   onSubject: (s: string) => void;
   onNote: () => void;
@@ -31,6 +33,9 @@ export function Stats(p: {
   const nigate = p.open.filter((q) => isNigate(p.data.records[q.id])).length;
   const fresh = unseen(p.open, p.data).length;
   const scorable = p.open.filter((q) => !q.excluded).length;
+  const rounds = [...new Set(p.all.map((q) => q.exam))];
+  const fullCount = p.all.length;
+  const showUpsell = !p.premium && !!p.onPaywall && fullCount > p.open.length && p.open.some((q) => p.data.records[q.id]);
 
   return (
     <div className="page stats-page">
@@ -42,6 +47,10 @@ export function Stats(p: {
       {tab === 'all' && (
         <>
           <ForecastCard data={p.data} all={p.all} open={p.open} onExemptOnly={p.onExemptOnly} />
+          {showUpsell && p.onPaywall && (
+            <UpsellLine where="stats" onPaywall={p.onPaywall}
+              text={`予想点は、いま解ける第${EXAM.freeExams.join('・')}回の問題の正答率から出しています。完全版では${examRange(Math.min(...rounds), Math.max(...rounds))}の${fullCount.toLocaleString('ja-JP')}問から出します。`} />
+          )}
           <section className="card left-card">
             <h2 className="card-title">あと何問わからない?</h2>
             <img className="left-art" src={ART.birdQ} alt="" />
@@ -129,7 +138,7 @@ function Trend({ data, now, onMockHistory }: { data: AppData; now: number; onMoc
       <section className="card">
         <h2 className="card-title">本番形式の模試の点数</h2>
         {mocks.length === 0
-          ? <p className="muted small">模試を解くと、ここに点数の移り変わりが出ます(完全版)。</p>
+          ? <p className="muted small">模試を解くと、ここに点数の移り変わりが出ます。</p>
           : (
             <>
               <MockChart mocks={mocks} />

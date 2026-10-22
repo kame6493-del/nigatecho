@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
-import { EXAM, selectExam } from './domain/exam';
+import { EXAM, SINGLE, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
-import { loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
 import { askReview } from './platform/native';
@@ -49,15 +49,21 @@ function markOpened() {
 type Carry = Pick<Settings, 'fontScale' | 'remind' | 'remindAt'>;
 
 /**
- * 試験を選ぶ所。前に選んだ試験(無ければ管理栄養士)で開く。
+ * 試験を選ぶ所。前に選んだ試験で開く。
+ * はじめて開いた人(選んだ試験も記録も無い)には、ホームの前に「どの試験を受けますか」を出す。
+ * 前の版から使っている人(記録がある)は今までどおり管理栄養士で開く。
  * 試験を替えたら、画面ごと作り直す(記録・問題・完全版は試験ごと)。
  */
 export default function Root() {
   const [dir, setDir] = useState<string | null>(null);
   const [carry, setCarry] = useState<Carry | null>(null);
+  const [firstPick, setFirstPick] = useState(false);
 
   useEffect(() => {
-    loadExamChoice().then((d) => setDir(selectExam(d).dir));
+    loadExamChoice().then(async (d) => {
+      if (!d && !SINGLE && !(await hasAnyRecord())) { setFirstPick(true); return; }
+      setDir(selectExam(d).dir);
+    });
     // 起動したときと、裏から戻ったとき(日をまたいで開きっぱなしの人も数える)
     markOpened();
     const h = CapApp.addListener('appStateChange', ({ isActive }) => { if (isActive) markOpened(); });
@@ -72,6 +78,22 @@ export default function Root() {
     setDir(e.dir);
   }, []);
 
+  if (firstPick) {
+    return (
+      <div className="app">
+        <ExamSwitch
+          first billing={{ status: 'unavailable', reason: '', access: EMPTY_ACCESS }}
+          onBack={() => {}}
+          onPick={(next) => {
+            const e = selectExam(next);
+            saveExamChoice(e.dir).catch((err) => console.error('[nigatecho] save exam', err));
+            setFirstPick(false);
+            setDir(e.dir);
+          }}
+        />
+      </div>
+    );
+  }
   if (!dir) return <div className="splash"><span>ニガテ帳</span></div>;
   return <App key={dir} carry={carry} onSwitchExam={switchExam} />;
 }
@@ -249,7 +271,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       )}
       {route.name === 'note' && (
         <NoteBook
-          data={data} open={open}
+          data={data} open={open} all={all} premium={premium}
+          onPaywall={() => push({ name: 'paywall', from: 'note' })}
           onSolve={(title, qs) => start(title, qs)}
           onNigate={() => starters.nigate()}
           onRandom={starters.random}
@@ -258,7 +281,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       )}
       {route.name === 'stats' && (
         <Stats
-          data={data} all={all} open={open}
+          data={data} all={all} open={open} premium={premium}
+          onPaywall={() => push({ name: 'paywall', from: 'stats' })}
           onExemptOnly={(on) => update((d) => ({ ...d, settings: { ...d.settings, exemptOnly: on } }))}
           onSubject={onSubject}
           onNote={() => goTab('note')}
@@ -319,7 +343,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       )}
       {route.name === 'paywall' && (
         <Paywall
-          billing={billing} all={all}
+          billing={billing} all={all} data={data}
           onClose={back}
           onBought={() => { loadBilling().then(setBilling); back(); }}
           setBilling={setBilling}

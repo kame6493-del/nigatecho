@@ -92,6 +92,7 @@ function Practice(p: Props & { qs: Question[] }) {
           <li><span>新しく苦手に入った</span><b className="bad">{fresh}問</b></li>
           <li><span>残りの苦手</span><b>{nigateLeft}問</b></li>
         </ul>
+        <FullVersionNote {...p} qs={qs} />
         <ol className="result-list card">
           {done.map((d, k) => {
             const x = p.byId.get(d.id)!;
@@ -109,7 +110,6 @@ function Practice(p: Props & { qs: Question[] }) {
           <button className="btn soft-red" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}><IRepeat size={20} />もう一度同じ問題で解く</button>
           <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
-        <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
@@ -408,6 +408,7 @@ function MockRun(p: Props & { qs: Question[] }) {
             : <p className="pass-line bad">0点の科目群があります: {zeros.join('/')}(1つでも0点だと総得点に関係なく不合格)</p>)}
           <p className="muted">かかった時間 {fmtTime(result.seconds)}・未回答 {qs.length - answeredCount}問</p>
         </section>
+        <FullVersionNote {...p} qs={qs} mock />
         <table className="subject-table card">
           <thead><tr><th>科目</th><th>得点</th><th>正答率</th></tr></thead>
           <tbody>
@@ -422,7 +423,6 @@ function MockRun(p: Props & { qs: Question[] }) {
           <button className="btn soft-red" onClick={p.onNigate}><IDoc size={20} />間違えた{wrong.length}問を苦手から解く</button>
           <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
-        <FullVersionNote {...p} qs={qs} />
       </div>
     );
   }
@@ -490,16 +490,20 @@ function MockRun(p: Props & { qs: Question[] }) {
 /* ---------- 部品 ---------- */
 
 /**
- * 結果の下の、完全版の案内(1枚だけ・押したときだけ購入画面へ)。
+ * 結果の、完全版の案内(1枚だけ・押したときだけ購入画面へ)。正解・不正解の数のすぐ下に出す。
  * 出すのは、この試験を買っていない人が無料の回の問題を解き終えたときだけ。
+ * 模試(無料の回の1回分)の後は「ほかの回の模試」を案内する。
  */
-function FullVersionNote(p: Props & { qs: Question[] }) {
+function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean }) {
   if (p.premium || p.qs.length === 0 || p.qs.some((x) => isLocked(x, false, EXAM))) return null;
   const s = lockedSummary(p.byId.values(), EXAM);
   if (!s) return null;
+  const n = s.count.toLocaleString('ja-JP');
   return (
-    <section className="full-note">
-      <p>{EXAM.name}の{examRange(s.from, s.to)}({s.count.toLocaleString('ja-JP')}問)と本番形式の模試は、完全版で解けます。</p>
+    <section className="full-note" data-upsell={p.mock ? 'mock-result' : 'result'}>
+      <p>{p.mock
+        ? `ほかの回(${examRange(s.from, s.to)})の本番形式の模試と過去問${n}問は、完全版で解けます。`
+        : `${EXAM.name}の${examRange(s.from, s.to)}(${n}問)と、その回の本番形式の模試は、完全版で解けます。`}</p>
       <button className="btn" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
     </section>
   );

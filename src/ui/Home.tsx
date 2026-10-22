@@ -3,6 +3,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
+import { freeLeft, homeUpsell } from '../domain/upsell';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
@@ -54,6 +55,18 @@ export function Home(p: Props) {
   const week = lastDays(p.data.daily, now, 7);
   const weekSum = week.reduce((s, d) => s + d.n, 0);
   const weekMax = Math.max(1, ...week.map((d) => d.n));
+  /** 完全版の案内の出し方(30問を超えたら予想点の下・無料の回を解き終えたら上に1枚) */
+  const free = EXAM.freeExams;
+  const left = freeLeft(p.open, p.data, EXAM);
+  const upsell = homeUpsell({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0 });
+  const lockedRange = examRange(exams[exams.length - 1], exams.find((e) => !free.includes(e)) ?? exams[0]);
+  const band = (
+    <button className={`unlock ${upsell === 'raised' ? 'raised' : ''}`} onClick={p.onPaywall} data-upsell={`home-${upsell}`}>
+      <span className="unlock-title">完全版で、あと{lockedCount}問</span>
+      <span className="unlock-sub">{lockedRange}の過去問と、その回の本番形式の模試。買い切りで、月額はかかりません。</span>
+      <IChevron />
+    </button>
+  );
 
   return (
     <div className="page home">
@@ -87,6 +100,14 @@ export function Home(p: Props) {
       )}
 
       {p.ampm && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} note="苦手を解く・未回答・ランダム10問・模試に効きます" />}
+
+      {upsell === 'finished' && (
+        <section className="card done-card" data-upsell="home-finished">
+          <p className="done-title">第{free.join('・')}回は、すべて解きました</p>
+          <p className="done-sub">{lockedRange}の{lockedCount}問と、その回の本番形式の模試は完全版で解けます。解いた分は苦手ノートと予想点にも入ります。</p>
+          <button className="btn primary wide" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
+        </section>
+      )}
 
       {seen === 0 ? (
         <section className="card hero hero-first">
@@ -126,10 +147,12 @@ export function Home(p: Props) {
         <button onClick={p.onUnseen} disabled={freshIn === 0}><IDoc className="c-green" /><b>未回答</b><span>まだ解いていない {freshIn}問</span></button>
         <button onClick={p.onRandom}><IShuffle className="c-teal" /><b>ランダム10問</b><span>{half ? `${half}から` : 'すきま時間に'}</span></button>
         <button onClick={p.onMarks} disabled={p.data.marks.length === 0}><IStar className="c-yellow" /><b>しるし</b><span>{p.data.marks.length}問</span></button>
-        <button onClick={p.premium ? p.onMock : p.onPaywall}><IClip className="c-purple" /><b>模試</b><span>{p.premium ? (half ? `本番形式・${half}` : `本番形式 ${EXAM.perExam}問`) : '本番形式(完全版)'}</span></button>
+        <button onClick={p.onMock}><IClip className="c-purple" /><b>模試</b><span>{half ? `本番形式・${half}` : `本番形式 ${EXAM.perExam}問`}</span></button>
       </section>
 
       <ForecastCard data={p.data} all={p.all} open={p.open} onExemptOnly={p.onExemptOnly} more={p.onStats} />
+
+      {upsell === 'raised' && band}
 
       <section className="card week">
         <h2 className="card-title">学習サマリー(直近7日)</h2>
@@ -148,13 +171,7 @@ export function Home(p: Props) {
         </div>
       </section>
 
-      {!p.premium && lockedCount > 0 && (
-        <button className="unlock" onClick={p.onPaywall}>
-          <span className="unlock-title">完全版で、あと{lockedCount}問</span>
-          <span className="unlock-sub">{examRange(exams[exams.length - 1], exams[1])}と本番形式の模試。買い切りで、月額はかかりません。</span>
-          <IChevron />
-        </button>
-      )}
+      {upsell === 'bottom' && band}
 
       <p className="credit">{EXAM.credit}</p>
       <p className="credit"><button className="linkish" onClick={p.onSources}>出典と参考文献・{EXAM.notice ? 'ご注意' : '医療に関するご注意'}</button></p>

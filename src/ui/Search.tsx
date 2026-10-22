@@ -22,7 +22,7 @@ export function Search(p: {
     { key: 'unseen', cls: 't-yellow', icon: <IDoc size={34} />, title: 'まだ解いていない問題', sub: `${half ? `${half}の` : ''}未回答の問題だけを集めて解く(${fresh}問)`, on: p.onUnseen, disabled: fresh === 0 },
     { key: 'random', cls: 't-green', icon: <IShuffle size={34} />, title: 'ランダム10問', sub: half ? `${half}からランダムに10問` : 'ランダムに10問。すきま時間に', on: p.onRandom },
     { key: 'marks', cls: 't-purple', icon: <IStar size={34} />, title: 'しるし', sub: `しるしを付けた問題から解く(${p.data.marks.length}問)`, on: p.onMarks, disabled: p.data.marks.length === 0 },
-    { key: 'mock', cls: 't-pink', icon: <IClip size={34} />, title: '本番形式の模試', sub: p.premium ? (half ? `${half}の問題を時間を計って解く` : `${EXAM.perExam}問を時間を計って解く`) : '完全版で解けます', on: p.premium ? p.onMock : p.onPaywall },
+    { key: 'mock', cls: 't-pink', icon: <IClip size={34} />, title: '本番形式の模試', sub: half ? `${half}の問題を時間を計って解く` : `${EXAM.perExam}問を時間を計って解く`, on: p.onMock },
   ];
   return (
     <div className="page search-page">

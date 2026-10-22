@@ -37,17 +37,17 @@
 ・本番の予想点: いまの科目ごとの正答率で本番を受けたら何点か、合格点と並べて表示します。合格点が回ごとに変わる介護福祉士・社会福祉士・精神保健福祉士は、直近の回の合格点と比べます
 ・科目ごとの正答率: どの科目で落としているかが棒の長さでわかります
 ・年度別・科目別・まだ解いていない問題・ランダム10問・しるし
-・本番形式の模試: 時間を計って解き、科目別の点数を記録します(完全版)
+・本番形式の模試: 時間を計って解き、科目別の点数を記録します(無料はいちばん新しい回の1回分。ほかの回は完全版)
 ・試験日までの残り日数、毎日のお知らせ、文字の大きさ
 
 ◆ 無料と完全版
-・無料: どの試験も、いちばん新しい回の問題を、解説・苦手・予想点まですべての機能で使えます
+・無料: どの試験も、いちばん新しい回の問題を、解説・苦手・予想点・その回の模試まで、すべての機能で使えます
 ・完全版は試験ごとの買い切りです。月額はかかりません
-　管理栄養士 完全版 ¥980: 第36〜39回の800問と本番形式の模試
-　理学療法士 完全版 ¥980: 第57〜60回の800問と本番形式の模試
-　介護福祉士 完全版 ¥900: 第33〜37回の625問と本番形式の模試
-　社会福祉士 完全版 ¥900: 第37回の129問と本番形式の模試
-　精神保健福祉士 完全版 ¥900: 第27回の132問と本番形式の模試
+　管理栄養士 完全版 ¥980: 第36〜39回の800問と、その回の本番形式の模試
+　理学療法士 完全版 ¥980: 第57〜60回の800問と、その回の本番形式の模試
+　介護福祉士 完全版 ¥900: 第33〜37回の625問と、その回の本番形式の模試
+　社会福祉士 完全版 ¥900: 第37回の129問と、その回の本番形式の模試
+　精神保健福祉士 完全版 ¥900: 第27回の132問と、その回の本番形式の模試
 ・ある試験の完全版を買っても、ほかの試験は開きません(社会福祉士と精神保健福祉士の完全版も別の商品です)
 ・管理栄養士の完全版をすでに買った方は、そのまま使えます
 
@@ -95,7 +95,7 @@ New in-app purchase in this submission:
 - nigatecho_multi_seishin_full (¥900, non-consumable): Psychiatric Social Worker, 27th exam (132 questions) and full-length mock exams. It unlocks only this exam. It is a separate product from nigatecho_multi_shakai_full; the common-subject questions (morning session) are the same official questions for both exams, which the paywall states.
 Existing products (already approved): nigatecho_kanri_full, nigatecho_multi_pt_full, nigatecho_multi_kaigo_full, nigatecho_multi_shakai_full.
 
-To test the purchase (sandbox): switch to 精神保健福祉士, then tap the "完全版で、あと…問" banner near the bottom of the home screen (or Settings > "精神保健福祉士の完全版" > 見る, or a locked 27th sitting under 年度別). Tap "¥900 で買う" and sign in with a sandbox account. Restore: "以前に買った方はこちら(購入の復元)" on the paywall, or Settings > 購入の復元.
+To test the purchase (sandbox): switch to 精神保健福祉士, then tap the "完全版で、あと…問" banner on the home screen (near the bottom; after 30 answered questions it sits under the score forecast) (or Settings > "精神保健福祉士の完全版" > 見る, or a locked 27th sitting under 年度別). Tap "¥900 で買う" and sign in with a sandbox account. Restore: "以前に買った方はこちら(購入の復元)" on the paywall, or Settings > 購入の復元.
 
 Sources (Guideline 1.4.1): Psychiatric Social Worker questions and answers come from the Social Welfare Promotion and National Examination Center (SSSC), https://www.sssc.or.jp/seishin/past_exam/index.html . The common-subject questions are printed in the same official booklet as the Social Worker exam (https://www.sssc.or.jp/shakai/past_exam/index.html), and each question links to its booklet. SSSC's terms for past questions (https://www.sssc.or.jp/pastissues/index.html) state that no permission request or fee is needed for educational question books or apps; wording is unchanged. Other sources are as in 1.1.0 (MHLW for Dietitian and Physical Therapist under the Public Data License v1.0; SSSC for Care Worker and Social Worker). In the app: Home > "出典と参考文献", Settings > 出典と参考文献, and a source link under every explanation.
 All explanations are written by us. The app is made by an individual developer and is not affiliated with any government agency, MHLW or SSSC.

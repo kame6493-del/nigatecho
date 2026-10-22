@@ -181,3 +181,16 @@ export function AmPmSwitch({ value, onChange, note }: { value: AmPm; onChange: (
     </div>
   );
 }
+
+/**
+ * 苦手ノート・成績の、完全版の1行(押したときだけ購入画面へ)。
+ * 買った人・鍵のかかった問題が無い試験には出さない。数は実際の問題数だけ。
+ */
+export function UpsellLine({ text, onPaywall, where }: { text: string; onPaywall: () => void; where: string }) {
+  return (
+    <p className="upsell-line" data-upsell={where}>
+      <span>{text}</span>
+      <button className="linkish" onClick={onPaywall}>完全版を見る<IChevron size={14} /></button>
+    </p>
+  );
+}

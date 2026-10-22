@@ -198,7 +198,7 @@ with sync_playwright() as p:
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("response", lambda r: errors.append(f"{r.status} {r.url}") if r.status >= 400 and not r.url.endswith("favicon.ico") else None)
     pg.goto(URL)
-    pg.wait_for_selector(".home")
+    pg.wait_for_selector(".home, .first-pick")  # はじめて開くと試験を選ぶ画面(2026-10-22)
     keys = pg.evaluate("async () => (await import('/src/exams.multi.json')).default.exams.reduce((o, e) => (o[e.dir] = e.key, o), {})")
     for e in EXAMS:
         pg.evaluate("() => localStorage.clear()")

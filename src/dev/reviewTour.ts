@@ -72,6 +72,9 @@ async function answerOne(choiceIndex: number) {
 }
 
 export async function runReviewTour() {
+  // はじめて開くと「受ける試験を選ぶ」が出る。見せてから管理栄養士を選ぶ
+  await sleep(2500);
+  await tap((b) => b.dataset.exam === 'kanri' && !!b.closest('.first-pick'), 2500);
   await sleep(3500); // ホーム(初回)を見せる
   if (!(await tap(text('まず10問解いてみる'), 2000))) await tap(text('ランダム10問'), 2000);
   for (const k of [1, 0, 3]) {

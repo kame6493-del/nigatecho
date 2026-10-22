@@ -236,7 +236,8 @@ with sync_playwright() as p:
         pg.on("pageerror", lambda e: errors.append(str(e)))
         if not keys:
             pg.goto(URL)
-            pg.wait_for_selector(".home")
+            # はじめて開くと試験を選ぶ画面(2026-10-22)。どちらかが出れば読み込み済み
+            pg.wait_for_selector(".home, .first-pick")
             keys = pg.evaluate("async () => (await import('/src/exams.multi.json')).default.exams.reduce((o, e) => (o[e.dir] = e.key, o), {})")
         for e in EXAMS:
             run(pg, w, e, keys)

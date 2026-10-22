@@ -1,7 +1,7 @@
 import { Preferences } from '@capacitor/preferences';
 import type { AppData } from '../domain/types';
 import { emptyData, normalize } from '../domain/data';
-import { EXAM } from '../domain/exam';
+import { EXAM, EXAMS } from '../domain/exam';
 import { EMPTY_REVIEW, normalizeReview, type ReviewState } from '../domain/review';
 
 /**
@@ -20,6 +20,21 @@ export async function loadExamChoice(): Promise<string | null> {
     return (await Preferences.get({ key: EXAM_CHOICE_KEY })).value;
   } catch {
     return null;
+  }
+}
+
+/**
+ * どれかの試験の記録が端末にあるか。試験を選ぶ前の版(管理栄養士だけのアプリ)から使っている人を、
+ * 「はじめて開いた人」と取り違えないために見る
+ */
+export async function hasAnyRecord(): Promise<boolean> {
+  try {
+    for (const e of EXAMS) {
+      if ((await Preferences.get({ key: keyOf(e.key) })).value) return true;
+    }
+    return false;
+  } catch {
+    return true;
   }
 }
 

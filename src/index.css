@@ -548,3 +548,19 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .calc-d.is-picked { background: #e8524f; border-color: #e8524f; color: #fff; font-weight: 700; }
 .calc-result b { font-size: 20px; margin: 0 2px; }
 .fc-rest { display: block; font-size: 12px; color: #8a8378; font-weight: 400; }
+
+/* 完全版の案内(2026-10-22): 見える所と区切りに出す。押したときだけ購入画面へ */
+.unlock.raised { margin-top: -2px; }
+.done-card { background: linear-gradient(135deg, #fff6e6, #fff0ef); border: 1.5px solid #f3d8b8; }
+.done-title { margin: 0 0 4px; font-weight: 800; color: var(--red-d); }
+.done-sub { margin: 0 0 12px; font-size: .88em; color: var(--ink-2); line-height: 1.6; }
+.upsell-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 14px; padding: 10px 12px; border-radius: var(--r); background: #fff6e6; border: 1px solid #f3d8b8; font-size: .84em; color: var(--ink-2); line-height: 1.55; }
+.upsell-line > span { flex: 1 1 220px; }
+.upsell-line .linkish { display: inline-flex; align-items: center; gap: 2px; font-weight: 700; color: var(--red-d); min-height: 36px; }
+.pw-mine { margin-bottom: 12px; }
+.pw-mine-title { margin: 0 0 6px; font-size: .8em; font-weight: 800; color: var(--ink-2); }
+.pw-mine-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; margin: 0; padding: 6px 0; border-top: 1px solid var(--line); font-size: .9em; }
+.pw-mine-row:first-of-type { border-top: 0; }
+.pw-mine-row b { color: var(--red-d); white-space: nowrap; }
+.pw-table td.pw-both { color: var(--ink-2); font-weight: 600; }
+.first-pick .first-q { display: inline-block; font-size: 1.15em; color: var(--ink); margin-bottom: 4px; }
