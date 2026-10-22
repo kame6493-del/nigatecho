@@ -1,4 +1,4 @@
-import { EXAM, EXAMS } from '../domain/exam';
+import { EXAM, EXAMS, firstPickExams } from '../domain/exam';
 import { examRange } from '../domain/study';
 import type { BillingState } from '../platform/billing';
 import { lookOf } from './look';
@@ -23,7 +23,7 @@ export function ExamSwitch(p: {
         ? <p className="lead"><b className="first-q">どの試験を受けますか?</b><br />あとからホームの「試験を切り替える」で、いつでも替えられます。{SHOT ? '' : 'どの試験も、いちばん新しい回は無料で解けます。'}</p>
         : <p className="lead">{EXAMS.length}つの国家試験から選べます。解いた記録・苦手・模試の結果は試験ごとに分けて残ります。{SHOT ? '' : 'どの試験も、いちばん新しい回は無料で解けます。'}</p>}
       <ul className="ex-list">
-        {EXAMS.map((e) => {
+        {(p.first ? firstPickExams() : EXAMS).map((e) => {
           const rounds = e.rounds ?? [];
           const owned = !!p.billing.access[e.dir];
           const price = p.billing.status === 'ready' ? p.billing.prices[e.productId] ?? e.price : e.price;
