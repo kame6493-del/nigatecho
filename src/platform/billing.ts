@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Purchases, type CustomerInfo, type PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
-import { APP, EXAMS } from '../domain/exam';
+import { APP, BUNDLES, EXAMS, type Bundle } from '../domain/exam';
 import type { ExamConfig } from '../domain/types';
 import type { Attrs } from '../domain/track';
 
@@ -13,6 +13,7 @@ import type { Attrs } from '../domain/track';
  * - 管理栄養士 nigatecho_kanri_full → entitlement "full"(公開中の商品のまま。買った人はそのまま使える)
  * - 理学療法士 nigatecho_multi_pt_full → "pt_full" / 介護福祉士 …_kaigo_full → "kaigo_full" / 社会福祉士 …_shakai_full → "shakai_full"
  * - 精神保健福祉士 nigatecho_multi_seishin_full → "seishin_full"(v1.2。社会福祉士の完全版とは別の商品)
+ * - 3つセット nigatecho_multi_fukushi_set(v1.4.2)→ kaigo_full・shakai_full・seishin_full の3つ全部(RevenueCat で1つの商品を3つの entitlement に付ける)
  * RevenueCat の売り場(current offering)に全部のパッケージを並べ、どの試験の物かは商品IDで見分ける。
  */
 const API_KEYS = { ios: APP.revenuecat?.ios ?? '', android: APP.revenuecat?.android ?? '' };
@@ -97,6 +98,7 @@ export async function loadBilling(): Promise<BillingState> {
   if (mock) {
     const prices: Record<string, string> = {};
     for (const e of EXAMS) prices[e.productId] = e.price;
+    for (const b of BUNDLES) prices[b.productId] = b.price;
     return { status: 'ready', access: mockAccess(), prices, pkgs: {} };
   }
   if (!key) return { status: 'unavailable', reason: '購入の準備中です', access: EMPTY_ACCESS };
@@ -134,6 +136,31 @@ export async function purchase(state: BillingState, exam: ExamConfig): Promise<b
   try {
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
     return !!accessOf(customerInfo)[exam.dir];
+  } catch (e) {
+    if ((e as { userCancelled?: boolean })?.userCancelled) return false;
+    throw e;
+  }
+}
+
+/** セットを今買えるか(ストアの売り場にセットの商品がある、または開発用の疑似購入)。無ければ購入画面にセットを出さない */
+export function canBuyBundle(state: BillingState, b: Bundle): boolean {
+  if (state.status !== 'ready') return false;
+  return mock || !!state.pkgs[b.productId];
+}
+
+/** true=セットの試験が全部開いた / false=キャンセル。失敗は例外 */
+export async function purchaseBundle(state: BillingState, b: Bundle): Promise<boolean> {
+  if (mock) {
+    for (const e of EXAMS) if (b.exams.includes(e.dir)) localStorage.setItem(mockKey(e), '1');
+    return true;
+  }
+  const pkg = state.status === 'ready' ? state.pkgs[b.productId] : undefined;
+  if (!pkg) throw new Error('この商品は購入できません');
+  await ensure();
+  try {
+    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+    const a = accessOf(customerInfo);
+    return b.exams.every((d) => a[d]);
   } catch (e) {
     if ((e as { userCancelled?: boolean })?.userCancelled) return false;
     throw e;

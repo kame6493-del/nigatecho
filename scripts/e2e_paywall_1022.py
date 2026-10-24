@@ -15,6 +15,10 @@
    押したときだけ購入画面へ。値段・急がせる文なし。開き直しても同じ問題
  C 試験を選んだ・購入画面を開いた・買ったときの購入管理の属性(開発では localStorage の nigatecho.mockAttrs)。
    exam・exam_first・paywall_from・paywall_exam・paywall_opened・paywall_seen・bought_exam・bought_from だけ。$ で始まる属性なし
+1.4.2 の3つセット(2026-10-24 持ち主「セットは1,500円」):
+ S 介護・社会・精神の購入画面だけに「○○だけ」と「3つセット」を並べる(値段はストアの表示。開発では見本の ¥900・¥1,500)。
+   管理栄養士・看護師には出さない。3つのどれかを持っている人には出さない。セットを買うと3つとも開き、ほかの試験は開かない。
+   bought_exam=set_fukushi。急がせる文なし。セットの場面は run_set(--exams に関係なく 介護・社会・精神 で流す)
 画面写真は scripts/e2e_out/paywall_1024/<試験>/ に置く(--out で変えられる。walk.json に順番と説明)。"""
 import json
 import os
@@ -103,6 +107,7 @@ def no_pushy(pg, exam, where):
     check(not PUSHY.search(t), f"{exam} {where}: 急がせる言い回しが無い")
 
 
+SET_EXAMS = ["kaigo", "shakai", "seishin"]
 ALLOWED_ATTRS = {"exam", "exam_first", "paywall_from", "paywall_exam", "paywall_opened", "paywall_seen", "bought_exam", "bought_from"}
 
 
@@ -275,6 +280,14 @@ def run(pg, exam, key):
     check("¥" in pw, f"{exam}: 値段はストアの表示(開発では見本の値)")
     check(not PUSHY.search(pw), f"{exam}: 購入画面に急がせる言い回しが無い")
     check(pg.locator(".pw-cta button:has-text('購入の復元')").count() == 1, f"{exam}: 購入の復元がある")
+    has_set = exam in SET_EXAMS
+    check(pg.locator("[data-set]").count() == (1 if has_set else 0), f"{exam}: 3つセットは介護・社会・精神の購入画面だけに出す")
+    if has_set:
+        opts = pg.locator("[data-set]").inner_text()
+        check(f"{name}だけ" in opts and "3つセット" in opts, f"{exam}: 「{name}だけ」と「3つセット」を並べる {opts!r}")
+        check("¥900" in opts and "¥1,500" in opts, f"{exam}: 単品とセットの値段(開発の見本の値) {opts!r}")
+        check(all(NAMES[d] in opts for d in SET_EXAMS), f"{exam}: セットに入る3つの試験の名前")
+        check(not PUSHY.search(opts), f"{exam}: セットの所に急がせる言い回しが無い")
     shot(pg, exam, "10_paywall", "購入画面(上)")
     shot(pg, exam, "11_paywall_full", "購入画面(全体)", full=True)
     pg.click(".topbar [aria-label='閉じる']")
@@ -315,7 +328,7 @@ def run(pg, exam, key):
     # ---------- 買う(開発の疑似購入)→ bought_exam・bought_from ----------
     pg.click("[data-upsell=stats] button")
     pg.wait_for_selector(".paywall")
-    pg.click(".pw-cta .btn.primary")
+    pg.click("[data-buy=single]" if exam in SET_EXAMS else ".pw-cta .btn.primary")
     pg.wait_for_selector(".stats-page")
     pg.wait_for_timeout(300)
     a = check_attrs(pg, exam, "買ったあと")
@@ -324,6 +337,21 @@ def run(pg, exam, key):
     tab(pg, "note")
     pg.wait_for_selector(".note-page")
     check(pg.locator("[data-upsell]").count() == 0, f"{exam}: 買った直後の苦手ノートに1問も案内も無い")
+    if exam in SET_EXAMS:
+        # 単品を買った人には、ほかの2つの試験の購入画面にもセットを出さない(二重に払わせない)
+        for d in SET_EXAMS:
+            if d == exam:
+                continue
+            pg.evaluate("(d) => localStorage.setItem('CapacitorStorage.nigatecho.exam', d)", d)
+            pg.goto(URL)
+            pg.wait_for_selector(".home")
+            pg.click("[data-upsell^=home-] button, button[data-upsell^=home-]")
+            pg.wait_for_selector(".paywall")
+            check(pg.locator("[data-set]").count() == 0, f"{exam}: {NAMES[exam]}を買った人には{NAMES[d]}の購入画面にもセットを出さない")
+            check(pg.locator(".pw-cta .btn.primary").count() == 1, f"{exam}: {NAMES[d]}は単品だけ買える")
+            if d == SET_EXAMS[-1] or (exam == SET_EXAMS[-1] and d == SET_EXAMS[-2]):
+                shot(pg, exam, f"13b_paywall_{d}_after_single", f"{NAMES[exam]}を買った後の{NAMES[d]}の購入画面(セットなし)")
+        pg.evaluate("(d) => localStorage.setItem('CapacitorStorage.nigatecho.exam', d)", exam)
     pg.evaluate("(d) => { localStorage.removeItem(d === 'kanri' ? 'nigatecho.mockFull' : `nigatecho.mockFull.${d}`); }", exam)
 
     # ---------- 無料の回を解き終えた人 ----------
@@ -354,6 +382,41 @@ def run(pg, exam, key):
     check(pg.locator(".first-pick").count() == 0 and pg.locator(".exam-name").inner_text() == "管理栄養士", f"{exam}: 前の版の記録がある人は今までどおり管理栄養士で開く")
 
 
+def run_set(pg, exam):
+    """3つセットを買う: 3つとも開き、ほかの試験は開かない"""
+    pg.goto(URL)
+    pg.evaluate("(d) => { localStorage.clear(); localStorage.setItem('CapacitorStorage.nigatecho.exam', d); }", exam)
+    pg.goto(URL)
+    pg.wait_for_selector(".home")
+    check(pg.locator(".exam-name").inner_text() == NAMES[exam], f"set {exam}: {NAMES[exam]}のホーム")
+    check(pg.locator(".paywall").count() == 0, f"set {exam}: 購入画面は勝手に開かない")
+    pg.click("[data-upsell^=home-] button, button[data-upsell^=home-]")
+    pg.wait_for_selector(".paywall")
+    check(pg.locator("[data-set=fukushi]").count() == 1, f"set {exam}: どれも持っていなければセットを出す")
+    pg.evaluate("() => document.querySelector('[data-set]').scrollIntoView({block: 'center'})")
+    shot(pg, "set_" + exam, "01_paywall_set", f"{NAMES[exam]}の購入画面: 単品と3つセット")
+    pg.click("[data-buy=set]")
+    pg.wait_for_selector(".home")
+    pg.wait_for_timeout(300)
+    a = check_attrs(pg, exam, "セットを買ったあと")
+    check(a.get("bought_exam") == "set_fukushi" and a.get("bought_from", "").startswith("home"), f"set {exam}: bought_exam=set_fukushi {a}")
+    owned = pg.evaluate("() => Object.fromEntries(['kanri','pt','kaigo','shakai','seishin','nurse'].map((d) => [d, localStorage.getItem(d === 'kanri' ? 'nigatecho.mockFull' : `nigatecho.mockFull.${d}`) === '1']))")
+    check(all(owned[d] for d in SET_EXAMS), f"set {exam}: セットで介護・社会・精神の3つが開く {owned}")
+    check(not any(owned[d] for d in ["kanri", "pt", "nurse"]), f"set {exam}: ほかの試験は開かない {owned}")
+    for d in SET_EXAMS:
+        pg.evaluate("(d) => localStorage.setItem('CapacitorStorage.nigatecho.exam', d)", d)
+        pg.goto(URL)
+        pg.wait_for_selector(".home")
+        check(pg.locator("[data-upsell]").count() == 0, f"set {exam}: 買ったあと{NAMES[d]}のホームに案内が無い")
+    # 看護師は今までどおり単品だけ(セットは出さない)
+    pg.evaluate("() => localStorage.setItem('CapacitorStorage.nigatecho.exam', 'nurse')")
+    pg.goto(URL)
+    pg.wait_for_selector(".home")
+    pg.click("[data-upsell^=home-] button, button[data-upsell^=home-]")
+    pg.wait_for_selector(".paywall")
+    check(pg.locator("[data-set]").count() == 0 and pg.locator(".pw-cta .btn.primary").count() == 1, f"set {exam}: 看護師はセットなしの単品だけ")
+
+
 with sync_playwright() as p:
     b = p.chromium.launch(channel="msedge", headless=True)
     for e in EXAMS:
@@ -367,6 +430,16 @@ with sync_playwright() as p:
         key = pg.evaluate("async (d) => (await import('/src/exams.multi.json')).default.exams.find((e) => e.dir === d).key", e)
         run(pg, e, key)
         print(f"{e} done")
+        ctx.close()
+    for e in SET_EXAMS:
+        ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale="ja-JP")
+        pg = ctx.new_page()
+        pg.on("console", lambda m: errors.append(f"{m.text} {m.location}") if m.type == "error" and "favicon.ico" not in str(m.location) else None)
+        pg.on("pageerror", lambda x: errors.append(str(x)))
+        pg.goto(URL)
+        pg.wait_for_selector(".home, .first-pick")
+        run_set(pg, e)
+        print(f"set {e} done")
         ctx.close()
     b.close()
 

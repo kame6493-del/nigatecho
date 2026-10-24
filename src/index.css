@@ -571,3 +571,14 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .lp-card .lp-stem { margin: 0; font-size: .95em; line-height: 1.7; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
 .lp-card .lp-hidden { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed #f0cfa6; font-size: .8em; color: var(--red-d); font-weight: 700; }
 .note-preview { margin: 18px 0 14px; padding: 14px 16px; border: 1.5px solid #f3d8b8; border-radius: var(--r); background: linear-gradient(135deg, #fff6e6, #fff0ef); }
+/* 購入画面: 単品と3つセットを並べる(v1.4.2) */
+.pw-opts { display: grid; gap: 8px; width: 100%; }
+.pw-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 12px 14px; border-radius: var(--r); border: 2px solid var(--red); background: var(--red); color: #fff; font: inherit; cursor: pointer; }
+.pw-opt.set { background: var(--sheet); color: var(--ink); border-color: var(--red); }
+.pw-opt:disabled { opacity: .6; cursor: default; }
+.pw-opt-name { display: grid; gap: 2px; min-width: 0; }
+.pw-opt-name b { font-size: 1.05em; font-weight: 900; }
+.pw-opt-name small { font-size: .78em; opacity: .9; line-height: 1.4; }
+.pw-opt-price { font-weight: 900; font-size: 1.15em; white-space: nowrap; }
+.pw-opt.set .pw-opt-price { color: var(--red-d); }
+.pw-opts-note { text-align: center; margin: 0; }

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
-import { EXAM, SINGLE, short } from '../domain/exam';
+import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
 import { examRange, isLocked } from '../domain/study';
 import { weakSubjectGrowth } from '../domain/upsell';
-import { canBuy, purchase, restore, setAttrs, type BillingState } from '../platform/billing';
+import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
 import { lookOf } from './look';
@@ -24,6 +24,14 @@ export function Paywall(p: {
   const free = p.all.filter((q) => EXAM.freeExams.includes(q.exam)).length;
   const price = p.billing.status === 'ready' ? p.billing.prices[EXAM.productId] ?? '' : '';
   const owned = !!p.billing.access[EXAM.dir];
+  /**
+   * セット(介護福祉士・社会福祉士・精神保健福祉士)。いまの試験が入っていて、3つのどれも持っておらず、ストアにセットの商品があるときだけ出す。
+   * どれか1つでも買った人には出さない(二重に払わせない)。値段はストアの priceString のまま
+   */
+  const offer = !owned ? bundleOffer(EXAM.dir, p.billing.access) : undefined;
+  const set = offer && canBuyBundle(p.billing, offer) ? offer : undefined;
+  const setPrice = set && p.billing.status === 'ready' ? p.billing.prices[set.productId] ?? '' : '';
+  const setNames = set ? set.exams.map((d) => EXAMS.find((e) => e.dir === d)?.name ?? d) : [];
   const freeRounds = EXAM.freeExams.filter((e) => exams.includes(e));
   const lockedRounds = exams.filter((e) => !freeRounds.includes(e));
   /** 本人の記録から: 苦手の多い科目の問題が、いま何問で完全版で何問になるか(実際の問題数だけ) */
@@ -36,6 +44,18 @@ export function Paywall(p: {
     try {
       if (await purchase(p.billing, EXAM)) {
         setAttrs(boughtAttrs(EXAM.dir, p.from ?? 'other'));
+        p.onBought();
+      }
+    } catch (e) {
+      setMsg(`購入できませんでした(${(e as Error).message ?? e})`);
+    } finally { setBusy(false); }
+  };
+  const buySet = async () => {
+    if (!set) return;
+    setBusy(true); setMsg('');
+    try {
+      if (await purchaseBundle(p.billing, set)) {
+        setAttrs(boughtAttrs(`set_${set.id}`, p.from ?? 'other'));
         p.onBought();
       }
     } catch (e) {
@@ -84,6 +104,18 @@ export function Paywall(p: {
       <div className="pw-cta">
         {owned ? (
           <p className="pw-owned">{EXAM.name}の完全版は購入済みです</p>
+        ) : p.billing.status === 'ready' && set ? (
+          <div className="pw-opts" data-set={set.id}>
+            <button className="pw-opt" disabled={busy || !canBuy(p.billing, EXAM)} onClick={buy} data-buy="single">
+              <span className="pw-opt-name"><b>{EXAM.name}だけ</b><small>{EXAM.name}の完全版</small></span>
+              <span className="pw-opt-price">{busy ? '処理中…' : price || '完全版'}</span>
+            </button>
+            <button className="pw-opt set" disabled={busy} onClick={buySet} data-buy="set">
+              <span className="pw-opt-name"><b>{setNames.length}つセット</b><small>{setNames.join('・')}の完全版がすべて開きます</small></span>
+              <span className="pw-opt-price">{busy ? '処理中…' : setPrice || 'セット'}</span>
+            </button>
+            <p className="muted small pw-opts-note">どちらも買い切り(1回だけ)。押すとストアの確認が出ます</p>
+          </div>
         ) : p.billing.status === 'ready' ? (
           <button className="btn primary wide big" disabled={busy || !canBuy(p.billing, EXAM)} onClick={buy}>
             {busy ? '処理中…' : `${price || '完全版'} で買う(1回だけ)`}
@@ -95,8 +127,8 @@ export function Paywall(p: {
         {msg && <p className="err">{msg}</p>}
       </div>
       {EXAM.paywallNote && <p className="muted small">{EXAM.paywallNote}</p>}
-      {!SINGLE && <p className="muted small">この完全版で開くのは{EXAM.name}の問題だけです。ほかの試験の完全版は、それぞれの試験の画面から別に購入できます。</p>}
-      <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。解いた記録はこの端末の中だけに保存し、外へ送りません。購入の管理には、選んだ試験と購入画面を開いた場所だけを匿名の識別子と一緒に送ります(個人を特定する情報は送りません)。</p>
+      {!SINGLE && <p className="muted small">{set ? `「${EXAM.name}だけ」で開くのは${EXAM.name}の問題だけです。「${setNames.length}つセット」は1回の購入で${setNames.join('・')}の${setNames.length}つの完全版が開きます。` : `この完全版で開くのは${EXAM.name}の問題だけです。ほかの試験の完全版は、それぞれの試験の画面から別に購入できます。`}</p>}
+      <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。解いた記録はこの端末の中だけに保存し、外へ送りません。購入の管理には、選んだ試験・購入画面を開いた場所と回数・解いた問題の数だけを匿名の識別子と一緒に送ります(個人を特定する情報は送りません)。</p>
     </div>
   );
 }

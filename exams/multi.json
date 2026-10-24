@@ -42,5 +42,19 @@
       "entitlement": "nurse_full",
       "price": "¥980"
     }
-  }
+  },
+  "bundles_": "セット(非消耗型を1つ)。RevenueCat ではセットの商品を exams に並べた試験の entitlement(kaigo_full・shakai_full・seishin_full)の全部に付ける。アプリは購入画面で、exams のどれかを選んでいて、どれも持っていない人にだけ出す。price は開発のブラウザの疑似購入用(本物はストアの priceString)。",
+  "bundles": [
+    {
+      "id": "fukushi",
+      "productId": "nigatecho_multi_fukushi_set",
+      "name": "介護福祉士・社会福祉士・精神保健福祉士の完全版 3つセット",
+      "exams": [
+        "kaigo",
+        "shakai",
+        "seishin"
+      ],
+      "price": "¥1,500"
+    }
+  ]
 }

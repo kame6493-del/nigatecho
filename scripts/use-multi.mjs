@@ -28,9 +28,17 @@ if (keys.size !== exams.length) throw new Error('試験の key が重なって�
 const ents = exams.map((e) => e.entitlement);
 if (new Set(ents).size !== ents.length) throw new Error('entitlement が重なっている(1つ買うとほかの試験も開いてしまう)');
 
+// セット(1つの商品で複数の試験の完全版を開く)。試験は2つ以上、どれもこのアプリにある試験で、商品IDは単品と重ならない
+const bundles = multi.bundles ?? [];
+for (const b of bundles) {
+  if (!Array.isArray(b.exams) || b.exams.length < 2) throw new Error(`セット ${b.id} の試験が2つ未満`);
+  for (const d of b.exams) if (!exams.some((e) => e.dir === d)) throw new Error(`セット ${b.id} の試験 ${d} がこのアプリに無い`);
+  if (exams.some((e) => e.productId === b.productId)) throw new Error(`セット ${b.id} の商品IDが単品と重なっている`);
+}
 writeFileSync('src/exams.multi.json', JSON.stringify({
   app: { appId: app.appId, appName, homeName, site: app.site, revenuecat: app.revenuecat },
   exams,
+  ...(bundles.length ? { bundles } : {}),
 }, null, 2) + '\n');
 // 単体テストやほかの道具が読む「いまの試験」は、はじめて開いたときの試験(管理栄養士)にしておく
 writeFileSync('src/exam.current.json', JSON.stringify(read(multi.appExam), null, 2) + '\n');

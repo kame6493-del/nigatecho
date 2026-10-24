@@ -10,6 +10,35 @@ export const EXAMS: ExamConfig[] = multi.exams as unknown as ExamConfig[];
 /** アプリそのものの設定(公開中の管理栄養士のアプリの ID・RevenueCat のキー・サポートページ) */
 export const APP: { appId: string; appName: string; site: string; revenuecat?: { ios: string; android: string } } = multi.app;
 
+/**
+ * セット(1つの買い切りで複数の試験の完全版を開く。exams/multi.json の bundles)。
+ * RevenueCat でセットの商品を、入っている試験の entitlement の全部に付けるので、買えば accessFrom でそのまま全部開く。
+ */
+export interface Bundle {
+  id: string;
+  productId: string;
+  /** "介護福祉士・社会福祉士・精神保健福祉士の完全版 3つセット" */
+  name: string;
+  /** 入っている試験(exams の dir) */
+  exams: string[];
+  /** 開発のブラウザの疑似購入用の値段(本物はストアの priceString) */
+  price: string;
+}
+export const BUNDLES: Bundle[] = (multi as unknown as { bundles?: Bundle[] }).bundles ?? [];
+
+/** その試験が入っているセット(無ければ undefined) */
+export const bundleOf = (dir: string): Bundle | undefined => BUNDLES.find((b) => b.exams.includes(dir));
+
+/**
+ * 購入画面にセットを出すか: その試験が入ったセットがあり、セットの試験をどれも持っていないときだけ。
+ * どれか1つでも買った人には出さない(持っている試験の分を二重に払わせない)
+ */
+export function bundleOffer(dir: string, access: Record<string, boolean>): Bundle | undefined {
+  const b = bundleOf(dir);
+  if (!b) return undefined;
+  return b.exams.some((d) => access[d]) ? undefined : b;
+}
+
 /** はじめて開いたとき(選んだ試験の記録が無いとき)の試験 */
 export const FIRST_EXAM = EXAMS[0];
 
