@@ -98,6 +98,16 @@ describe('試験ごとの問題データ', () => {
     expect(sh.some((q) => q.footnote)).toBe(true);
     expect(loadQs('kaigo').some((q) => q.case)).toBe(true);
   });
+
+  it('問題冊子の脚注(（注）…)は選択肢に混ざらず footnote にある(介護福祉士 38-122 ほか30問)', () => {
+    for (const e of ['kaigo', 'shakai', 'seishin', 'kanri', 'pt', 'nurse']) {
+      for (const q of loadQs(e)) for (const c of q.choices) expect(c, `${q.id} ${c}`).not.toContain('（注）');
+    }
+    const kq = new Map(loadQs('kaigo').map((q) => [q.id, q]));
+    expect(kq.get('38-122')!.choices[4]).toBe('地方更生保護委員会');
+    expect(kq.get('38-122')!.footnote).toMatch(/^（注）　「協議会」とは/);
+    expect(loadQs('kaigo').filter((q) => q.footnote).length).toBe(30);
+  });
 });
 
 describe('試験ごとの出典', () => {
