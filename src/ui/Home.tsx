@@ -3,7 +3,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
-import { freeLeft, homeUpsell } from '../domain/upsell';
+import { freeLeft, homeUpsell, subPassGrowth } from '../domain/upsell';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
@@ -60,10 +60,12 @@ export function Home(p: Props) {
   const left = freeLeft(p.open, p.data, EXAM);
   const upsell = homeUpsell({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0 });
   const lockedRange = examRange(exams[exams.length - 1], exams.find((e) => !free.includes(e)) ?? exams[0]);
+  /** 看護師の必修問題のように別の基準がある試験は、増える分のうちの数も書く */
+  const sub = subPassGrowth(p.all, EXAM);
   const band = (
     <button className={`unlock ${upsell === 'raised' ? 'raised' : ''}`} onClick={p.onPaywall} data-upsell={`home-${upsell}`}>
       <span className="unlock-title">完全版で、あと{lockedCount}問</span>
-      <span className="unlock-sub">{lockedRange}の過去問と、その回の本番形式の模試。買い切りで、月額はかかりません。</span>
+      <span className="unlock-sub">{lockedRange}の過去問{sub ? `(${sub.label} ${sub.full - sub.now}問を含む)` : ''}と、その回の本番形式の模試。買い切りで、月額はかかりません。</span>
       <IChevron />
     </button>
   );

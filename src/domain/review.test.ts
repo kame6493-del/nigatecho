@@ -55,8 +55,51 @@ describe('評価のお願いの時機', () => {
     expect(daily([plain, { ...clearOne, lastOk: false }, clearOne]).asked).toEqual([2]);
   });
 
-  it('苦手が外れていない練習の回では出さない(正答率が高くても)', () => {
-    expect(daily([plain, { cleared: 0, nigateLeft: 0, correctRate: 1, lastOk: true }, plain]).asked).toEqual([]);
+  it('苦手が外れていない練習の回では出さない(正答率が高くても、比べる前の回が無ければ)', () => {
+    expect(daily([plain, { cleared: 0, nigateLeft: 0, correctRate: 1, lastOk: true }]).asked).toEqual([]);
+  });
+
+  it('練習(5問以上)の正答率が前の練習の回より上がって6割以上なら、その回の終わりにお願いする', () => {
+    const p = (rate: number, answered = 10): SessionEnd => ({ cleared: 0, nigateLeft: 5, correctRate: rate, lastOk: true, answered });
+    // 2日目に 5割 → 7割(同じ日に2回解く)
+    let s = reviewOnOpen(reviewOnOpen(EMPTY_REVIEW, T0), T0 + DAY);
+    let r = reviewOnSessionEnd(s, p(0.5), T0 + DAY + HOUR);
+    expect(r.ask).toBe(false);
+    expect(r.state.lastRate).toBe(0.5);
+    r = reviewOnSessionEnd(r.state, p(0.7), T0 + DAY + 2 * HOUR);
+    expect(r.ask).toBe(true);
+    // 上がっても6割未満、同じ正答率、5問未満の回では出さない
+    s = reviewOnOpen(reviewOnOpen(EMPTY_REVIEW, T0), T0 + DAY);
+    const a = reviewOnSessionEnd(s, p(0.3), T0 + DAY + HOUR).state;
+    expect(reviewOnSessionEnd(a, p(0.5), T0 + DAY + 2 * HOUR).ask).toBe(false);
+    const b = reviewOnSessionEnd(s, p(0.7), T0 + DAY + HOUR).state;
+    expect(reviewOnSessionEnd(b, p(0.7), T0 + DAY + 2 * HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(a, p(1, 4), T0 + DAY + 2 * HOUR).ask).toBe(false);
+    // 5問未満の回は前の回として残さない
+    expect(reviewOnSessionEnd(a, p(1, 4), T0 + DAY + 2 * HOUR).state.lastRate).toBe(0.3);
+    // 初めて開いた日は上がっても出さない
+    const d0 = reviewOnSessionEnd(reviewOnOpen(EMPTY_REVIEW, T0), p(0.5), T0 + HOUR).state;
+    expect(reviewOnSessionEnd(d0, p(0.9), T0 + 2 * HOUR).ask).toBe(false);
+    // 模試は練習の正答率に数えない
+    const m = reviewOnSessionEnd(s, { ...mockHalf, correctRate: 0.9 }, T0 + DAY + HOUR).state;
+    expect(m.lastRate).toBe(-1);
+  });
+
+  it('使い始めて3日目(続けていなくてよい)に1回解き終えたらお願いする', () => {
+    expect(daily([plain, plain, plain]).asked).toEqual([2]);
+    // 0日目・3日目・9日目に使う人は、3回目に開いた日
+    let s = EMPTY_REVIEW;
+    const asked: number[] = [];
+    for (const d of [0, 3, 9]) {
+      s = reviewOnOpen(s, T0 + d * DAY);
+      const r = reviewOnSessionEnd(s, plain, T0 + d * DAY + HOUR);
+      s = r.state;
+      if (r.ask) asked.push(d);
+    }
+    expect(asked).toEqual([9]);
+    expect(s.openDays).toBe(3);
+    // 3日目でも最後の問題が不正解なら出さない(その日のうちに次の回で出す)
+    expect(daily([plain, plain, { ...plain, lastOk: false }]).asked).toEqual([]);
   });
 
   it('模試を全問答えて最後まで解いたらお願いする。途中で終えた模試では出さない', () => {
@@ -68,8 +111,9 @@ describe('評価のお願いの時機', () => {
     expect(daily([plain, { ...mockHalf, passed: true }]).asked).toEqual([1]);
   });
 
-  it('7日続けて開いて、7日目に解き終えたらお願いする', () => {
-    const ends = Array.from({ length: 7 }, () => plain);
+  it('7日続けて開いて、7日目に解き終えたらお願いする(3日目に出せなかった人)', () => {
+    const bad = { ...plain, lastOk: false };
+    const ends = [plain, bad, bad, bad, bad, bad, plain];
     expect(daily(ends).asked).toEqual([6]);
     // 6日続けただけでは出さない
     expect(daily(ends.slice(0, 6)).asked).toEqual([]);
@@ -84,15 +128,14 @@ describe('評価のお願いの時機', () => {
     expect(reviewOnOpen(openedOn([0]), T0 + 3 * HOUR).openStreak).toBe(1);
   });
 
-  it('お願いしたら120日はあける(Apple の年3回と同じくらい)', () => {
-    expect(REVIEW_GAP_DAYS).toBe(120);
-    // 毎日うれしい回が続いても、次は120日後
-    const { asked } = daily(Array.from({ length: 250 }, (_, i) => (i === 0 ? plain : clearOne)));
-    expect(asked).toEqual([1, 121, 241]);
-    // 1年毎日うれしい回でも、こちらからのお願いは 2日目・122日目・242日目・362日目の4回まで(さらに OS が年3回に絞る)
+  it('お願いしたら1年あける(Apple の年3回の中で、こちらからは1回だけ)', () => {
+    expect(REVIEW_GAP_DAYS).toBe(365);
+    // 毎日うれしい回が続いても、次は1年後
+    const { asked } = daily(Array.from({ length: 400 }, (_, i) => (i === 0 ? plain : clearOne)));
+    expect(asked).toEqual([1, 366]);
+    // 1年のあいだ毎日うれしい回でも、こちらからのお願いは1回だけ
     const year = daily(Array.from({ length: 365 }, () => ({ ...mockDone, passed: true })));
-    expect(year.asked).toEqual([1, 121, 241, 361]);
-    for (let k = 1; k < year.asked.length; k++) expect(year.asked[k] - year.asked[k - 1]).toBeGreaterThanOrEqual(120);
+    expect(year.asked).toEqual([1]);
   });
 
   it('前の版から使っている人(解き終えた回がある)は、更新した日でもお願いできる', () => {
@@ -100,19 +143,28 @@ describe('評価のお願いの時機', () => {
     const s = reviewOnOpen(old, T0);
     expect(s.firstAt).toBe(1);
     expect(reviewOnSessionEnd(s, clearOne, T0 + HOUR).ask).toBe(true);
-    // 前の版で60日前にお願いしていたら、まだ出さない(120日あける)
+    // 前の版で60日前にお願いしていたら、まだ出さない(1年あける)
     const asked = reviewOnOpen(normalizeReview({ sessions: 12, askedAt: T0 - 60 * DAY, cleared: 2 }), T0);
     expect(reviewOnSessionEnd(asked, clearOne, T0 + HOUR).ask).toBe(false);
   });
 
   it('数えた回・消せた数の合計・お願いした時刻・開いた日を残す', () => {
     const { s } = daily([plain, clearOne, plain]);
-    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY + HOUR, cleared: 1, firstAt: T0, lastOpenDay: '2026-10-09', openStreak: 3 });
+    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY + HOUR, cleared: 1, firstAt: T0, lastOpenDay: '2026-10-09', openStreak: 3, openDays: 3, lastRate: -1 });
+  });
+
+  it('前の版から使っている人は、更新して次に開いた日を3日目として数える', () => {
+    const old = normalizeReview({ sessions: 5, askedAt: 0, cleared: 0, firstAt: T0, lastOpenDay: '2026-10-07', openStreak: 1 });
+    expect(old.openDays).toBe(0);
+    const s = reviewOnOpen(old, T0 + DAY);
+    expect(s.openDays).toBe(3);
+    expect(reviewOnSessionEnd(s, plain, T0 + DAY + HOUR).ask).toBe(true);
   });
 
   it('保存した記録が壊れていても0から数える(前の版の記録も読める)', () => {
     expect(normalizeReview(null)).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ sessions: 'x', askedAt: -5, lastOpenDay: 'きのう', openStreak: 9 })).toEqual(EMPTY_REVIEW);
+    expect(normalizeReview({ sessions: 'x', askedAt: -5, lastOpenDay: 'きのう', openStreak: 9, openDays: 4, lastRate: 3 })).toEqual(EMPTY_REVIEW);
+    expect(normalizeReview({ lastOpenDay: '2026-10-07', openDays: 4, lastRate: 0.4 })).toMatchObject({ openDays: 4, lastRate: 0.4 });
     expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ ...EMPTY_REVIEW, sessions: 4, askedAt: T0 });
   });
 });

@@ -1,8 +1,9 @@
 /**
- * ストアの評価をお願いする時機。うれしいことがあった直後(苦手ノートから問題を消せた・模試を最後まで解いた・7日続けて開いた)だけ。
+ * ストアの評価をお願いする時機。うれしいことがあった直後(苦手ノートから問題を消せた・模試を最後まで解いた・
+ * 練習の正答率が前の回より上がった・使い始めて3日目に1回解き終えた・7日続けて開いた)だけ。
  * 出すのは OS の評価の画面(iOS は SKStoreReviewController、Android は Google Play In-App Review)だけで、
  * 自前の「星をつけて」「気に入りましたか?」の画面は作らない。評価と見返り(解放・完全版など)は結びつけない。
- * 出すかどうかは最後に OS が決める(Apple は1年に3回まで)。こちらは120日に1回まで。
+ * 出すかどうかは最後に OS が決める(Apple は1年に3回まで)。こちらからは1年に1回だけ呼ぶ(1.4.3 から。前は120日に1回)。
  * 初めて開いた日・解いている途中(回の終わり以外)には出さない。記録は試験をまたいで1つ(端末に1つ)。
  */
 import { dayKey } from './study';
@@ -20,6 +21,10 @@ export interface ReviewState {
   lastOpenDay: string;
   /** 何日続けて開いているか(今日を含む) */
   openStreak: number;
+  /** 開いた日の数(続けていなくても数える。今日を含む)。前の版から使っている人は2日から数え始める */
+  openDays: number;
+  /** 前の練習の回(5問以上)の正答率 0〜1。-1 = まだ無い */
+  lastRate: number;
 }
 
 export interface SessionEnd {
@@ -35,15 +40,23 @@ export interface SessionEnd {
   passed?: boolean;
   /** 模試を全問答えて最後まで解いたか */
   completed?: boolean;
+  /** 練習でこの回に答えた問題の数(正答率を前の回と比べるのは5問以上の回だけ)。模試は無し */
+  answered?: number;
 }
 
-export const EMPTY_REVIEW: ReviewState = { sessions: 0, askedAt: 0, cleared: 0, firstAt: 0, lastOpenDay: '', openStreak: 0 };
+export const EMPTY_REVIEW: ReviewState = { sessions: 0, askedAt: 0, cleared: 0, firstAt: 0, lastOpenDay: '', openStreak: 0, openDays: 0, lastRate: -1 };
 
 const DAY = 86400000;
-/** お願いの間は120日あける(Apple の上限 年3回と同じくらいに、こちらからも絞る) */
-export const REVIEW_GAP_DAYS = 120;
+/** お願いの間は1年あける(Apple の上限は年3回。こちらからは1年に1回だけ呼ぶ) */
+export const REVIEW_GAP_DAYS = 365;
 /** 何日続けて開いたら「続けられた」とみなすか */
 export const REVIEW_STREAK_DAYS = 7;
+/** 何日目に開いて解き終えたら「使い続けてくれている」とみなすか(続けていなくてよい) */
+export const REVIEW_DAY_COUNT = 3;
+/** 正答率を前の回と比べる練習の回の最少の問題数 */
+export const REVIEW_RATE_MIN = 5;
+/** 正答率が上がったとみなす下限(上がっても低すぎる回では出さない) */
+export const REVIEW_RATE_FLOOR = 0.6;
 
 /** 前の日の日付(端末の暦。夏時間のある地域でもずれないよう正午で数える) */
 function prevDay(key: string): string {
@@ -58,10 +71,12 @@ export function reviewOnOpen(s: ReviewState, now: number): ReviewState {
   const firstAt = s.firstAt || (s.sessions > 0 ? 1 : now);
   if (s.lastOpenDay === today) return { ...s, firstAt };
   const openStreak = s.lastOpenDay && s.lastOpenDay === prevDay(today) ? s.openStreak + 1 : 1;
-  return { ...s, firstAt, lastOpenDay: today, openStreak };
+  // 前の版から使っている人(解き終えた回がある)は、すでに2日使ったとみなす
+  const openDays = (s.openDays || (s.sessions > 0 ? REVIEW_DAY_COUNT - 1 : 0)) + 1;
+  return { ...s, firstAt, lastOpenDay: today, openStreak, openDays };
 }
 
-/** いまお願いしてよい間か(初めて開いた日でなく、前のお願いから120日たった) */
+/** いまお願いしてよい間か(初めて開いた日でなく、前のお願いから1年たった) */
 export function reviewRested(s: ReviewState, now: number): boolean {
   const notFirstDay = s.firstAt > 0 && dayKey(s.firstAt) !== dayKey(now);
   const rested = !s.askedAt || now - s.askedAt >= REVIEW_GAP_DAYS * DAY;
@@ -82,8 +97,15 @@ export function reviewOnSessionEnd(s0: ReviewState, e: SessionEnd, now: number):
   const mockWin = e.completed === true || e.passed === true;
   // 7日続けて開いて、今日も1回解き終えた
   const streakWin = s.openStreak >= REVIEW_STREAK_DAYS && s.lastOpenDay === dayKey(now);
-  const ask = reviewRested(s, now) && happy && (clearedWin || mockWin || streakWin);
-  return { state: { ...s, sessions, askedAt: ask ? now : s.askedAt, cleared }, ask };
+  // 使い始めて3日目(続けていなくてよい)以降に開いて、1回解き終えた
+  const dayWin = s.openDays >= REVIEW_DAY_COUNT && s.lastOpenDay === dayKey(now);
+  // 練習(5問以上)の正答率が前の練習の回より上がって、6割以上だった
+  const practice = e.nigateLeft >= 0 && (e.answered ?? 0) >= REVIEW_RATE_MIN;
+  const rate = Math.min(1, Math.max(0, e.correctRate));
+  const rateWin = practice && s.lastRate >= 0 && rate > s.lastRate && rate >= REVIEW_RATE_FLOOR;
+  const lastRate = practice ? rate : s.lastRate;
+  const ask = reviewRested(s, now) && happy && (clearedWin || mockWin || streakWin || dayWin || rateWin);
+  return { state: { ...s, sessions, askedAt: ask ? now : s.askedAt, cleared, lastRate }, ask };
 }
 
 export function normalizeReview(x: unknown): ReviewState {
@@ -93,6 +115,8 @@ export function normalizeReview(x: unknown): ReviewState {
   return {
     sessions: n(o.sessions), askedAt: n(o.askedAt), cleared: n(o.cleared),
     firstAt: n(o.firstAt), lastOpenDay: day, openStreak: day ? Math.floor(n(o.openStreak)) : 0,
+    openDays: day ? Math.floor(n(o.openDays)) : 0,
+    lastRate: typeof o.lastRate === 'number' && o.lastRate >= 0 && o.lastRate <= 1 ? o.lastRate : -1,
   };
 }
 

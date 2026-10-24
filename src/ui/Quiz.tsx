@@ -149,6 +149,7 @@ function Practice(p: Props & { qs: Question[] }) {
         nigateLeft: Object.values(p.data.records).filter(isNigate).length,
         correctRate: done.filter((d) => d.ok).length / n,
         lastOk: done.length ? done[done.length - 1].ok : undefined,
+        answered: done.length,
       });
       return;
     }

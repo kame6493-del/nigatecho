@@ -1,5 +1,5 @@
 import type { AppData, ExamConfig, Question } from './types';
-import { isNigate, unseen } from './study';
+import { inSubPass, isNigate, unseen } from './study';
 
 /**
  * 完全版の案内を「どこに・どの形で」出すか。購入画面は押したときだけ開く(勝手に開かない・時間で急がせない)。
@@ -59,6 +59,23 @@ export function weakSubjectGrowth(all: Question[], open: Question[], data: AppDa
   if (!pick) return null;
   const [subject, r] = pick;
   return { subject, nigate: r.nigate, now: r.now, full: r.full };
+}
+
+/**
+ * 総得点とは別に基準のある問題(看護師の必修問題・8割)が、無料の回で何問・完全版で何問か。
+ * 看護師の人が一番気にする所なので、購入画面とホームの帯で中身として見せる(実際の問題数だけ。採点対象外は数えない)。
+ * 基準の無い試験、完全版で増えない試験は null
+ */
+export function subPassGrowth(all: Question[], cfg: ExamConfig): { label: string; ratio: number; now: number; full: number } | null {
+  const sp = cfg.subPass;
+  if (!sp) return null;
+  let now = 0, full = 0;
+  for (const q of all) {
+    if (q.excluded || !inSubPass(q, cfg)) continue;
+    full++;
+    if (cfg.freeExams.includes(q.exam)) now++;
+  }
+  return full > now ? { label: sp.label, ratio: sp.ratio, now, full } : null;
 }
 
 /** 問題データにある回の数(= 完全版の模試の回数) */

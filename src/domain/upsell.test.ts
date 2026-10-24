@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyData } from './data';
 import { record } from './study';
-import { freeLeft, homeUpsell, lockedPreview, PREVIEW_STEM_MAX, RAISE_AFTER, resultPreviewSubjects, roundCount, weakSubjectGrowth } from './upsell';
+import { freeLeft, homeUpsell, lockedPreview, PREVIEW_STEM_MAX, RAISE_AFTER, resultPreviewSubjects, roundCount, subPassGrowth, weakSubjectGrowth } from './upsell';
 import type { ExamConfig, Question } from './types';
 
 const q = (id: string, subject: string, excluded = false): Question => ({
@@ -101,5 +101,16 @@ describe('鍵のかかった回の問題を1問見せる', () => {
     const done = [{ subject: 'A', ok: true }, { subject: 'B', ok: false }, { subject: 'C', ok: false }, { subject: 'C', ok: false }];
     expect(resultPreviewSubjects(done, 'D')).toEqual(['C', 'B', 'D', 'A']);
     expect(resultPreviewSubjects([{ subject: 'A', ok: true }], null)).toEqual(['A']);
+  });
+});
+
+describe('別の基準のある問題(看護師の必修問題)が完全版で何問になるか', () => {
+  const nurseCfg = { freeExams: [38], subPass: { label: '必修問題', subjects: ['A'], ratio: 0.8, separate: true, restLabel: '一般・状況設定' } } as unknown as ExamConfig;
+  it('無料の回と全部の回の、基準のある科目の問題数(採点対象外は数えない)', () => {
+    expect(subPassGrowth(all, nurseCfg)).toEqual({ label: '必修問題', ratio: 0.8, now: 2, full: 4 });
+  });
+  it('基準の無い試験・完全版で増えない試験には出さない', () => {
+    expect(subPassGrowth(all, cfg)).toBeNull();
+    expect(subPassGrowth(open, nurseCfg)).toBeNull();
   });
 });

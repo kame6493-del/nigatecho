@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
 import { examRange, isLocked } from '../domain/study';
-import { weakSubjectGrowth } from '../domain/upsell';
+import { subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
 import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
@@ -35,6 +35,8 @@ export function Paywall(p: {
   const freeRounds = EXAM.freeExams.filter((e) => exams.includes(e));
   const lockedRounds = exams.filter((e) => !freeRounds.includes(e));
   /** 本人の記録から: 苦手の多い科目の問題が、いま何問で完全版で何問になるか(実際の問題数だけ) */
+  /** 看護師の必修問題(8割の基準)が何問から何問になるか */
+  const sub = subPassGrowth(p.all, EXAM);
   const growth = !owned && p.data
     ? weakSubjectGrowth(p.all, p.all.filter((q) => !isLocked(q, false, EXAM)), p.data)
     : null;
@@ -82,6 +84,7 @@ export function Paywall(p: {
         <h2>{exams.length}年分 {p.all.length}問で、<br />苦手を本番までに0へ。</h2>
         <ul className="checks">
           <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${p.all.length - free}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
+          {sub && <li data-upsell="paywall-subpass"><ICheck size={16} />{sub.label}({Math.round(sub.ratio * 10)}割が基準)が {sub.now}問 → {sub.full}問に</li>}
           <li><ICheck size={16} />本番形式の模試が{exams.length}回分に</li>
           <li><ICheck size={16} />増えた分も解説・苦手ノート・予想点に入る</li>
         </ul>
