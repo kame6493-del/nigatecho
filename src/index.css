@@ -564,3 +564,10 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .pw-mine-row b { color: var(--red-d); white-space: nowrap; }
 .pw-table td.pw-both { color: var(--ink-2); font-weight: 600; }
 .first-pick .first-q { display: inline-block; font-size: 1.15em; color: var(--ink); margin-bottom: 4px; }
+.locked-preview { display: grid; gap: 8px; }
+.locked-preview .lp-lead { margin: 0; font-size: .84em; font-weight: 700; color: var(--ink-2); }
+.lp-card { background: #fff; border: 1px solid #f3d8b8; border-radius: 12px; padding: 12px 14px; }
+.lp-card .lp-src { margin: 0 0 6px; font-size: .78em; color: var(--ink-2); font-weight: 700; }
+.lp-card .lp-stem { margin: 0; font-size: .95em; line-height: 1.7; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+.lp-card .lp-hidden { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed #f0cfa6; font-size: .8em; color: var(--red-d); font-weight: 700; }
+.note-preview { margin: 18px 0 14px; padding: 14px 16px; border: 1.5px solid #f3d8b8; border-radius: var(--r); background: linear-gradient(135deg, #fff6e6, #fff0ef); }

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
-import { CLEAR_STREAK, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, calcText, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
+import { CLEAR_STREAK, dayKey, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, calcText, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { splitExplanation } from '../domain/explain';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 import { ART } from './look';
-import { Ring, TopBar } from './parts';
+import { LockedPreview, Ring, TopBar } from './parts';
+import { lockedPreview, resultPreviewSubjects, weakSubjectGrowth } from '../domain/upsell';
 import { IArrow, IBookmark, IBulb, ICheck, IChevron, IDoc, IRepeat, IX, IBook } from './Icons';
 
 export { TopBar } from './parts';
@@ -36,7 +37,8 @@ interface Props {
   onClose: () => void;
   onHome: () => void;
   onNigate: () => void;
-  onPaywall: () => void;
+  /** 購入画面へ。where は開いた場所(購入管理の記録に入れる。result / result-preview / mock-result) */
+  onPaywall: (where: string) => void;
   /** 出典と参考文献の画面へ */
   onSources?: () => void;
 }
@@ -92,7 +94,7 @@ function Practice(p: Props & { qs: Question[] }) {
           <li><span>新しく苦手に入った</span><b className="bad">{fresh}問</b></li>
           <li><span>残りの苦手</span><b>{nigateLeft}問</b></li>
         </ul>
-        <FullVersionNote {...p} qs={qs} />
+        <FullVersionNote {...p} qs={qs} done={done.map((d) => ({ subject: p.byId.get(d.id)?.subject ?? '', ok: d.ok }))} />
         <ol className="result-list card">
           {done.map((d, k) => {
             const x = p.byId.get(d.id)!;
@@ -494,17 +496,31 @@ function MockRun(p: Props & { qs: Question[] }) {
  * 出すのは、この試験を買っていない人が無料の回の問題を解き終えたときだけ。
  * 模試(無料の回の1回分)の後は「ほかの回の模試」を案内する。
  */
-function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean }) {
+function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean; done?: { subject: string; ok: boolean }[] }) {
   if (p.premium || p.qs.length === 0 || p.qs.some((x) => isLocked(x, false, EXAM))) return null;
-  const s = lockedSummary(p.byId.values(), EXAM);
+  const all = [...p.byId.values()];
+  const s = lockedSummary(all, EXAM);
   if (!s) return null;
   const n = s.count.toLocaleString('ja-JP');
+  // 練習の結果だけ: 間違えた科目(無ければ苦手の多い科目)の、鍵のかかった回の問題を1問、問題文だけ見せる
+  const locked = (q: Question) => isLocked(q, false, EXAM);
+  const weak = !p.mock && p.done && p.done.length > 0 ? weakSubjectGrowth(all, all.filter((q) => !locked(q)), p.data)?.subject ?? null : null;
+  const preview = !p.mock && p.done && p.done.length > 0
+    ? lockedPreview(all, locked, resultPreviewSubjects(p.done, weak), dayKey(Date.now()))
+    : null;
+  // 見出しは本当のことだけ(この回で間違えた科目 / 苦手の多い科目 / どちらでもなければ科目の名前だけ)
+  const why = !preview ? '' : p.done?.some((d) => !d.ok && d.subject === preview.subject) ? 'いま間違えた' : preview.subject === weak ? '苦手の多い' : '';
   return (
     <section className="full-note" data-upsell={p.mock ? 'mock-result' : 'result'}>
       <p>{p.mock
         ? `ほかの回(${examRange(s.from, s.to)})の本番形式の模試と過去問${n}問は、完全版で解けます。`
         : `${EXAM.name}の${examRange(s.from, s.to)}(${n}問)と、その回の本番形式の模試は、完全版で解けます。`}</p>
-      <button className="btn" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
+      {preview ? (
+        <LockedPreview q={preview} where="result-preview" onPaywall={() => p.onPaywall('result-preview')}
+          lead={`${why}${short(preview.subject)}の、第${preview.exam}回の問題です`} />
+      ) : (
+        <button className="btn" onClick={() => p.onPaywall(p.mock ? 'mock-result' : 'result')}>完全版を見る<IChevron size={16} /></button>
+      )}
     </section>
   );
 }

@@ -10,7 +10,12 @@
  3 買っていなくても無料の回の模試が解け、結果のすぐ下に「ほかの回は完全版で」。ほかの回には鍵
  5 購入画面の表(過去問・模試)と、本人の記録の行(実際の問題数)。急がせる文が無い
  購入画面は押したときだけ開く(勝手に開かない)。買った人には案内を出さない。console のエラー 0
-画面写真は scripts/e2e_out/paywall_1022/<試験>/ に置く(walk.json に順番と説明)。"""
+1.4.2(2026-10-24)で足した所:
+ A 練習の結果と苦手ノートに、鍵のかかった回の同じ科目の問題を1問、問題文だけ本物のまま(選択肢・正解・解説は出さない)。
+   押したときだけ購入画面へ。値段・急がせる文なし。開き直しても同じ問題
+ C 試験を選んだ・購入画面を開いた・買ったときの購入管理の属性(開発では localStorage の nigatecho.mockAttrs)。
+   exam・exam_first・paywall_from・paywall_exam・paywall_opened・paywall_seen・bought_exam・bought_from だけ。$ で始まる属性なし
+画面写真は scripts/e2e_out/paywall_1024/<試験>/ に置く(--out で変えられる。walk.json に順番と説明)。"""
 import json
 import os
 import re
@@ -22,7 +27,10 @@ EXAMS = ["kaigo", "nurse", "kanri"]
 for i, a in enumerate(sys.argv):
     if a == "--exams":
         EXAMS = sys.argv[i + 1].split(",")
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "e2e_out", "paywall_1022")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "e2e_out", "paywall_1024")
+for i, a in enumerate(sys.argv):
+    if a == "--out":
+        OUT = sys.argv[i + 1]
 NAMES = {"kanri": "管理栄養士", "pt": "理学療法士", "kaigo": "介護福祉士", "shakai": "社会福祉士", "seishin": "精神保健福祉士", "nurse": "看護師"}
 errors, fails, oks = [], [], [0]
 walk = {}
@@ -95,6 +103,49 @@ def no_pushy(pg, exam, where):
     check(not PUSHY.search(t), f"{exam} {where}: 急がせる言い回しが無い")
 
 
+ALLOWED_ATTRS = {"exam", "exam_first", "paywall_from", "paywall_exam", "paywall_opened", "paywall_seen", "bought_exam", "bought_from"}
+
+
+def attrs(pg):
+    return pg.evaluate("() => JSON.parse(localStorage.getItem('nigatecho.mockAttrs') || '{}')")
+
+
+def check_attrs(pg, exam, where):
+    a = attrs(pg)
+    check(set(a) <= ALLOWED_ATTRS, f"{exam} {where}: 属性は決めた名前だけ {sorted(a)}")
+    check(not any(k.startswith("$") for k in a), f"{exam} {where}: $ で始まる属性を使わない")
+    check(all(re.fullmatch(r"[a-z0-9_-]{1,40}", str(v)) for v in a.values() if v is not None), f"{exam} {where}: 値は英数字だけ(個人の情報なし) {a}")
+    return a
+
+
+def check_preview(pg, exam, sel, where):
+    """鍵のかかった回の問題を1問、問題文だけ本物のまま見せているか"""
+    check(pg.locator(sel).count() == 1, f"{exam} {where}: 鍵のかかった回の問題を1問見せる")
+    if not pg.locator(sel).count():
+        return None
+    qid = pg.locator(sel).get_attribute("data-qid")
+    t = pg.locator(sel).inner_text()
+    info = pg.evaluate("""async ([dir, qid]) => {
+        const qs = await (await fetch(`./data/${dir}/questions.json`)).json();
+        const cfg = (await import('/src/exams.multi.json')).default.exams.find((e) => e.dir === dir);
+        const q = qs.find((x) => x.id === qid);
+        return q ? { stem: q.stem, choices: q.choices, exam: q.exam, free: cfg.freeExams, figure: q.figure, excluded: q.excluded, case: !!q.case } : null;
+    }""", [exam, qid])
+    check(info is not None, f"{exam} {where}: 見せた問題 {qid} が問題データにある")
+    if not info:
+        return qid
+    check(info["exam"] not in info["free"], f"{exam} {where}: 見せた問題は鍵のかかった回(第{info['exam']}回)")
+    stem = pg.locator(f"{sel} .lp-stem").inner_text()
+    check(stem.strip() == info["stem"].strip(), f"{exam} {where}: 問題文は本物のまま")
+    check(not any(len(c.strip()) >= 4 and c.strip() in t for c in info["choices"]), f"{exam} {where}: 選択肢を出していない")
+    check(not info["figure"] and not info["excluded"] and not info["case"], f"{exam} {where}: 図・事例・採点対象外の問題でない")
+    check("¥" not in t and "円" not in t, f"{exam} {where}: 見せる1問に値段が無い")
+    check(not PUSHY.search(t), f"{exam} {where}: 急がせる言い回しが無い")
+    check(pg.evaluate("(s) => { const e = document.querySelector(s); return !!e && ![...e.querySelectorAll('*')].some((x) => getComputedStyle(x).filter.includes('blur')); }", sel), f"{exam} {where}: ぼかしを使わない")
+    check(pg.locator(".paywall").count() == 0, f"{exam} {where}: 購入画面は勝手に開かない")
+    return qid
+
+
 def run(pg, exam, key):
     name = NAMES[exam]
     # ---------- 1 はじめて開く ----------
@@ -117,6 +168,9 @@ def run(pg, exam, key):
     check(pg.locator(".exam-name").inner_text() == name, f"{exam}: 選んだ試験({name})のホーム")
     check(pg.evaluate("() => localStorage.getItem('CapacitorStorage.nigatecho.exam')") == exam, f"{exam}: 選んだ試験が残る")
     check(pg.locator(".paywall").count() == 0, f"{exam}: 購入画面は勝手に開かない")
+    a = check_attrs(pg, exam, "試験を選んだあと")
+    check(a.get("exam") == exam and a.get("exam_first") == exam, f"{exam}: 試験を選ぶと exam・exam_first が入る {a}")
+    check("paywall_from" not in a, f"{exam}: 購入画面を開くまで paywall_from は入らない")
     shot(pg, exam, "02_home_first", "選んだ試験のホーム(はじめて)")
     pg.goto(URL)
     pg.wait_for_selector(".home")
@@ -131,6 +185,16 @@ def run(pg, exam, key):
     shot(pg, exam, "03_result10", "10問の結果(最初の画面)")
     pg.evaluate("() => document.querySelector('[data-upsell=result]').scrollIntoView({block: 'center'})")
     shot(pg, exam, "04_result10_note", "結果の案内(正解・不正解の数のすぐ下)")
+    check_preview(pg, exam, "[data-upsell=result-preview]", "10問の結果")
+    check(pg.locator("[data-upsell=result] [data-upsell=result-preview]").count() == 1, f"{exam}: 見せる1問は結果の案内の中(案内は1枚のまま)")
+    pg.evaluate("() => document.querySelector('[data-upsell=result-preview]').scrollIntoView({block: 'center'})")
+    shot(pg, exam, "04b_result10_preview", "結果の案内: 鍵のかかった回の同じ科目の問題(問題文だけ)")
+    pg.click("[data-upsell=result-preview] button")
+    pg.wait_for_selector(".paywall")
+    pg.wait_for_timeout(200)
+    a = check_attrs(pg, exam, "結果の1問から購入画面")
+    check(a.get("paywall_from") == "result-preview" and a.get("paywall_exam") == exam and a.get("paywall_opened") == "1", f"{exam}: 結果の1問から開くと paywall_from=result-preview・回数1 {a}")
+    check(int(a.get("paywall_seen", "0")) >= 10, f"{exam}: paywall_seen は解いた数 {a.get('paywall_seen')}")
     pg.click(".topbar [aria-label='閉じる']")
     pg.wait_for_selector(".home")
     check(pg.locator("[data-upsell=home-bottom]").count() == 1, f"{exam}: 10問ではホームの帯は一番下のまま")
@@ -181,8 +245,12 @@ def run(pg, exam, key):
     shot(pg, exam, "08_mock_result", "無料の回の模試の結果")
     pg.evaluate("() => document.querySelector('[data-upsell=mock-result]').scrollIntoView({block: 'center'})")
     shot(pg, exam, "09_mock_result_note", "模試の結果の案内")
+    check(pg.locator("[data-upsell=mock-result] [data-upsell=result-preview]").count() == 0, f"{exam}: 模試の結果には1問を出さない")
     pg.click("[data-upsell=mock-result] button")
     pg.wait_for_selector(".paywall")
+    pg.wait_for_timeout(200)
+    a = check_attrs(pg, exam, "模試の結果から購入画面")
+    check(a.get("paywall_from") == "mock-result" and a.get("paywall_opened") == "2", f"{exam}: 模試の結果から開くと paywall_from=mock-result・回数2 {a}")
 
     # ---------- 購入画面 ----------
     pw = pg.locator(".paywall").inner_text()
@@ -218,6 +286,22 @@ def run(pg, exam, key):
     pg.wait_for_selector(".note-page")
     check(pg.locator("[data-upsell=note]").count() == 1, f"{exam}: 苦手ノートに完全版の1行")
     shot(pg, exam, "12_note", "苦手ノートの1行")
+    nq = check_preview(pg, exam, "[data-upsell=note-preview]", "苦手ノート")
+    pg.evaluate("() => document.querySelector('[data-upsell=note-preview]').scrollIntoView({block: 'center'})")
+    shot(pg, exam, "12b_note_preview", "苦手ノートの下: 鍵のかかった回の問題(問題文だけ)")
+    tab(pg, "home")
+    pg.wait_for_selector(".home")
+    tab(pg, "note")
+    pg.wait_for_selector(".note-page")
+    check(pg.locator("[data-upsell=note-preview]").get_attribute("data-qid") == nq, f"{exam}: 開き直しても同じ1問(変わって迷わせない)")
+    pg.click("[data-upsell=note-preview] button")
+    pg.wait_for_selector(".paywall")
+    pg.wait_for_timeout(200)
+    a = check_attrs(pg, exam, "苦手ノートの1問から購入画面")
+    check(a.get("paywall_from") == "note-preview" and a.get("paywall_opened") == "3", f"{exam}: 苦手ノートの1問から開くと paywall_from=note-preview・回数3 {a}")
+    pg.click(".topbar [aria-label='閉じる']")
+    pg.wait_for_selector(".note-page")
+    check(pg.locator(".tabbar").count() == 1, f"{exam}: 苦手ノートから開いた購入画面を閉じると苦手ノートに戻る")
     tab(pg, "stats")
     pg.wait_for_selector(".stats-page")
     check(pg.locator("[data-upsell=stats]").count() == 1, f"{exam}: 成績に完全版の1行")
@@ -227,6 +311,20 @@ def run(pg, exam, key):
     pg.click(".topbar [aria-label='閉じる']")
     pg.wait_for_selector(".stats-page")
     check(pg.locator(".tabbar").count() == 1, f"{exam}: 成績から開いた購入画面を閉じると成績に戻る")
+
+    # ---------- 買う(開発の疑似購入)→ bought_exam・bought_from ----------
+    pg.click("[data-upsell=stats] button")
+    pg.wait_for_selector(".paywall")
+    pg.click(".pw-cta .btn.primary")
+    pg.wait_for_selector(".stats-page")
+    pg.wait_for_timeout(300)
+    a = check_attrs(pg, exam, "買ったあと")
+    check(a.get("bought_exam") == exam and a.get("bought_from") == "stats", f"{exam}: 買うと bought_exam・bought_from=stats {a}")
+    check(pg.locator("[data-upsell]").count() == 0, f"{exam}: 買った直後の成績に案内が無い")
+    tab(pg, "note")
+    pg.wait_for_selector(".note-page")
+    check(pg.locator("[data-upsell]").count() == 0, f"{exam}: 買った直後の苦手ノートに1問も案内も無い")
+    pg.evaluate("(d) => { localStorage.removeItem(d === 'kanri' ? 'nigatecho.mockFull' : `nigatecho.mockFull.${d}`); }", exam)
 
     # ---------- 無料の回を解き終えた人 ----------
     pg.goto(f"{URL}?demo=1&exam={exam}&n=4000&acc=0.7")

@@ -100,7 +100,7 @@ To test the purchase (sandbox): switch to 精神保健福祉士, then tap the "�
 Sources (Guideline 1.4.1): Psychiatric Social Worker questions and answers come from the Social Welfare Promotion and National Examination Center (SSSC), https://www.sssc.or.jp/seishin/past_exam/index.html . The common-subject questions are printed in the same official booklet as the Social Worker exam (https://www.sssc.or.jp/shakai/past_exam/index.html), and each question links to its booklet. SSSC's terms for past questions (https://www.sssc.or.jp/pastissues/index.html) state that no permission request or fee is needed for educational question books or apps; wording is unchanged. Other sources are as in 1.1.0 (MHLW for Dietitian and Physical Therapist under the Public Data License v1.0; SSSC for Care Worker and Social Worker). In the app: Home > "出典と参考文献", Settings > 出典と参考文献, and a source link under every explanation.
 All explanations are written by us. The app is made by an individual developer and is not affiliated with any government agency, MHLW or SSSC.
 
-External service: RevenueCat for purchases (anonymous user ID and purchase information only).
+External service: RevenueCat for purchases (anonymous user ID and purchase information only). From 1.4.2 the app also sets a few custom subscriber attributes on that anonymous RevenueCat user (selected exam, where the paywall was opened, how many times, number of answered questions, and which exam was bought from where) to see which exam's users stop where. No name, email, device name or advertising ID is sent, nothing is used for tracking across apps, and the study records stay on the device.
 
 ## 字数
 - 数え方は ios_release/multi_version_120.py が出す(サブタイトル30字・キーワード100字・プロモーション170字・説明文と新機能と審査メモ4,000字)

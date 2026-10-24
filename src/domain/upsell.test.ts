@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyData } from './data';
 import { record } from './study';
-import { freeLeft, homeUpsell, RAISE_AFTER, roundCount, weakSubjectGrowth } from './upsell';
+import { freeLeft, homeUpsell, lockedPreview, PREVIEW_STEM_MAX, RAISE_AFTER, resultPreviewSubjects, roundCount, weakSubjectGrowth } from './upsell';
 import type { ExamConfig, Question } from './types';
 
 const q = (id: string, subject: string, excluded = false): Question => ({
@@ -55,5 +55,51 @@ describe('完全版の案内の出し方', () => {
     d = record(d, open[2], true, T0);
     expect(weakSubjectGrowth(all, open, d)).toBeNull(); // どの科目も3問に届かない
     expect(roundCount(all)).toBe(2);
+  });
+});
+
+describe('鍵のかかった回の問題を1問見せる', () => {
+  const locked = (x: Question) => !cfg.freeExams.includes(x.exam);
+  const mk = (id: string, subject: string, extra: Partial<Question> = {}): Question => ({ ...q(id, subject), ...extra });
+  const pool = [
+    mk('38-001', 'A'), mk('37-001', 'A'), mk('37-002', 'A', { stem: 'x'.repeat(PREVIEW_STEM_MAX + 1) }),
+    mk('36-001', 'A'), mk('37-010', 'B', { figure: 'fig/37-010.png' }), mk('37-011', 'B', { case: '事例' }),
+    mk('37-012', 'B', { excluded: true }), mk('36-012', 'B'), mk('37-020', 'C', { calc: { slots: 2, unit: 'g' } }),
+  ];
+
+  it('鍵のかかった問題だけ・一番新しい回の短い問題から', () => {
+    const got = lockedPreview(pool, locked, ['A'], '2026-10-24');
+    expect(got?.id).toBe('37-001');
+  });
+
+  it('短い問題のある科目を先に。どこにも無ければ長い問題', () => {
+    const longs = [mk('37-050', 'L', { stem: 'x'.repeat(PREVIEW_STEM_MAX + 5) }), mk('37-051', 'S')];
+    expect(lockedPreview(longs, locked, ['L', 'S'], 's')?.id).toBe('37-051');
+    expect(lockedPreview(longs, locked, ['L'], 's')?.id).toBe('37-050');
+  });
+
+  it('図・事例・採点対象外・計算は選ばない。その科目に無ければ古い回へ', () => {
+    expect(lockedPreview(pool, locked, ['B'], 's')?.id).toBe('36-012');
+    expect(lockedPreview(pool, locked, ['C'], 's')).toBeNull();
+  });
+
+  it('前の科目に候補が無ければ次の科目', () => {
+    expect(lockedPreview(pool, locked, ['C', 'Z', 'A'], 's')?.subject).toBe('A');
+  });
+
+  it('同じ seed なら同じ問題(開くたびに変わらない)', () => {
+    const many = Array.from({ length: 9 }, (_, i) => mk(`37-1${i}0`, 'D'));
+    const a = lockedPreview(many, locked, ['D'], '2026-10-24');
+    expect(lockedPreview([...many].reverse(), locked, ['D'], '2026-10-24')?.id).toBe(a?.id);
+  });
+
+  it('買った人(鍵が無い)には出さない', () => {
+    expect(lockedPreview(pool, () => false, ['A', 'B'], 's')).toBeNull();
+  });
+
+  it('結果の科目の順: 間違えた数の多い科目 → 苦手の多い科目 → 解いた科目', () => {
+    const done = [{ subject: 'A', ok: true }, { subject: 'B', ok: false }, { subject: 'C', ok: false }, { subject: 'C', ok: false }];
+    expect(resultPreviewSubjects(done, 'D')).toEqual(['C', 'B', 'D', 'A']);
+    expect(resultPreviewSubjects([{ subject: 'A', ok: true }], null)).toEqual(['A']);
   });
 });

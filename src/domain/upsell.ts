@@ -65,3 +65,45 @@ export function weakSubjectGrowth(all: Question[], open: Question[], data: AppDa
 export function roundCount(all: Question[]): number {
   return new Set(all.map((q) => q.exam)).size;
 }
+
+/** 見せる問題文の長さの目安(これより長い問題は、短い問題が無いときだけ選ぶ) */
+export const PREVIEW_STEM_MAX = 160;
+
+/** 文字列から決まる小さな数(同じ日・同じ科目なら同じ問題を出す。開くたびに変わって迷わせない) */
+function stableIndex(seed: string, n: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return (h >>> 0) % n;
+}
+
+/**
+ * 鍵のかかった回(完全版の分)から、同じ科目の問題を1問選ぶ。問題文だけを本物のまま見せるのに使う。
+ * - subjects を前から順に見て、鍵のかかった問題がある最初の科目にする
+ * - 採点対象外・図・事例文・計算の問題は選ばない(問題文だけでは読めないため)
+ * - 短い問題(PREVIEW_STEM_MAX 字まで)のある科目を先に。どの科目にも無いときだけ長い問題(長い事例を含む問題)を出す
+ * - 鍵のかかった回のうち一番新しい回から
+ * - どの問題かは seed(日付と科目など)で決める。同じ seed なら同じ問題
+ * locked は「この人に鍵がかかっているか」(isLocked と同じ判定を渡す)。
+ */
+export function lockedPreview(all: Question[], locked: (q: Question) => boolean, subjects: string[], seed: string): Question | null {
+  for (const shortOnly of [true, false]) {
+    for (const s of subjects) {
+      const cands = all.filter((q) => q.subject === s && locked(q) && !q.excluded && !q.figure && !q.case && !q.calc && q.stem.trim().length > 0
+        && (!shortOnly || q.stem.length <= PREVIEW_STEM_MAX));
+      if (cands.length === 0) continue;
+      const newest = Math.max(...cands.map((q) => q.exam));
+      const pool = cands.filter((q) => q.exam === newest).sort((a, b) => a.no - b.no || a.id.localeCompare(b.id));
+      return pool[stableIndex(`${seed}|${s}`, pool.length)];
+    }
+  }
+  return null;
+}
+
+/** 練習の結果で見せる科目の順: この回で間違えた数の多い科目 → 本人の苦手の多い科目 → この回で解いた科目 */
+export function resultPreviewSubjects(done: { subject: string; ok: boolean }[], weak: string | null): string[] {
+  const miss = new Map<string, number>();
+  for (const d of done) if (!d.ok) miss.set(d.subject, (miss.get(d.subject) ?? 0) + 1);
+  const missed = [...miss.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s);
+  const order = [...missed, ...(weak ? [weak] : []), ...done.map((d) => d.subject)];
+  return [...new Set(order)];
+}

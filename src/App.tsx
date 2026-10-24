@@ -3,9 +3,10 @@ import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
-import { hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { bumpPaywallOpened, hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnSessionEnd, type SessionEnd } from './domain/review';
-import { EMPTY_ACCESS, loadBilling, type BillingState } from './platform/billing';
+import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
+import { examAttrs, firstExamAttrs, paywallAttrs } from './domain/track';
 import { askReview } from './platform/native';
 import { Home } from './ui/Home';
 import { Quiz, type Session } from './ui/Quiz';
@@ -87,6 +88,7 @@ export default function Root() {
           onPick={(next) => {
             const e = selectExam(next);
             saveExamChoice(e.dir).catch((err) => console.error('[nigatecho] save exam', err));
+            setAttrs(firstExamAttrs(e.dir));
             setFirstPick(false);
             setDir(e.dir);
           }}
@@ -125,7 +127,16 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       .then((qs: Question[]) => setAll(qs))
       .catch((e) => setLoadError(`問題を読み込めませんでした(${e})`));
     loadBilling().then(setBilling);
+    // どの試験の人かを購入管理に(開いたとき・試験を切り替えたとき。この画面は試験ごとに作り直す)
+    setAttrs(examAttrs(EXAM.dir));
   }, []);
+
+  // 購入画面を開いたら、開いた場所・試験・回数・解いた数を購入管理に(押して開いたときだけ。勝手には開かない)
+  useEffect(() => {
+    if (route.name !== 'paywall') return;
+    const seen = Object.keys(dataRef.current?.records ?? {}).length;
+    bumpPaywallOpened().then((n) => setAttrs(paywallAttrs(EXAM.dir, route.from, n, seen)));
+  }, [route]);
 
   /** いま選んでいる試験の完全版を持っているか */
   const premium = !!billing.access[EXAM.dir];
@@ -272,7 +283,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       {route.name === 'note' && (
         <NoteBook
           data={data} open={open} all={all} premium={premium}
-          onPaywall={() => push({ name: 'paywall', from: 'note' })}
+          onPaywall={(where) => push({ name: 'paywall', from: where })}
           onSolve={(title, qs) => start(title, qs)}
           onNigate={() => starters.nigate()}
           onRandom={starters.random}
@@ -337,13 +348,13 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onHome={home}
           onNigate={() => { back(); starters.nigate(); }}
           // 結果の画面から開いた購入画面は、閉じたら問題の前の画面へ(同じ問題の1問目に戻さない)
-          onPaywall={() => setStack((s) => [...s.slice(0, -1), { name: 'paywall', from: 'quiz' }])}
+          onPaywall={(where) => setStack((s) => [...s.slice(0, -1), { name: 'paywall', from: where }])}
           onSources={() => push({ name: 'sources' })}
         />
       )}
       {route.name === 'paywall' && (
         <Paywall
-          billing={billing} all={all} data={data}
+          billing={billing} all={all} data={data} from={route.from}
           onClose={back}
           onBought={() => { loadBilling().then(setBilling); back(); }}
           setBilling={setBilling}

@@ -97,3 +97,15 @@ export async function loadReview(): Promise<ReviewState> {
 export async function saveReview(s: ReviewState): Promise<void> {
   await Preferences.set({ key: REVIEW_KEY, value: JSON.stringify(s) });
 }
+
+/** 購入画面を開いた回数(試験をまたいだ合計)。購入管理の属性 paywall_opened に入れる。1つ足した数を返す */
+const PAYWALL_COUNT_KEY = 'nigatecho.paywallOpened';
+export async function bumpPaywallOpened(): Promise<number> {
+  try {
+    const n = Number((await Preferences.get({ key: PAYWALL_COUNT_KEY })).value ?? '0') || 0;
+    await Preferences.set({ key: PAYWALL_COUNT_KEY, value: String(n + 1) });
+    return n + 1;
+  } catch {
+    return 0;
+  }
+}

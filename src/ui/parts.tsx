@@ -4,7 +4,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
 import { daysLeft, estimate, examView, halfName, mainView, subEstimate, subjectStats, subjectWeights, type AmPm } from '../domain/study';
 import { ART, fmtDate, subjectColor } from './look';
-import { IBack, IChart, IChevron, IGear, IHome, INote, ISearch, ITarget, IX, ICalendar } from './Icons';
+import { IBack, IChart, IChevron, IGear, IHome, ILock, INote, ISearch, ITarget, IX, ICalendar } from './Icons';
 
 export function TopBar({ title, onClose, right, close = 'back' }: { title: string; onClose: () => void; right?: React.ReactNode; close?: 'back' | 'x' }) {
   return (
@@ -192,5 +192,23 @@ export function UpsellLine({ text, onPaywall, where }: { text: string; onPaywall
       <span>{text}</span>
       <button className="linkish" onClick={onPaywall}>完全版を見る<IChevron size={14} /></button>
     </p>
+  );
+}
+
+/**
+ * 鍵のかかった回の問題を1問、問題文だけ本物のまま見せる(選択肢・正解・解説は出さない)。
+ * ぼかしや作り話は使わない。押したときだけ購入画面へ。値段は書かない(値段は購入画面と試験の切り替えだけ)。
+ */
+export function LockedPreview({ q, lead, where, onPaywall }: { q: Question; lead: string; where: string; onPaywall: () => void }) {
+  return (
+    <div className="locked-preview" data-upsell={where} data-qid={q.id}>
+      <p className="lp-lead">{lead}</p>
+      <div className="lp-card">
+        <p className="lp-src">第{q.exam}回 {q.session} 問{q.no}・{short(q.subject)}</p>
+        <p className="lp-stem">{q.stem}</p>
+        <p className="lp-hidden"><ILock size={15} />選択肢({q.choices.length}つ)・正解・解説は完全版で</p>
+      </div>
+      <button className="btn primary wide" onClick={onPaywall}>完全版でこの問題を解く<IChevron size={16} /></button>
+    </div>
   );
 }

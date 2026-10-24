@@ -3,6 +3,7 @@ import { Purchases, type CustomerInfo, type PurchasesPackage } from '@revenuecat
 
 import { APP, EXAMS } from '../domain/exam';
 import type { ExamConfig } from '../domain/types';
+import type { Attrs } from '../domain/track';
 
 /**
  * RevenueCat の公開APIキー(秘密鍵ではない)。アプリは1本(公開中の管理栄養士のアプリ)なので、キーもその1組。
@@ -57,11 +58,39 @@ export function packSubjectsFrom(active: string[]): string[] {
 const packNamesFrom = (active: string[]) =>
   EXAMS.flatMap((e) => (e.packs ?? []).filter((p) => active.includes(`pack_${p.id}`)).map((p) => `${e.name} ${p.name}`));
 
-let configured = false;
-async function ensure() {
-  if (configured) return;
-  await Purchases.configure({ apiKey: key });
-  configured = true;
+/** configure は1回だけ(属性の書き込みと読み込みが同時に来ても2回呼ばない) */
+let configuring: Promise<void> | null = null;
+function ensure(): Promise<void> {
+  if (!configuring) {
+    configuring = Purchases.configure({ apiKey: key }).then(() => undefined);
+    configuring.catch(() => { configuring = null; });
+  }
+  return configuring;
+}
+
+/**
+ * 購入管理(RevenueCat)の、この端末の匿名の利用者に付ける独自の属性。どの試験の人が、どこで購入画面を開き、どこで買ったかを数えるためだけに使う。
+ * 入れるのは試験の名前(exams の dir)・画面の場所・回数・解いた数だけ。氏名・メール・端末の名前などの個人を特定する情報は入れない。
+ * RevenueCat の予約の属性($campaign など)は使わない。失敗しても画面には何も出さない(学習の邪魔をしない)。
+ * 開発のブラウザ(疑似購入)では送らず、localStorage の nigatecho.mockAttrs に残す(試験で確かめるため)。
+ */
+
+export async function setAttrs(a: Attrs): Promise<void> {
+  // import.meta.env.DEV を先に書き、本番の中身からはこの枝ごと消す
+  if (import.meta.env.DEV && mock) {
+    try {
+      const cur = JSON.parse(localStorage.getItem('nigatecho.mockAttrs') ?? '{}') as Attrs;
+      localStorage.setItem('nigatecho.mockAttrs', JSON.stringify({ ...cur, ...a }));
+    } catch { /* 記録できなくても画面は動かす */ }
+    return;
+  }
+  if (!key) return;
+  try {
+    await ensure();
+    await Purchases.setAttributes(a);
+  } catch (e) {
+    console.warn('[nigatecho] attributes', e);
+  }
 }
 
 export async function loadBilling(): Promise<BillingState> {

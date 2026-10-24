@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
-import { CLEAR_STREAK, byAmPm, examRange, halfName, isNigate, lockedSummary, nigateOrder, type AmPm } from '../domain/study';
+import { CLEAR_STREAK, byAmPm, dayKey, isLocked, examRange, halfName, isNigate, lockedSummary, nigateOrder, type AmPm } from '../domain/study';
 import { ART, subjectColor } from './look';
 import { IArrow, IChevron, IInfo } from './Icons';
-import { AmPmSwitch, UpsellLine } from './parts';
+import { AmPmSwitch, LockedPreview, UpsellLine } from './parts';
+import { lockedPreview, weakSubjectGrowth } from '../domain/upsell';
 
 /**
  * 苦手ノート(見本の4枚目)。間違えた問題が科目ごとに残り、同じ問題に2回続けて正解すると消える。
@@ -13,7 +14,9 @@ import { AmPmSwitch, UpsellLine } from './parts';
 export function NoteBook(p: {
   data: AppData; open: Question[];
   /** 完全版の1行に使う(全問・買ったか・購入画面へ) */
-  all?: Question[]; premium?: boolean; onPaywall?: () => void;
+  all?: Question[]; premium?: boolean;
+  /** 購入画面へ。where は開いた場所(note / note-preview。購入管理の記録に入れる) */
+  onPaywall?: (where: string) => void;
   onSolve: (title: string, qs: Question[]) => void;
   onNigate: () => void;
   onRandom: () => void;
@@ -34,6 +37,13 @@ export function NoteBook(p: {
   const seen = p.open.some((q) => p.data.records[q.id]);
   const shown = filter ? groups.filter((g) => g.s === filter) : groups;
   const locked = !p.premium && p.all && p.onPaywall ? lockedSummary(p.all, EXAM) : null;
+  /** 苦手の多い科目の、鍵のかかった回の問題を1問(問題文だけ)。苦手が無ければ正答率の低い科目 */
+  const preview = useMemo(() => {
+    if (!locked || !seen || !p.all) return null;
+    const weak = weakSubjectGrowth(p.all, p.open, p.data)?.subject;
+    const byCount = [...groups].sort((a, b) => b.qs.length - a.qs.length).map((g) => g.s);
+    return lockedPreview(p.all, (q) => isLocked(q, false, EXAM), [...(weak ? [weak] : []), ...byCount], dayKey(Date.now()));
+  }, [!!locked, seen, p.all, p.open, p.data, groups]);
 
   return (
     <div className="page note-page">
@@ -44,7 +54,7 @@ export function NoteBook(p: {
       </section>
       {p.ampm && <AmPmSwitch value={p.ampm} onChange={(v) => { setFilter(null); p.onAmPm(v); }} />}
       {locked && seen && p.onPaywall && (
-        <UpsellLine where="note" onPaywall={p.onPaywall}
+        <UpsellLine where="note" onPaywall={() => p.onPaywall?.('note')}
           text={`ノートに入るのは、いま解ける第${EXAM.freeExams.join('・')}回の問題だけです。完全版なら${examRange(locked.from, locked.to)}の${locked.count.toLocaleString('ja-JP')}問も入ります。`} />
       )}
 
@@ -110,6 +120,12 @@ export function NoteBook(p: {
             <button className="btn primary wide big" onClick={p.onNigate} data-note="solve-all">{half ? `${half}の苦手を解く` : '苦手をまとめて解く'}({Math.min(20, list.length)}問)<IArrow size={18} /></button>
           </div>
         </>
+      )}
+      {preview && p.onPaywall && (
+        <section className="note-preview">
+          <LockedPreview q={preview} where="note-preview" onPaywall={() => p.onPaywall?.('note-preview')}
+            lead={`${short(preview.subject)}の、第${preview.exam}回の問題です。完全版なら、この回も苦手ノートに入ります`} />
+        </section>
       )}
     </div>
   );

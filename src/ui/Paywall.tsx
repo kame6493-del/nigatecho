@@ -3,7 +3,8 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE, short } from '../domain/exam';
 import { examRange, isLocked } from '../domain/study';
 import { weakSubjectGrowth } from '../domain/upsell';
-import { canBuy, purchase, restore, type BillingState } from '../platform/billing';
+import { canBuy, purchase, restore, setAttrs, type BillingState } from '../platform/billing';
+import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
 import { lookOf } from './look';
 import { ICheck } from './Icons';
@@ -13,6 +14,8 @@ export function Paywall(p: {
   billing: BillingState; all: Question[];
   /** 本人の記録(増える分を、本人の苦手の科目で具体的に見せる)。無ければ出さない */
   data?: AppData;
+  /** どこから開いたか(買ったときに購入管理の属性 bought_from に入れる) */
+  from?: string;
   onClose: () => void; onBought: () => void; setBilling: (b: BillingState) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -31,7 +34,10 @@ export function Paywall(p: {
   const buy = async () => {
     setBusy(true); setMsg('');
     try {
-      if (await purchase(p.billing, EXAM)) p.onBought();
+      if (await purchase(p.billing, EXAM)) {
+        setAttrs(boughtAttrs(EXAM.dir, p.from ?? 'other'));
+        p.onBought();
+      }
     } catch (e) {
       setMsg(`購入できませんでした(${(e as Error).message ?? e})`);
     } finally { setBusy(false); }
@@ -90,7 +96,7 @@ export function Paywall(p: {
       </div>
       {EXAM.paywallNote && <p className="muted small">{EXAM.paywallNote}</p>}
       {!SINGLE && <p className="muted small">この完全版で開くのは{EXAM.name}の問題だけです。ほかの試験の完全版は、それぞれの試験の画面から別に購入できます。</p>}
-      <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。記録はこの端末の中だけに保存し、外へ送りません。</p>
+      <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。解いた記録はこの端末の中だけに保存し、外へ送りません。購入の管理には、選んだ試験と購入画面を開いた場所だけを匿名の識別子と一緒に送ります(個人を特定する情報は送りません)。</p>
     </div>
   );
 }
