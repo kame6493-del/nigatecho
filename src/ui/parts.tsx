@@ -85,6 +85,22 @@ export function ForecastCard(p: { data: AppData; all: Question[]; open: Question
           )}
           {est.coverage < 1 && <p className="muted small">まだ解いていない科目は、ほかの科目の正答率で見積もっています</p>}
         </>
+      ) : sub ? (
+        <>
+          {/* 看護師: 一般・状況設定の点が出る前でも、必修問題(8割の基準)は10問解いたところで先に出す */}
+          <div className="fc-row" data-forecast="sub-first">
+            <p className="fc-score"><small className="fc-rest">{sub.label}</small><b>{sub.score}</b><span>/ {sub.total}点</span></p>
+            <p className="fc-pass"><small>基準の目安</small><b>{sub.pass}</b></p>
+          </div>
+          <div className="fc-bar" aria-hidden>
+            <i className={sub.score >= sub.pass ? 'good' : ''} style={{ width: `${(sub.score / sub.total) * 100}%` }} />
+            <em style={{ left: `${(sub.pass / sub.total) * 100}%` }}><span>基準 {sub.pass}</span></em>
+          </div>
+          <p className={`fc-verdict ${sub.score >= sub.pass ? 'good' : 'bad'}`}>
+            {sub.score >= sub.pass ? `${sub.label}は基準の目安を ${sub.score - sub.pass}点 上回っています。` : `${sub.label}は基準の目安まで あと${sub.pass - sub.score}点。間違えた${sub.label}から直しましょう。`}
+          </p>
+          <p className="muted small fc-wait">{restLabel ?? 'ほかの問題'}も あと {Math.max(0, 30 - seen)}問 解くと、本番の点数を出します。</p>
+        </>
       ) : (
         <p className="muted fc-wait">あと {Math.max(0, 30 - seen)}問 解くと、いまの実力で本番を受けたときの点数を出します。</p>
       )}
@@ -125,21 +141,41 @@ export function SubjectBars(p: { data: AppData; open: Question[]; onSubject: (s:
 }
 
 /** 試験日まで あと N日(チューリップの絵) */
-export function ExamDateCard({ data, onSet }: { data: AppData; onSet: () => void }) {
+export function ExamDateCard({ data, onSet, plan, onPlanFull }: {
+  data: AppData; onSet: () => void;
+  /** 試験日までに、まだ解いていない問題を1周する1日の数(studyPlan)。無ければ出さない */
+  plan?: StudyPlan | null;
+  /** 完全版の分の目安を押したとき(購入画面へ)。買った人には渡さない */
+  onPlanFull?: () => void;
+}) {
   const left = daysLeft(data.settings.examDate, Date.now());
   return (
-    <button className="card date-card" onClick={onSet} aria-label="試験日">
-      <span className="date-ico"><ICalendar size={26} /></span>
-      <span className="date-body">
-        <span className="date-label">試験日まで</span>
-        {left !== null
-          ? <><span className="date-num">あと <b>{left}</b> 日</span><span className="date-day">{fmtDate(data.settings.examDate)}</span></>
-          : <span className="date-num small-num">試験日を入れる</span>}
-      </span>
-      <img className="date-art" src={ART.tulip} alt="" />
-    </button>
+    <section className="card date-card-wrap">
+      <button className="date-card" onClick={onSet} aria-label="試験日">
+        <span className="date-ico"><ICalendar size={26} /></span>
+        <span className="date-body">
+          <span className="date-label">試験日まで</span>
+          {left !== null
+            ? <><span className="date-num">あと <b>{left}</b> 日</span><span className="date-day">{fmtDate(data.settings.examDate)}</span></>
+            : <span className="date-num small-num">試験日を入れる</span>}
+        </span>
+        <img className="date-art" src={ART.tulip} alt="" />
+      </button>
+      {plan && left !== null && (
+        <div className="date-plan" data-plan>
+          {plan.unseenNow > 0 && <p><span>まだ解いていない {plan.unseenNow}問</span><b>1日 {plan.perDay}問で1周</b></p>}
+          {plan.perDayFull !== null && plan.unseenFull !== null && (
+            <button className="date-plan-full" onClick={onPlanFull} data-upsell="date-plan">
+              <span>完全版の {plan.unseenFull}問なら</span><b>1日 {plan.perDayFull}問で1周</b><IChevron size={14} />
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
+
+export type StudyPlan = { days: number; perDay: number; perDayFull: number | null; unseenNow: number; unseenFull: number | null };
 
 /** 丸い正答率のグラフ */
 export function Ring({ ok, total, label }: { ok: number; total: number; label?: string }) {

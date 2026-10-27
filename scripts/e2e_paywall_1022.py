@@ -182,7 +182,8 @@ def run(pg, exam, key):
     check(pg.locator(".first-pick").count() == 0 and pg.locator(".exam-name").inner_text() == name, f"{exam}: 開き直しても{name}で開く")
 
     # ---------- まず10問(1問目は間違えるように最後の選択肢) ----------
-    pg.click("text=まず10問解いてみる")
+    # 1.4.5: 看護師は「まず必修問題を10問」が先頭。この台本は今までどおりランダムの10問で回す(必修の入口は e2e_sales_1027.py)
+    pg.click("text=ほかの問題もまぜて10問" if pg.locator("[data-home=sub-first]").count() else "text=まず10問解いてみる")
     finish_practice(pg)
     check(pg.locator("[data-upsell=result]").count() == 1, f"{exam}: 10問の結果に完全版の案内が1枚")
     check(before(pg, "[data-upsell=result]", ".result-list"), f"{exam}: 結果の案内は一覧の上")

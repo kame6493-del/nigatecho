@@ -582,3 +582,18 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .pw-opt-price { font-weight: 900; font-size: 1.15em; white-space: nowrap; }
 .pw-opt.set .pw-opt-price { color: var(--red-d); }
 .pw-opts-note { text-align: center; margin: 0; }
+
+/* 試験日カードの学習の目安(1.4.5) */
+.date-card-wrap { padding: 0; overflow: hidden; }
+.date-card-wrap > .date-card { width: 100%; text-align: left; background: none; border: 0; }
+.date-plan { border-top: 1px dashed #efd9d4; padding: 8px 16px 12px; display: grid; gap: 4px; }
+.date-plan p, .date-plan-full { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85em; color: var(--ink-2); }
+.date-plan b { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.date-plan-full { width: 100%; background: none; border: 0; padding: 0; text-align: left; font: inherit; font-size: .85em; }
+.date-plan-full b { color: var(--red-d); margin-left: auto; }
+.date-plan-full .ico { color: var(--red); flex: none; }
+/* 結果の案内: 無料の残りと苦手の科目(1.4.5) */
+.full-progress { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: .88em; }
+.full-progress li { display: flex; justify-content: space-between; gap: 8px; color: var(--ink-2); }
+.full-progress b { color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hero-alt { margin-top: 8px; }

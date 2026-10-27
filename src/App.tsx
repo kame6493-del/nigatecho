@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
-import { ampmOf, byAmPm, halfName, hasAmPm, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
+import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
 import { bumpPaywallOpened, hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
@@ -202,6 +202,14 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
     nigate: (limit = 20) => data && start(withHalf('苦手を解く'), nigateOrder(openAmPm, data).slice(0, limit)),
     unseen: () => data && start(withHalf('まだ解いていない問題'), shuffle(unseen(openAmPm, data), rng(Date.now())).slice(0, 20)),
     random: () => start(withHalf('ランダム10問'), shuffle(openAmPm.filter((q) => !q.excluded), rng(Date.now())).slice(0, 10)),
+    /** 必修問題だけ10問(看護師)。まだ解いていない問題を先に */
+    sub: () => {
+      if (!EXAM.subPass || !data) return;
+      const pool = open.filter((q) => !q.excluded && inSubPass(q, EXAM));
+      const fresh = shuffle(unseen(pool, data), rng(Date.now()));
+      const rest = shuffle(pool.filter((q) => data.records[q.id]), rng(Date.now() + 1));
+      start(`${EXAM.subPass.label} 10問`, [...fresh, ...rest].slice(0, 10));
+    },
     marks: () => data && start('しるしを付けた問題', data.marks.map((id) => byId.get(id)).filter((q): q is Question => !!q && !isLocked(q, premium, EXAM))),
   }), [data, open, openAmPm, withHalf, byId, premium, start, packKey]);
 
@@ -252,6 +260,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onNigate={() => starters.nigate()}
           onUnseen={starters.unseen}
           onRandom={starters.random}
+          onSub={EXAM.subPass?.separate ? starters.sub : undefined}
+          onPaywallPlan={() => push({ name: 'paywall', from: 'date-plan' })}
           onMarks={starters.marks}
           onExams={() => push({ name: 'exams', mock: false })}
           onSubjects={() => push({ name: 'subjects' })}

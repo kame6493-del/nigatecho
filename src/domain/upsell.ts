@@ -22,10 +22,13 @@ export type HomeUpsell = 'none' | 'bottom' | 'raised' | 'finished';
 
 export const RAISE_AFTER = 30;
 
-export function homeUpsell(o: { premium: boolean; lockedCount: number; seen: number; freeLeft: number; hasFree: boolean }): HomeUpsell {
+/** 必修問題(別の基準)をこれだけ解いたら、必修の点数が出るので帯を予想点の下へ上げる(subEstimate の minSeen と同じ) */
+export const RAISE_AFTER_SUB = 10;
+
+export function homeUpsell(o: { premium: boolean; lockedCount: number; seen: number; freeLeft: number; hasFree: boolean; subSeen?: number }): HomeUpsell {
   if (o.premium || o.lockedCount <= 0) return 'none';
   if (o.hasFree && o.seen > 0 && o.freeLeft === 0) return 'finished';
-  if (o.seen >= RAISE_AFTER) return 'raised';
+  if (o.seen >= RAISE_AFTER || (o.subSeen ?? 0) >= RAISE_AFTER_SUB) return 'raised';
   return 'bottom';
 }
 
@@ -123,4 +126,24 @@ export function resultPreviewSubjects(done: { subject: string; ok: boolean }[], 
   const missed = [...miss.entries()].sort((a, b) => b[1] - a[1]).map(([s]) => s);
   const order = [...missed, ...(weak ? [weak] : []), ...done.map((d) => d.subject)];
   return [...new Set(order)];
+}
+
+/** 総得点とは別の基準(看護師の必修問題)の問題を、無料で解ける中で何問解いたか */
+export function subSeen(open: Question[], data: AppData, cfg: ExamConfig): number {
+  if (!cfg.subPass) return 0;
+  return open.filter((q) => !q.excluded && inSubPass(q, cfg) && data.records[q.id]).length;
+}
+
+/**
+ * 試験日までの学習の目安(試験日のカードに出す)。まだ解いていない問題を試験日の前日までに1周する1日の数。
+ * - now: いま解ける問題で、まだ解いていない数
+ * - full: 完全版の問題すべてで、まだ解いていない数(買っていない人だけ。買った人・増えない試験は null)
+ * 残り日数が無い・解く問題が無いときは null
+ */
+export function studyPlan(o: { days: number | null; unseenNow: number; unseenFull: number | null }): { days: number; perDay: number; perDayFull: number | null; unseenNow: number; unseenFull: number | null } | null {
+  if (o.days === null || o.days <= 0) return null;
+  if (o.unseenNow <= 0 && !o.unseenFull) return null;
+  const perDay = Math.ceil(o.unseenNow / o.days);
+  const perDayFull = o.unseenFull && o.unseenFull > o.unseenNow ? Math.ceil(o.unseenFull / o.days) : null;
+  return { days: o.days, perDay, perDayFull, unseenNow: o.unseenNow, unseenFull: perDayFull === null ? null : o.unseenFull };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyData } from './data';
 import { record } from './study';
-import { freeLeft, homeUpsell, lockedPreview, PREVIEW_STEM_MAX, RAISE_AFTER, resultPreviewSubjects, roundCount, subPassGrowth, weakSubjectGrowth } from './upsell';
+import { freeLeft, homeUpsell, lockedPreview, PREVIEW_STEM_MAX, RAISE_AFTER, resultPreviewSubjects, roundCount, subPassGrowth, studyPlan, weakSubjectGrowth } from './upsell';
 import type { ExamConfig, Question } from './types';
 
 const q = (id: string, subject: string, excluded = false): Question => ({
@@ -112,5 +112,25 @@ describe('別の基準のある問題(看護師の必修問題)が完全版で�
   it('基準の無い試験・完全版で増えない試験には出さない', () => {
     expect(subPassGrowth(all, cfg)).toBeNull();
     expect(subPassGrowth(open, nurseCfg)).toBeNull();
+  });
+});
+
+describe('1.4.5 学習の目安と必修の帯', () => {
+  it('studyPlan: 残りを日数で割って切り上げ。完全版の分は増えるときだけ', () => {
+    expect(studyPlan({ days: 96, unseenNow: 115, unseenFull: 740 })).toEqual({ days: 96, perDay: 2, perDayFull: 8, unseenNow: 115, unseenFull: 740 });
+    expect(studyPlan({ days: 10, unseenNow: 5, unseenFull: null })).toEqual({ days: 10, perDay: 1, perDayFull: null, unseenNow: 5, unseenFull: null });
+    expect(studyPlan({ days: 10, unseenNow: 5, unseenFull: 5 })?.perDayFull).toBeNull();
+  });
+  it('studyPlan: 試験日が無い・当日・解く問題が無いときは出さない', () => {
+    expect(studyPlan({ days: null, unseenNow: 5, unseenFull: 10 })).toBeNull();
+    expect(studyPlan({ days: 0, unseenNow: 5, unseenFull: 10 })).toBeNull();
+    expect(studyPlan({ days: 30, unseenNow: 0, unseenFull: null })).toBeNull();
+    expect(studyPlan({ days: 30, unseenNow: 0, unseenFull: 0 })).toBeNull();
+  });
+  it('homeUpsell: 必修を10問解いたら30問より前でも予想点の下へ。買った人には出さない', () => {
+    const base = { premium: false, lockedCount: 960, seen: 12, freeLeft: 228, hasFree: true };
+    expect(homeUpsell({ ...base, subSeen: 9 })).toBe('bottom');
+    expect(homeUpsell({ ...base, subSeen: 10 })).toBe('raised');
+    expect(homeUpsell({ ...base, premium: true, subSeen: 10 })).toBe('none');
   });
 });

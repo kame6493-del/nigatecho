@@ -26,7 +26,7 @@ export const ATTR = {
 /** 購入画面の入り口(App.tsx の Route の from)。これ以外は other にまとめる */
 export const PAYWALL_FROM = [
   'home', 'search', 'note', 'note-preview', 'stats', 'exam', 'subject', 'settings',
-  'result', 'result-preview', 'mock-result', 'quiz',
+  'result', 'result-preview', 'mock-result', 'quiz', 'date-plan',
 ] as const;
 
 export function fromOf(from: string): string {

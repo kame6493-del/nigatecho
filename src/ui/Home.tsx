@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
-import { byAmPm, dayKey, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
+import { byAmPm, dayKey, daysLeft, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
-import { freeLeft, homeUpsell, subPassGrowth } from '../domain/upsell';
+import { freeLeft, homeUpsell, studyPlan, subPassGrowth, subSeen } from '../domain/upsell';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
@@ -16,6 +16,10 @@ interface Props {
   onNigate: () => void;
   onUnseen: () => void;
   onRandom: () => void;
+  /** 必修問題(別の基準がある問題)だけを10問。基準の無い試験では渡さない */
+  onSub?: () => void;
+  /** 試験日の目安から購入画面へ */
+  onPaywallPlan?: () => void;
   onMarks: () => void;
   onExams: () => void;
   onSubjects: () => void;
@@ -58,7 +62,14 @@ export function Home(p: Props) {
   /** 完全版の案内の出し方(30問を超えたら予想点の下・無料の回を解き終えたら上に1枚) */
   const free = EXAM.freeExams;
   const left = freeLeft(p.open, p.data, EXAM);
-  const upsell = homeUpsell({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0 });
+  const subDone = subSeen(p.open, p.data, EXAM);
+  const upsell = homeUpsell({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0, subSeen: subDone });
+  /** 試験日までに1周する1日の数。買っていない人には完全版の分も(実際の問題数だけ) */
+  const plan = studyPlan({
+    days: daysLeft(p.data.settings.examDate, now),
+    unseenNow: unseen(p.open.filter((q) => !q.excluded), p.data).length,
+    unseenFull: p.premium || lockedCount <= 0 ? null : unseen(p.all.filter((q) => !q.excluded), p.data).length,
+  });
   const lockedRange = examRange(exams[exams.length - 1], exams.find((e) => !free.includes(e)) ?? exams[0]);
   /** 看護師の必修問題のように別の基準がある試験は、増える分のうちの数も書く */
   const sub = subPassGrowth(p.all, EXAM);
@@ -116,7 +127,15 @@ export function Home(p: Props) {
           <img className="hero-art" src={ART.birdQ} alt="" />
           <p className="hero-lead">間違えた問題だけが、ここに残ります。</p>
           <p className="hero-sub">2回続けて正解すると消えます。0問になったら、本番に持っていく苦手はありません。</p>
-          <button className="btn primary wide" onClick={p.onRandom}>まず10問解いてみる<IArrow size={18} /></button>
+          {EXAM.subPass?.separate && p.onSub ? (
+            <>
+              <p className="hero-sub" data-first="sub">{EXAM.subPass.label}は{Math.round(EXAM.subPass.ratio * 10)}割が基準です。10問解くと、いまの{EXAM.subPass.label}の点数を出します。</p>
+              <button className="btn primary wide" onClick={p.onSub} data-home="sub-first">まず{EXAM.subPass.label}を10問<IArrow size={18} /></button>
+              <button className="btn wide hero-alt" onClick={p.onRandom}>ほかの問題もまぜて10問</button>
+            </>
+          ) : (
+            <button className="btn primary wide" onClick={p.onRandom}>まず10問解いてみる<IArrow size={18} /></button>
+          )}
         </section>
       ) : (
         <>
@@ -140,7 +159,7 @@ export function Home(p: Props) {
         </>
       )}
 
-      <ExamDateCard data={p.data} onSet={p.onSettings} />
+      <ExamDateCard data={p.data} onSet={p.onSettings} plan={seen > 0 ? plan : null} onPlanFull={p.onPaywallPlan ?? p.onPaywall} />
 
       <h2 className="sec-title">クイックメニュー</h2>
       <section className="quick menu">

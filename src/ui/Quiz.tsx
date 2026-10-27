@@ -8,7 +8,7 @@ import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 import { ART } from './look';
 import { LockedPreview, Ring, TopBar } from './parts';
-import { lockedPreview, resultPreviewSubjects, weakSubjectGrowth } from '../domain/upsell';
+import { freeLeft, lockedPreview, resultPreviewSubjects, subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
 import { IArrow, IBookmark, IBulb, ICheck, IChevron, IDoc, IRepeat, IX, IBook } from './Icons';
 
 export { TopBar } from './parts';
@@ -511,11 +511,24 @@ function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean; done?: { s
     : null;
   // 見出しは本当のことだけ(この回で間違えた科目 / 苦手の多い科目 / どちらでもなければ科目の名前だけ)
   const why = !preview ? '' : p.done?.some((d) => !d.ok && d.subject === preview.subject) ? 'いま間違えた' : preview.subject === weak ? '苦手の多い' : '';
+  // 練習の結果だけ: 無料の回の残りと、本人の苦手の科目が完全版で何問になるか(実際の問題数と本人の記録だけ)
+  const openQs = all.filter((q) => !locked(q));
+  const growth = !p.mock && p.done && p.done.length > 0 ? weakSubjectGrowth(all, openQs, p.data) : null;
+  const leftFree = !p.mock && p.done && p.done.length > 0 ? freeLeft(openQs, p.data, EXAM) : null;
+  const sub = !p.mock && p.done?.some((d) => EXAM.subPass?.subjects?.includes(d.subject)) ? subPassGrowth(all, EXAM) : null;
+  const subGrowth = sub && growth?.subject !== EXAM.subPass?.subjects?.[0] ? sub : null;
   return (
     <section className="full-note" data-upsell={p.mock ? 'mock-result' : 'result'}>
       <p>{p.mock
         ? `ほかの回(${examRange(s.from, s.to)})の本番形式の模試と過去問${n}問は、完全版で解けます。`
         : `${EXAM.name}の${examRange(s.from, s.to)}(${n}問)と、その回の本番形式の模試は、完全版で解けます。`}</p>
+      {(leftFree !== null || growth || subGrowth) && (
+        <ul className="full-progress" data-upsell="result-progress">
+          {leftFree !== null && <li><span>第{EXAM.freeExams.join('・')}回(無料)の残り</span><b>あと {leftFree}問</b></li>}
+          {growth && <li><span>{growth.nigate > 0 ? '苦手の多い' : '正答率の低い'} {short(growth.subject)}</span><b>{growth.now}問 → 完全版 {growth.full}問</b></li>}
+          {subGrowth && <li><span>{subGrowth.label}(基準 {Math.round(subGrowth.ratio * 10)}割)</span><b>{subGrowth.now}問 → 完全版 {subGrowth.full}問</b></li>}
+        </ul>
+      )}
       {preview ? (
         <LockedPreview q={preview} where="result-preview" onPaywall={() => p.onPaywall('result-preview')}
           lead={`${why}${short(preview.subject)}の、第${preview.exam}回の問題です`} />
