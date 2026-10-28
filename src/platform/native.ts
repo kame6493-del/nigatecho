@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { InAppReview } from '@capacitor-community/in-app-review';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { canCallStoreReview } from '../domain/review';
 
 const native = Capacitor.isNativePlatform();
 
@@ -10,9 +11,9 @@ export function buzz(ok: boolean) {
   (ok ? Haptics.impact({ style: ImpactStyle.Light }) : Haptics.notification({ type: NotificationType.Warning })).catch(() => {});
 }
 
-/** ストアの評価の画面(OS が出す物。出すかどうかも OS が決める) */
+/** ストアの評価の画面(OS が出す物。出すかどうかも OS が決める)。ブラウザ版・開発用の表示・審査用の録画ビルドでは呼ばない */
 export async function askReview() {
-  if (!native) return;
+  if (!canCallStoreReview(Capacitor.getPlatform(), import.meta.env.DEV, import.meta.env.VITE_REVIEW_TOUR === '1')) return;
   try { await InAppReview.requestReview(); } catch { /* 出なくても困らない */ }
 }
 

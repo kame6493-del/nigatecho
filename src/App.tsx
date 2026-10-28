@@ -4,7 +4,7 @@ import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
 import { bumpPaywallOpened, hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
-import { reviewOnOpen, reviewOnSessionEnd, type SessionEnd } from './domain/review';
+import { reviewOnOpen, reviewOnPaywall, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
 import { examAttrs, firstExamAttrs, paywallAttrs } from './domain/track';
 import { askReview } from './platform/native';
@@ -136,6 +136,10 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
     if (route.name !== 'paywall') return;
     const seen = Object.keys(dataRef.current?.records ?? {}).length;
     bumpPaywallOpened().then((n) => setAttrs(paywallAttrs(EXAM.dir, route.from, n, seen)));
+    // 購入画面の直後には評価をお願いしない(しばらくあける)
+    reviewChain = reviewChain.then(async () => {
+      await saveReview(reviewOnPaywall(await loadReview(), Date.now()));
+    }).catch((err) => console.error('[nigatecho] review paywall', err));
   }, [route]);
 
   /** いま選んでいる試験の完全版を持っているか */
@@ -226,7 +230,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
     update((d) => record(d, q, ok, Date.now()));
   }, [update]);
 
-  /** 解き終えたとき。苦手が減った直後にだけ評価をお願いする(出すかどうかは OS が決める) */
+  /** 解き終えたとき。良い体験の直後にだけ評価をお願いする(条件は domain/review.ts。出すかどうかは OS が決める) */
   const onSessionEnd = useCallback((e: SessionEnd) => {
     reviewChain = reviewChain.then(async () => {
       const { state, ask } = reviewOnSessionEnd(await loadReview(), e, Date.now());

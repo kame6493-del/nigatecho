@@ -194,3 +194,12 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 残り: 1 の実機録画(持ち主の iPhone)→ 返信に添付して「App Reviewに再提出」
 - iPhone が無いので、録画は GitHub のクラウド Mac の iPhone シミュレーター(最新 iOS)で撮った(.github/workflows/ios-review-video.yml)。録画用ビルドだけ VITE_REVIEW_TOUR=1 で src/dev/reviewTour.ts が自動操作(10問→解説→苦手→年度別→購入画面→購入ボタンでサンドボックスのサインインまで)。scripts/trim_review_video.py で約90秒・2〜3MB に整えた
 - 3本とも App Review に英語の回答+動画で返信し、版の画面の「審査内容を更新」→「App Reviewに再提出」で出し直した(却下された版は「審査内容を更新」を押すまで再提出ボタンが押せない。API でも 409)
+
+## 1.4.6 OS 標準の評価の窓の条件の見直し(2026-10-28)
+- 持ち主 10/28「全部やってください」(promo/marketing_pro_plan_2026-10-28.md)。使うのは @capacitor-community/in-app-review の requestReview(iOS は SKStoreReviewController、Android は Google Play In-App Review)だけ。自前の「★5を」の画面・評価と引き換えの特典・ボタンは作らない(5.6.1・Play の決まり)
+- 出す条件は src/domain/review.ts の reviewOnSessionEnd / reviewRested / canCallStoreReview に1か所でまとめた。良い体験の直後(苦手ノートから消せた・練習5問以上で正答率が前の回より上がって6割以上・模試で合格点を超えた)だけ。使い始めて3日以上・解き終えた回5回以上・最後の問題が正解・購入画面を開いてから30分以上・前のお願いから1年以上(こちらからは年1回、OS 側にも上限)
+- 1.4.5 から外した物: 3日目に開いて解き終えただけ・7日続けて開いただけ・模試を最後まで解いただけ(良い体験とは言えないため)
+- 購入画面を開いた時刻を記録(reviewOnPaywall、App.tsx の購入画面の useEffect)。ブラウザ版・vite dev・審査用の録画ビルド(VITE_REVIEW_TOUR=1)では呼ばない(native.ts の askReview)
+- 試験: src/domain/review.test.ts を条件ごとに書き直し(19件)。npm run test:all 全部通過、npm run build 通過
+- 版: iOS MARKETING_VERSION 1.4.6 / Android versionCode 12・1.4.6。1.4.5(枝 ios-multi-1.4.5 ee58deb・ビルド38)には混ぜていない。iOS の 1.4.6 は 1.4.5 の審査が終わってから、この枝で TestFlight ビルドを作る
+- Android: releases/nigatecho-kanri-1.4.6-vc12.aab(署名済み)を alpha(クローズドテスト)に上げた(ios_release/play/upload_multi_vc12_1028.py、10/28 11:05 commit)。製品版(vc10 / 1.4.3)には触っていない

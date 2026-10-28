@@ -1,21 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_REVIEW, REVIEW_GAP_DAYS, normalizeReview, reviewOnOpen, reviewOnSessionEnd, storeReviewUrl, type ReviewState, type SessionEnd } from './review';
+import { EMPTY_REVIEW, REVIEW_GAP_DAYS, REVIEW_MIN_DAYS, REVIEW_MIN_SESSIONS, REVIEW_PAYWALL_QUIET_MIN, canCallStoreReview, normalizeReview, reviewOnOpen, reviewOnPaywall, reviewOnSessionEnd, storeReviewUrl, type ReviewState, type SessionEnd } from './review';
 import { examRange, lockedSummary } from './study';
 import { EXAMS } from './exam';
 import type { Question } from './types';
 
 const DAY = 86400000;
 const HOUR = 3600000;
+const MIN = 60000;
 const T0 = new Date(2026, 9, 7, 9).getTime();
 const plain: SessionEnd = { cleared: 0, nigateLeft: 5, correctRate: 0.5, lastOk: true };
 const clearOne: SessionEnd = { cleared: 1, nigateLeft: 4, correctRate: 0.7, lastOk: true };
+const mockPass: SessionEnd = { cleared: 0, nigateLeft: -1, correctRate: 0.7, passed: true, completed: true };
 const mockDone: SessionEnd = { cleared: 0, nigateLeft: -1, correctRate: 0.5, passed: false, completed: true };
-const mockHalf: SessionEnd = { cleared: 0, nigateLeft: -1, correctRate: 0.3, passed: false, completed: false };
-
-/** 初めて開いた日から days 日目(0始まり)に開いた記録 */
-function openedOn(days: number[], start: ReviewState = EMPTY_REVIEW) {
-  return days.reduce((s, d) => reviewOnOpen(s, T0 + d * DAY), start);
-}
+const p = (rate: number, answered = 10): SessionEnd => ({ cleared: 0, nigateLeft: 5, correctRate: rate, lastOk: true, answered });
 
 /** 1日1回開いて1回解き終える流れ。お願いした日(0始まり)を返す */
 function daily(ends: SessionEnd[], start: ReviewState = EMPTY_REVIEW, from = 0) {
@@ -31,141 +28,111 @@ function daily(ends: SessionEnd[], start: ReviewState = EMPTY_REVIEW, from = 0) 
   return { s, asked };
 }
 
-describe('評価のお願いの時機', () => {
-  it('苦手ノートから問題を消せた(2回続けて正解した)回の終わりにお願いする', () => {
-    expect(daily([plain, clearOne]).asked).toEqual([1]);
+/** 使い始めて days 日たち、解き終えた回が n 回ある人(まだお願いしていない) */
+function veteran(days: number, n: number): ReviewState {
+  const s = reviewOnOpen(EMPTY_REVIEW, T0);
+  return reviewOnOpen({ ...s, sessions: n }, T0 + days * DAY);
+}
+const at = (days: number) => T0 + days * DAY + HOUR;
+
+describe('評価のお願いの時機(1.4.6)', () => {
+  it('条件の数: 3日・5回・購入画面から30分・1年', () => {
+    expect([REVIEW_MIN_DAYS, REVIEW_MIN_SESSIONS, REVIEW_PAYWALL_QUIET_MIN, REVIEW_GAP_DAYS]).toEqual([3, 5, 30, 365]);
   });
 
-  it('初めて開いた日には、うれしい回でも出さない', () => {
-    const s = reviewOnOpen(EMPTY_REVIEW, T0);
-    expect(reviewOnSessionEnd(s, clearOne, T0 + HOUR).ask).toBe(false);
-    expect(reviewOnSessionEnd(s, mockDone, T0 + 5 * HOUR).ask).toBe(false);
-    // 次の日なら出す
-    expect(reviewOnSessionEnd(reviewOnOpen(s, T0 + DAY), clearOne, T0 + DAY + HOUR).ask).toBe(true);
+  it('使い始めて3日以上・5回目以上で、苦手ノートから消せた回の終わりにお願いする', () => {
+    expect(reviewOnSessionEnd(veteran(3, 4), clearOne, at(3)).ask).toBe(true);
+    // 毎日1回: 0〜3日目は回数か日数が足りず、4日目(5回目)に出す
+    expect(daily([plain, clearOne, clearOne, clearOne, clearOne, clearOne]).asked).toEqual([4]);
   });
 
-  it('解き終えた回の終わりでしか判断しない(開いただけではお願いしない)', () => {
-    const s = openedOn([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-    // reviewOnOpen はお願いの印を付けない
-    expect(s.askedAt).toBe(0);
-  });
-
-  it('最後の問題が不正解だった回では出さない', () => {
-    expect(daily([plain, { ...clearOne, lastOk: false }]).asked).toEqual([]);
-    expect(daily([plain, { ...clearOne, lastOk: false }, clearOne]).asked).toEqual([2]);
-  });
-
-  it('苦手が外れていない練習の回では出さない(正答率が高くても、比べる前の回が無ければ)', () => {
-    expect(daily([plain, { cleared: 0, nigateLeft: 0, correctRate: 1, lastOk: true }]).asked).toEqual([]);
-  });
-
-  it('練習(5問以上)の正答率が前の練習の回より上がって6割以上なら、その回の終わりにお願いする', () => {
-    const p = (rate: number, answered = 10): SessionEnd => ({ cleared: 0, nigateLeft: 5, correctRate: rate, lastOk: true, answered });
-    // 2日目に 5割 → 7割(同じ日に2回解く)
-    let s = reviewOnOpen(reviewOnOpen(EMPTY_REVIEW, T0), T0 + DAY);
-    let r = reviewOnSessionEnd(s, p(0.5), T0 + DAY + HOUR);
-    expect(r.ask).toBe(false);
-    expect(r.state.lastRate).toBe(0.5);
-    r = reviewOnSessionEnd(r.state, p(0.7), T0 + DAY + 2 * HOUR);
-    expect(r.ask).toBe(true);
-    // 上がっても6割未満、同じ正答率、5問未満の回では出さない
-    s = reviewOnOpen(reviewOnOpen(EMPTY_REVIEW, T0), T0 + DAY);
-    const a = reviewOnSessionEnd(s, p(0.3), T0 + DAY + HOUR).state;
-    expect(reviewOnSessionEnd(a, p(0.5), T0 + DAY + 2 * HOUR).ask).toBe(false);
-    const b = reviewOnSessionEnd(s, p(0.7), T0 + DAY + HOUR).state;
-    expect(reviewOnSessionEnd(b, p(0.7), T0 + DAY + 2 * HOUR).ask).toBe(false);
-    expect(reviewOnSessionEnd(a, p(1, 4), T0 + DAY + 2 * HOUR).ask).toBe(false);
-    // 5問未満の回は前の回として残さない
-    expect(reviewOnSessionEnd(a, p(1, 4), T0 + DAY + 2 * HOUR).state.lastRate).toBe(0.3);
-    // 初めて開いた日は上がっても出さない
-    const d0 = reviewOnSessionEnd(reviewOnOpen(EMPTY_REVIEW, T0), p(0.5), T0 + HOUR).state;
-    expect(reviewOnSessionEnd(d0, p(0.9), T0 + 2 * HOUR).ask).toBe(false);
+  it('練習(5問以上)の正答率が前の回より上がって6割以上ならお願いする', () => {
+    const a = reviewOnSessionEnd(veteran(4, 4), p(0.5), at(4)).state;
+    expect(reviewOnSessionEnd(veteran(4, 4), p(0.5), at(4)).ask).toBe(false);
+    expect(reviewOnSessionEnd(a, p(0.7), at(4) + HOUR).ask).toBe(true);
+    // 上がっても6割未満・同じ正答率・5問未満の回では出さない
+    const low = reviewOnSessionEnd(veteran(4, 4), p(0.3), at(4)).state;
+    expect(reviewOnSessionEnd(low, p(0.5), at(4) + HOUR).ask).toBe(false);
+    const same = reviewOnSessionEnd(veteran(4, 4), p(0.7), at(4)).state;
+    expect(reviewOnSessionEnd(same, p(0.7), at(4) + HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(low, p(1, 4), at(4) + HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(low, p(1, 4), at(4) + HOUR).state.lastRate).toBe(0.3);
     // 模試は練習の正答率に数えない
-    const m = reviewOnSessionEnd(s, { ...mockHalf, correctRate: 0.9 }, T0 + DAY + HOUR).state;
-    expect(m.lastRate).toBe(-1);
+    expect(reviewOnSessionEnd(veteran(4, 4), { ...mockDone, correctRate: 0.9 }, at(4)).state.lastRate).toBe(-1);
   });
 
-  it('使い始めて3日目(続けていなくてよい)に1回解き終えたらお願いする', () => {
-    expect(daily([plain, plain, plain]).asked).toEqual([2]);
-    // 0日目・3日目・9日目に使う人は、3回目に開いた日
-    let s = EMPTY_REVIEW;
-    const asked: number[] = [];
-    for (const d of [0, 3, 9]) {
-      s = reviewOnOpen(s, T0 + d * DAY);
-      const r = reviewOnSessionEnd(s, plain, T0 + d * DAY + HOUR);
-      s = r.state;
-      if (r.ask) asked.push(d);
-    }
-    expect(asked).toEqual([9]);
-    expect(s.openDays).toBe(3);
-    // 3日目でも最後の問題が不正解なら出さない(その日のうちに次の回で出す)
-    expect(daily([plain, plain, { ...plain, lastOk: false }]).asked).toEqual([]);
+  it('模試は合格点を超えた時だけ。最後まで解いただけでは出さない', () => {
+    expect(reviewOnSessionEnd(veteran(5, 9), mockPass, at(5)).ask).toBe(true);
+    expect(reviewOnSessionEnd(veteran(5, 9), mockDone, at(5)).ask).toBe(false);
   });
 
-  it('模試を全問答えて最後まで解いたらお願いする。途中で終えた模試では出さない', () => {
-    expect(daily([plain, mockDone]).asked).toEqual([1]);
-    expect(daily([plain, mockHalf]).asked).toEqual([]);
+  it('ただ解き終えた回・3日目・続けて開いただけでは出さない(良い体験の直後だけ)', () => {
+    expect(daily(Array.from({ length: 30 }, () => plain)).asked).toEqual([]);
   });
 
-  it('模試で合格点を超えたらお願いする(未回答があっても)', () => {
-    expect(daily([plain, { ...mockHalf, passed: true }]).asked).toEqual([1]);
+  it('最初の起動の日・使い始めて3日たたない間は、良い回でも出さない', () => {
+    const d0 = reviewOnOpen({ ...EMPTY_REVIEW, sessions: 20 }, T0);
+    // sessions があると前の版の人とみなすので、新しい人として firstAt を今にする
+    const fresh = { ...d0, firstAt: T0 };
+    expect(reviewOnSessionEnd(fresh, clearOne, T0 + HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(reviewOnOpen(fresh, T0 + 2 * DAY), clearOne, T0 + 2 * DAY + HOUR).ask).toBe(false);
+    expect(reviewOnSessionEnd(reviewOnOpen(fresh, T0 + 3 * DAY), clearOne, T0 + 3 * DAY + HOUR).ask).toBe(true);
   });
 
-  it('7日続けて開いて、7日目に解き終えたらお願いする(3日目に出せなかった人)', () => {
-    const bad = { ...plain, lastOk: false };
-    const ends = [plain, bad, bad, bad, bad, bad, plain];
-    expect(daily(ends).asked).toEqual([6]);
-    // 6日続けただけでは出さない
-    expect(daily(ends.slice(0, 6)).asked).toEqual([]);
+  it('解き終えた回が5回に満たない人には出さない', () => {
+    expect(reviewOnSessionEnd(veteran(10, 3), clearOne, at(10)).ask).toBe(false);
+    expect(reviewOnSessionEnd(veteran(10, 4), clearOne, at(10)).ask).toBe(true);
   });
 
-  it('1日でも空くと、続けた日数は1から数え直す', () => {
-    const s = openedOn([0, 1, 2, 3, 4, 5, 7]);
-    expect(s.openStreak).toBe(1);
-    expect(openedOn([0, 1, 2, 3, 4, 5, 6]).openStreak).toBe(7);
-    // 同じ日に何度開いても1日
-    expect(openedOn([0, 0, 0, 1, 1]).openStreak).toBe(2);
-    expect(reviewOnOpen(openedOn([0]), T0 + 3 * HOUR).openStreak).toBe(1);
+  it('最後の問題が不正解だった回(間違えた直後)では出さない', () => {
+    expect(reviewOnSessionEnd(veteran(5, 9), { ...clearOne, lastOk: false }, at(5)).ask).toBe(false);
+    const a = reviewOnSessionEnd(veteran(5, 9), p(0.5), at(5)).state;
+    expect(reviewOnSessionEnd(a, { ...p(0.8), lastOk: false }, at(5) + HOUR).ask).toBe(false);
+  });
+
+  it('購入画面を開いてから30分は出さない(課金の画面の直後)', () => {
+    const s = reviewOnPaywall(veteran(5, 9), at(5));
+    expect(reviewOnSessionEnd(s, clearOne, at(5) + 10 * MIN).ask).toBe(false);
+    expect(reviewOnSessionEnd(s, clearOne, at(5) + 29 * MIN).ask).toBe(false);
+    expect(reviewOnSessionEnd(s, clearOne, at(5) + 30 * MIN).ask).toBe(true);
   });
 
   it('お願いしたら1年あける(Apple の年3回の中で、こちらからは1回だけ)', () => {
-    expect(REVIEW_GAP_DAYS).toBe(365);
-    // 毎日うれしい回が続いても、次は1年後
-    const { asked } = daily(Array.from({ length: 400 }, (_, i) => (i === 0 ? plain : clearOne)));
-    expect(asked).toEqual([1, 366]);
-    // 1年のあいだ毎日うれしい回でも、こちらからのお願いは1回だけ
-    const year = daily(Array.from({ length: 365 }, () => ({ ...mockDone, passed: true })));
-    expect(year.asked).toEqual([1]);
+    const { asked } = daily(Array.from({ length: 400 }, () => clearOne));
+    expect(asked).toEqual([4, 369]);
   });
 
-  it('前の版から使っている人(解き終えた回がある)は、更新した日でもお願いできる', () => {
-    const old = normalizeReview({ sessions: 12, askedAt: 0, cleared: 2 });
-    const s = reviewOnOpen(old, T0);
-    expect(s.firstAt).toBe(1);
-    expect(reviewOnSessionEnd(s, clearOne, T0 + HOUR).ask).toBe(true);
+  it('開いただけではお願いしない', () => {
+    let s = EMPTY_REVIEW;
+    for (let d = 0; d < 10; d++) s = reviewOnOpen(s, T0 + d * DAY);
+    expect(s.askedAt).toBe(0);
+  });
+
+  it('前の版から使っている人(解き終えた回がある)は、使い始めた日をずっと前とみなす', () => {
+    const old = reviewOnOpen(normalizeReview({ sessions: 12, askedAt: 0, cleared: 2 }), T0);
+    expect(old.firstAt).toBe(1);
+    expect(reviewOnSessionEnd(old, clearOne, T0 + HOUR).ask).toBe(true);
     // 前の版で60日前にお願いしていたら、まだ出さない(1年あける)
     const asked = reviewOnOpen(normalizeReview({ sessions: 12, askedAt: T0 - 60 * DAY, cleared: 2 }), T0);
     expect(reviewOnSessionEnd(asked, clearOne, T0 + HOUR).ask).toBe(false);
   });
 
-  it('数えた回・消せた数の合計・お願いした時刻・開いた日を残す', () => {
-    const { s } = daily([plain, clearOne, plain]);
-    expect(s).toEqual({ sessions: 3, askedAt: T0 + DAY + HOUR, cleared: 1, firstAt: T0, lastOpenDay: '2026-10-09', openStreak: 3, openDays: 3, lastRate: -1 });
-  });
-
-  it('前の版から使っている人は、更新して次に開いた日を3日目として数える', () => {
-    const old = normalizeReview({ sessions: 5, askedAt: 0, cleared: 0, firstAt: T0, lastOpenDay: '2026-10-07', openStreak: 1 });
-    expect(old.openDays).toBe(0);
-    const s = reviewOnOpen(old, T0 + DAY);
-    expect(s.openDays).toBe(3);
-    expect(reviewOnSessionEnd(s, plain, T0 + DAY + HOUR).ask).toBe(true);
-  });
-
   it('保存した記録が壊れていても0から数える(前の版の記録も読める)', () => {
     expect(normalizeReview(null)).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ sessions: 'x', askedAt: -5, lastOpenDay: 'きのう', openStreak: 9, openDays: 4, lastRate: 3 })).toEqual(EMPTY_REVIEW);
-    expect(normalizeReview({ lastOpenDay: '2026-10-07', openDays: 4, lastRate: 0.4 })).toMatchObject({ openDays: 4, lastRate: 0.4 });
+    expect(normalizeReview({ sessions: 'x', askedAt: -5, lastOpenDay: 'きのう', openStreak: 9, openDays: 4, lastRate: 3, paywallAt: 'x' })).toEqual(EMPTY_REVIEW);
     expect(normalizeReview({ sessions: 4, askedAt: T0 })).toEqual({ ...EMPTY_REVIEW, sessions: 4, askedAt: T0 });
+    expect(normalizeReview({ paywallAt: T0 }).paywallAt).toBe(T0);
+  });
+});
+
+describe('OS の評価の画面を呼ぶ所', () => {
+  it('iOS・Android のアプリだけ。ブラウザ版・開発用の表示・審査用の録画ビルドでは呼ばない', () => {
+    expect(canCallStoreReview('ios', false)).toBe(true);
+    expect(canCallStoreReview('android', false)).toBe(true);
+    expect(canCallStoreReview('web', false)).toBe(false);
+    expect(canCallStoreReview('web', true)).toBe(false);
+    expect(canCallStoreReview('ios', true)).toBe(false);
+    expect(canCallStoreReview('android', false, true)).toBe(false);
   });
 });
 
