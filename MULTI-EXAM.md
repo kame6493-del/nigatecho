@@ -94,3 +94,13 @@ Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionC
   - 開いた日は起動と裏から戻ったときに数える(Preferences の nigatecho.review に firstAt・lastOpenDay・openStreak を足した)
 - 設定の下のリンクに「App Store で評価する」(apps.apple.com/app/id<ID>?action=write-review。まとめ版と臨床だけ)/Android は「Google Play で評価する」。ブラウザ版には出さない
 - 確かめ: npm run test:all(まとめ 90・単体3本 各66)・python scripts/e2e_redesign.py 829/0・python scripts/e2e_ampm.py --exams kaigo,kanri 83/0
+
+## 1.4.7: 臨床検査技師をまとめ版に入れる(2026-10-30・ios-multi-1.4.7 ブランチ)
+持ち主(10/30 夜)「臨床検査技師は要らないのでまとめ版に入れて。分けてる意味わからないと言われた」。単体のアプリ(iOS 6818536142・Android jp.nigatecho.rinshokensa はクローズドテストのみ)は、まとめ版 1.4.7 が出たあとに販売停止にする予定(入れている人はそのまま使える)。
+- exams/multi.json の exams の最後に rinsho。問題(第68〜72回 1,000問・図つき)・苦手ノート・予想点(合格ライン 6割)・模試は単体と同じデータと仕組みのまま。無料は第72回
+- 商品: nigatecho_multi_rinsho_full / entitlement rinsho_full / ¥980(単体と同じ値段)。単体の nigatecho_rinsho_full(別アプリの商品)は使えない。管理栄養士の entitlement "full" に付けないこと
+- 記録の保存先は nigatecho.rinsho-kensa.v1(単体と同じ名前だが、アプリが別なので記録は引き継がれない)
+- 試験を選ぶ並び(FIRST_PICK_ORDER)は最後
+- 版: iOS 1.4.7 / Android 1.4.7(versionCode 13)
+- 確かめ: npm run test:all(まとめ 132・単体3本 各101)・e2e_redesign.py --exams rinsho,kanri,pt,kaigo,shakai,seishin --widths 390 497/0・e2e_nurse_all.py 505/0・e2e_sales_1027.py 70/0。画面 docs/rinsho_in_multi_1.4.7/(390x844)
+- 作る商品(まだ): App Store Connect のまとめ版(6818535389)に非消耗型 nigatecho_multi_rinsho_full ¥980、Play(jp.nigatecho.kanrieiyoushi)に同じ ID の1回限りのアイテム、RevenueCat で権利 rinsho_full と売り場 default のパッケージ

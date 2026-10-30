@@ -46,7 +46,7 @@ export const FIRST_EXAM = EXAMS[0];
  * はじめて開いたときの「どの試験を受けますか」の並び(売れている順・宣伝している順。2026-10-22)。
  * ここに無い試験は後ろに元の順で並べる。FIRST_EXAM(前の版の記録がある人の開き方)は変えない
  */
-export const FIRST_PICK_ORDER = ['kaigo', 'nurse', 'shakai', 'seishin', 'kanri', 'pt'];
+export const FIRST_PICK_ORDER = ['kaigo', 'nurse', 'shakai', 'seishin', 'kanri', 'pt', 'rinsho'];
 export const firstPickExams = (): ExamConfig[] => {
   const rank = (d: string) => { const i = FIRST_PICK_ORDER.indexOf(d); return i < 0 ? FIRST_PICK_ORDER.length : i; };
   return EXAMS.map((e, i) => ({ e, i })).sort((a, b) => rank(a.e.dir) - rank(b.e.dir) || a.i - b.i).map((x) => x.e);

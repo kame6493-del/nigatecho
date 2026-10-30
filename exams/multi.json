@@ -9,7 +9,8 @@
     "kaigo",
     "shakai",
     "seishin",
-    "nurse"
+    "nurse",
+    "rinsho"
   ],
   "products": {
     "kanri": {
@@ -40,6 +41,11 @@
     "nurse": {
       "productId": "nigatecho_multi_nurse_full",
       "entitlement": "nurse_full",
+      "price": "¥980"
+    },
+    "rinsho": {
+      "productId": "nigatecho_multi_rinsho_full",
+      "entitlement": "rinsho_full",
       "price": "¥980"
     }
   },

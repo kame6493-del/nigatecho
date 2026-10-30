@@ -34,8 +34,19 @@ describe('試験の並びと商品', () => {
     expect(EXAM.dir).toBe('kanri');
   });
 
-  it('理学療法士・介護福祉士・社会福祉士・精神保健福祉士が入っていて、臨床検査技師は入れていない(単体のアプリで売っているため)', () => {
-    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai', 'seishin', 'nurse']);
+  it('理学療法士・介護福祉士・社会福祉士・精神保健福祉士・看護師・臨床検査技師が入っている(臨床検査技師は 1.4.7 から。単体のアプリは販売停止にする予定)', () => {
+    expect(EXAMS.map((e) => e.dir)).toEqual(['kanri', 'pt', 'kaigo', 'shakai', 'seishin', 'nurse', 'rinsho']);
+  });
+
+  it('臨床検査技師は単体のアプリの商品(nigatecho_rinsho_full / entitlement full)を使わず、まとめ版の商品 rinsho_full で開く。問題・記録の保存先は単体と同じ', () => {
+    const r = EXAMS.find((e) => e.dir === 'rinsho')!;
+    expect([r.key, r.productId, r.entitlement, r.price]).toEqual(['rinsho-kensa', 'nigatecho_multi_rinsho_full', 'rinsho_full', '¥980']);
+    expect(r.count).toBe(1000);
+    expect(r.rounds).toEqual([68, 69, 70, 71, 72]);
+    expect(r.freeExams).toEqual([72]);
+    expect(keyOf(r.key)).toBe('nigatecho.rinsho-kensa.v1');
+    // 管理栄養士の entitlement "full" で臨床が開かない(単体アプリの entitlement 名と同じでも、まとめ版では別)
+    expect(accessFrom(['full']).rinsho).toBe(false);
   });
 
   it('記録の保存先・商品・entitlement は試験ごとに別(重なると記録が混ざる/1つ買うとほかも開く)', () => {
@@ -49,12 +60,13 @@ describe('試験の並びと商品', () => {
   });
 
   it('買った entitlement の試験だけが開く', () => {
-    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false });
-    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true, seishin: false, nurse: false });
+    expect(accessFrom(['full'])).toEqual({ kanri: true, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false, rinsho: false });
+    expect(accessFrom(['pt_full', 'shakai_full'])).toEqual({ kanri: false, pt: true, kaigo: false, shakai: true, seishin: false, nurse: false, rinsho: false });
     // 社会福祉士の完全版では精神保健福祉士は開かない(別の商品)
-    expect(accessFrom(['seishin_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: true, nurse: false });
-    expect(accessFrom(['nurse_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: true });
-    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false });
+    expect(accessFrom(['seishin_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: true, nurse: false, rinsho: false });
+    expect(accessFrom(['nurse_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: true, rinsho: false });
+    expect(accessFrom(['rinsho_full'])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false, rinsho: true });
+    expect(accessFrom([])).toEqual({ kanri: false, pt: false, kaigo: false, shakai: false, seishin: false, nurse: false, rinsho: false });
   });
 
   it('試験を切り替えると EXAM と試験日が替わる。知らない試験は管理栄養士', () => {
@@ -100,7 +112,7 @@ describe('試験ごとの問題データ', () => {
   });
 
   it('問題冊子の脚注(（注）…)は選択肢に混ざらず footnote にある(介護福祉士 38-122 ほか30問)', () => {
-    for (const e of ['kaigo', 'shakai', 'seishin', 'kanri', 'pt', 'nurse']) {
+    for (const e of ['kaigo', 'shakai', 'seishin', 'kanri', 'pt', 'nurse', 'rinsho']) {
       for (const q of loadQs(e)) for (const c of q.choices) expect(c, `${q.id} ${c}`).not.toContain('（注）');
     }
     const kq = new Map(loadQs('kaigo').map((q) => [q.id, q]));
@@ -111,9 +123,9 @@ describe('試験ごとの問題データ', () => {
 });
 
 describe('試験ごとの出典', () => {
-  it('管理栄養士・理学療法士・看護師は厚生労働省、介護福祉士・社会福祉士は社会福祉振興・試験センター', () => {
+  it('管理栄養士・理学療法士・看護師・臨床検査技師は厚生労働省、介護福祉士・社会福祉士は社会福祉振興・試験センター', () => {
     for (const e of EXAMS) {
-      const mhlw = ['kanri', 'pt', 'nurse'].includes(e.dir);
+      const mhlw = ['kanri', 'pt', 'nurse', 'rinsho'].includes(e.dir);
       expect(isMhlw(e)).toBe(mhlw);
       for (const n of e.rounds!) {
         const link = sourcePageFor(n, e)!;
