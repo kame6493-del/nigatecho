@@ -7,7 +7,7 @@ android {
         applicationId "jp.nigatecho.kanrieiyoushi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
+        versionCode 15
         versionName "1.4.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -30,8 +30,11 @@ android {
     buildTypes {
         release {
             if (System.getenv("NG_UPLOAD_STORE")) signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8: 縮小・難読化・使わないリソースの削除(Play の「DEX コードの最適化」対策、2026-10-31)
+            // 難読化解除ファイルは build/outputs/mapping/release/mapping.txt に出る。Play へ AAB と一緒に上げる
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
