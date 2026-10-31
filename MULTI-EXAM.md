@@ -104,3 +104,11 @@ Play の jp.nigatecho.rinshokensa(クローズドテスト中・1.0.1 / versionC
 - 版: iOS 1.4.7 / Android 1.4.7(versionCode 13)
 - 確かめ: npm run test:all(まとめ 132・単体3本 各101)・e2e_redesign.py --exams rinsho,kanri,pt,kaigo,shakai,seishin --widths 390 497/0・e2e_nurse_all.py 505/0・e2e_sales_1027.py 70/0。画面 docs/rinsho_in_multi_1.4.7/(390x844)
 - 作る商品(まだ): App Store Connect のまとめ版(6818535389)に非消耗型 nigatecho_multi_rinsho_full ¥980、Play(jp.nigatecho.kanrieiyoushi)に同じ ID の1回限りのアイテム、RevenueCat で権利 rinsho_full と売り場 default のパッケージ
+
+## 1.4.7(vc14): 看護・社会・管理栄養士の購入画面(2026-10-31)
+RevenueCat の 10/24〜30 で、まとめ版で売れたのは介護だけ(看護 22人・社会 12人・管理栄養士 8人はどれも0件。ios_release/promo/rc_analysis_1031.md)。値段・商品・介護の購入画面は変えていない(介護は前と画素まで同じ)。
+- 看護: 購入画面に「あなたの必修問題(8割が基準)」。第115回(無料)の必修を何問解いて何問正解か(最後の答え)・無料の残り・まだ解いていない回の必修(第111〜114回 199問)と、その中の本物の問題を1問(問題文だけ)。数は本人の記録から(upsell.ts の subPassMine)。合格の見込みは書かない。結果の1問は、その回で必修を解いたら必修の問題を先に出す
+- 社会福祉士: 3つセットが買えるときは、購入画面の一番上にセットで開く問題(社会 258問・精神 264問のうち共通科目168問は社会と同じで新しいのは専門96問・介護 750問)を出し、ボタンもセットを先に。exams/multi.json の bundles[].first に試験を書いた物だけ(今は shakai)。数は use-multi.mjs が問題データから数える(sessionCounts)
+- 管理栄養士: 見出しに「第41回の試験まで あと◯日」(その日の日付から)・試験日・願書の受付 11月2日〜12月4日(消印有効。受付中は「12月4日まで」、過ぎたら出さない)。exam.json の paywallSeason。中身の並びは介護と同じ(本人の記録・表・ボタン)
+- 確かめ: npm run test:all(src/domain/paywall1031.test.ts を足した)・e2e_redesign 830/0・e2e_nurse_all 505/0・e2e_sales_1027 70/0・e2e_paywall_1022 376/0(臨床を足した並びに直した)。写真は ios_release/promo/rc_1031/after(after_shots.py、390x844 と 360x640)
+- Android vc14(1.4.7)を alpha にだけ上げた(ios_release/play/upload_multi_vc14_1031.py)。iOS は 1.4.7 のまま、この枝でビルドする

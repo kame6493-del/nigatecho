@@ -165,7 +165,7 @@ def run(pg, exam, key):
     check(pg.locator(".first-pick .ex-item.on").count() == 0, f"{exam}: どれも選ばれていない")
     check("どの試験を受けますか" in t, f"{exam}: 「どの試験を受けますか」")
     order = pg.eval_on_selector_all(".first-pick button[data-exam]", "bs => bs.map(b => b.dataset.exam)")
-    check(order == ["kaigo", "nurse", "shakai", "seishin", "kanri", "pt"], f"{exam}: 並びは 介護→看護→社会→精神→管理栄養士→理学 {order}")
+    check(order == ["kaigo", "nurse", "shakai", "seishin", "kanri", "pt", "rinsho"], f"{exam}: 並びは 介護→看護→社会→精神→管理栄養士→理学→臨床(1.4.7 で臨床を足した) {order}")
     check(pg.evaluate("() => { const r = document.querySelector('.first-pick button[data-exam=nurse]').getBoundingClientRect(); return r.bottom <= window.innerHeight; }"), f"{exam}: 看護師まで動かさずに見える")
     shot(pg, exam, "01_first_pick", "はじめて開いた画面: 受ける試験を選ぶ")
     pg.click(f".first-pick button[data-exam={exam}]")

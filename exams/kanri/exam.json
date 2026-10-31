@@ -66,5 +66,14 @@
     "ios": "appl_TJJMoQgDbHHANBMnXKbICWwXVum",
     "android": "goog_neGwJfuIIOYKmCGtXTCOrZeLgaP"
   },
-  "entitlement": "full"
+  "entitlement": "full",
+  "paywallSeason": {
+    "examLabel": "第41回",
+    "apply": {
+      "from": "2026-11-02",
+      "to": "2026-12-04",
+      "note": "消印有効",
+      "source": "第41回管理栄養士国家試験の受験願書の受付期間(神戸市・文京区の案内 2026-10-31 確認)"
+    }
+  }
 }

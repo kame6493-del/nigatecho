@@ -1,5 +1,5 @@
 import type { AppData, ExamConfig, Question } from './types';
-import { inSubPass, isNigate, unseen } from './study';
+import { daysLeft, inSubPass, isNigate, unseen } from './study';
 
 /**
  * 完全版の案内を「どこに・どの形で」出すか。購入画面は押したときだけ開く(勝手に開かない・時間で急がせない)。
@@ -146,4 +146,61 @@ export function studyPlan(o: { days: number | null; unseenNow: number; unseenFul
   const perDay = Math.ceil(o.unseenNow / o.days);
   const perDayFull = o.unseenFull && o.unseenFull > o.unseenNow ? Math.ceil(o.unseenFull / o.days) : null;
   return { days: o.days, perDay, perDayFull, unseenNow: o.unseenNow, unseenFull: perDayFull === null ? null : o.unseenFull };
+}
+
+/**
+ * 看護師の必修問題(subPass が科目で決まる試験)の、本人の記録。購入画面の「あなたの必修問題」に出す。
+ * - 無料の回の必修: 何問あって、何問解いて、最後に解いた答えで何問正解か
+ * - まだ解いていない回の必修: 鍵のかかった回の必修のうち、記録の無い問題の数と回
+ * 数字はすべて問題データと本人の記録から数える(採点対象外は数えない)。合格の見込みは出さない。
+ * 科目で決まる基準の無い試験・鍵のかかった回に必修が無い(買った人など)ときは null
+ */
+export function subPassMine(all: Question[], data: AppData, cfg: ExamConfig, locked: (q: Question) => boolean): {
+  label: string; ratio: number; freeRounds: number[]; freeTotal: number; seen: number; ok: number;
+  lockedRounds: number[]; lockedUnseen: number;
+} | null {
+  const sp = cfg.subPass;
+  if (!sp?.subjects) return null;
+  const mine = all.filter((q) => !q.excluded && inSubPass(q, cfg));
+  const free = mine.filter((q) => !locked(q));
+  const rest = mine.filter((q) => locked(q) && !data.records[q.id]);
+  if (rest.length === 0) return null;
+  let seen = 0, ok = 0;
+  for (const q of free) {
+    const r = data.records[q.id];
+    if (!r) continue;
+    seen++;
+    if (r.streak > 0) ok++;
+  }
+  const roundsOf = (qs: Question[]) => [...new Set(qs.map((q) => q.exam))].sort((a, b) => a - b);
+  return { label: sp.label, ratio: sp.ratio, freeRounds: roundsOf(free), freeTotal: free.length, seen, ok, lockedRounds: roundsOf(rest), lockedUnseen: rest.length };
+}
+
+/**
+ * 購入画面の見出しに出す、この時期の事実(cfg.paywallSeason がある試験だけ)。
+ * - days: 試験日(cfg.examDate)まで何日か(その日の日付から数える)
+ * - apply: 願書の受付期間。受付が始まる前は 'before'、受付の間は 'open'、過ぎたら出さない
+ * 試験日を過ぎた・設定の無い試験は null
+ */
+export function seasonFacts(cfg: ExamConfig, now: number): { examLabel: string; days: number; examDate: string; apply: { state: 'before' | 'open'; from: string; to: string; note?: string } | null } | null {
+  const ps = cfg.paywallSeason;
+  if (!ps) return null;
+  const days = daysLeft(cfg.examDate, now);
+  if (days === null) return null;
+  let apply: { state: 'before' | 'open'; from: string; to: string; note?: string } | null = null;
+  if (ps.apply) {
+    const t = new Date(now);
+    const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    if (today < ps.apply.from) apply = { state: 'before', ...ps.apply };
+    else if (today <= ps.apply.to) apply = { state: 'open', ...ps.apply };
+  }
+  return { examLabel: ps.examLabel, days, examDate: cfg.examDate, apply };
+}
+
+/** "2026-11-02" → "11月2日"。年が違えば "2027年2月28日" */
+export function jpDate(iso: string, now?: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const md = `${Number(m[2])}月${Number(m[3])}日`;
+  return now !== undefined && new Date(now).getFullYear() === Number(m[1]) ? md : `${Number(m[1])}年${md}`;
 }

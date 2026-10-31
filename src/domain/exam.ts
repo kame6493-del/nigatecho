@@ -23,6 +23,8 @@ export interface Bundle {
   exams: string[];
   /** 開発のブラウザの疑似購入用の値段(本物はストアの priceString) */
   price: string;
+  /** この試験を選んだ人には、購入画面の一番上にセットの中身を出し、ボタンもセットを先に並べる(社会福祉士) */
+  first?: string[];
 }
 export const BUNDLES: Bundle[] = (multi as unknown as { bundles?: Bundle[] }).bundles ?? [];
 

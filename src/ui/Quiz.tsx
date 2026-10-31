@@ -506,11 +506,15 @@ function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean; done?: { s
   // 練習の結果だけ: 間違えた科目(無ければ苦手の多い科目)の、鍵のかかった回の問題を1問、問題文だけ見せる
   const locked = (q: Question) => isLocked(q, false, EXAM);
   const weak = !p.mock && p.done && p.done.length > 0 ? weakSubjectGrowth(all, all.filter((q) => !locked(q)), p.data)?.subject ?? null : null;
+  // 看護師: この回で必修問題を解いたら、次の回の必修の問題を先に見せる(必修は8割の基準があり、いちばん気にされる所。2026-10-31)
+  const subSubjects = EXAM.subPass?.subjects ?? [];
+  const didSub = subSubjects.length > 0 && !!p.done?.some((d) => subSubjects.includes(d.subject));
   const preview = !p.mock && p.done && p.done.length > 0
-    ? lockedPreview(all, locked, resultPreviewSubjects(p.done, weak), dayKey(Date.now()))
+    ? lockedPreview(all, locked, didSub ? [...new Set([...subSubjects, ...resultPreviewSubjects(p.done, weak)])] : resultPreviewSubjects(p.done, weak), dayKey(Date.now()))
     : null;
   // 見出しは本当のことだけ(この回で間違えた科目 / 苦手の多い科目 / どちらでもなければ科目の名前だけ)
   const why = !preview ? '' : p.done?.some((d) => !d.ok && d.subject === preview.subject) ? 'いま間違えた' : preview.subject === weak ? '苦手の多い' : '';
+  const subRule = preview && subSubjects.includes(preview.subject) && EXAM.subPass ? `(${Math.round(EXAM.subPass.ratio * 10)}割が基準)` : '';
   // 練習の結果だけ: 無料の回の残りと、本人の苦手の科目が完全版で何問になるか(実際の問題数と本人の記録だけ)
   const openQs = all.filter((q) => !locked(q));
   const growth = !p.mock && p.done && p.done.length > 0 ? weakSubjectGrowth(all, openQs, p.data) : null;
@@ -531,7 +535,7 @@ function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean; done?: { s
       )}
       {preview ? (
         <LockedPreview q={preview} where="result-preview" onPaywall={() => p.onPaywall('result-preview')}
-          lead={`${why}${short(preview.subject)}の、第${preview.exam}回の問題です`} />
+          lead={`${why}${short(preview.subject)}${subRule}の、第${preview.exam}回の問題です`} />
       ) : (
         <button className="btn" onClick={() => p.onPaywall(p.mock ? 'mock-result' : 'result')}>完全版を見る<IChevron size={16} /></button>
       )}

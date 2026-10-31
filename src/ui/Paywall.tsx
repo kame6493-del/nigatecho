@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
-import { examRange, isLocked } from '../domain/study';
-import { subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
+import { dayKey, examRange, isLocked } from '../domain/study';
+import { jpDate, lockedPreview, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
 import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
 import { lookOf } from './look';
-import { ICheck } from './Icons';
+import { ICheck, ILock } from './Icons';
 
 /** いま選んでいる試験の完全版。商品は試験ごとに別(買った試験だけが開く) */
 export function Paywall(p: {
@@ -40,6 +40,21 @@ export function Paywall(p: {
   const growth = !owned && p.data
     ? weakSubjectGrowth(p.all, p.all.filter((q) => !isLocked(q, false, EXAM)), p.data)
     : null;
+  /** 看護師: 無料の回の必修の本人の正答と、まだ解いていない回の必修(本物の問題を1問、問題文だけ) */
+  const subMine = !owned && p.data ? subPassMine(p.all, p.data, EXAM, (q) => isLocked(q, false, EXAM)) : null;
+  const subPreview = subMine
+    ? lockedPreview(p.all, (q) => isLocked(q, false, EXAM) && !p.data!.records[q.id], EXAM.subPass?.subjects ?? [], dayKey(Date.now()))
+    : null;
+  /** 管理栄養士: 試験までの日数と願書の受付期間(その日の日付から) */
+  const season = !owned ? seasonFacts(EXAM, Date.now()) : null;
+  /** 社会福祉士: セットを上に出す(セットが買えるときだけ) */
+  const setFirst = !!set && !!set.first?.includes(EXAM.dir);
+  const setRows = setFirst && set ? [EXAM.dir, ...set.exams.filter((d) => d !== EXAM.dir && d !== 'kaigo'), ...set.exams.filter((d) => d !== EXAM.dir && d === 'kaigo')].map((d) => {
+    const e = EXAMS.find((x) => x.dir === d);
+    const rs = e?.rounds ?? [];
+    const range = rs.length ? (rs.length === 2 ? `第${rs[0]}・${rs[1]}回` : examRange(rs[0], rs[rs.length - 1])) : '';
+    return { dir: d, name: e?.name ?? d, range, count: e?.count ?? 0, am: e?.sessionCounts?.['午前'] ?? 0, pm: e?.sessionCounts?.['午後'] ?? 0 };
+  }) : [];
 
   const buy = async () => {
     setBusy(true); setMsg('');
@@ -78,9 +93,34 @@ export function Paywall(p: {
   return (
     <div className="page paywall">
       <TopBar title={`${EXAM.name} 完全版`} onClose={p.onClose} close="x" />
+      {setFirst && set && (
+        <section className="card pw-setfirst" data-upsell="paywall-set-first">
+          <p className="pw-mine-title">{EXAM.name}を受ける人に</p>
+          <h3>{setNames.length}つセットで開く問題</h3>
+          {setRows.map((r) => (
+            <div className="pw-set-row" key={r.dir} data-exam={r.dir}>
+              <p><span>{r.name}</span><b>{r.range} {r.count.toLocaleString('ja-JP')}問</b></p>
+              {r.dir === 'seishin' && r.am > 0 && <small>共通科目{r.am}問は社会福祉士の第37・38回と同じ問題です。新しく解けるのは専門科目{r.pm}問です</small>}
+              {r.dir === EXAM.dir && lockedRounds.length > 0 && <small>第{freeRounds.join('・')}回は無料、{examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の{p.all.length - free}問が開きます</small>}
+            </div>
+          ))}
+          <p className="muted small pw-setfirst-note">{EXAM.name}だけの完全版も、下で選べます</p>
+        </section>
+      )}
       <section className="pw-hero" style={{ background: lookOf(EXAM.dir).tint }}>
         <img className="pw-art" src={lookOf(EXAM.dir).img} alt="" />
         <p className="pw-kicker">{EXAM.name}・買い切り・月額なし</p>
+        {season && (
+          <div className="pw-season" data-upsell="paywall-season">
+            <p className="pw-season-days">{season.examLabel}の試験まで あと{season.days}日</p>
+            <p className="pw-season-sub"><span>試験日 {jpDate(season.examDate)}</span></p>
+            {season.apply && (
+              <p className="pw-season-sub"><span>{season.apply.state === 'open'
+                ? `願書の受付は ${jpDate(season.apply.to, Date.now())}まで`
+                : `願書の受付 ${jpDate(season.apply.from, Date.now())}〜${jpDate(season.apply.to, Date.now())}`}</span>{season.apply.note && <span>({season.apply.note})</span>}</p>
+            )}
+          </div>
+        )}
         <h2>{exams.length}年分 {p.all.length}問で、<br />苦手を本番までに0へ。</h2>
         <ul className="checks">
           <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${p.all.length - free}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
@@ -89,6 +129,22 @@ export function Paywall(p: {
           <li><ICheck size={16} />増えた分も解説・苦手ノート・予想点に入る</li>
         </ul>
       </section>
+      {subMine && (
+        <section className="card pw-sub" data-upsell="paywall-subpass-mine">
+          <p className="pw-mine-title">あなたの{subMine.label}({Math.round(subMine.ratio * 10)}割が基準)</p>
+          <p className="pw-mine-row"><span>第{subMine.freeRounds.join('・')}回(無料)の{subMine.label}</span>
+            <b>{subMine.seen > 0 ? `${subMine.seen}問中 ${subMine.ok}問正解(${Math.round((subMine.ok / subMine.seen) * 100)}%)` : `${subMine.freeTotal}問 まだ解いていません`}</b></p>
+          {subMine.seen > 0 && subMine.seen < subMine.freeTotal && <p className="pw-mine-row"><span>第{subMine.freeRounds.join('・')}回の{subMine.label}の残り</span><b>あと {subMine.freeTotal - subMine.seen}問(無料)</b></p>}
+          <p className="pw-mine-row"><span>まだ解いていない回の{subMine.label}</span><b>{examRange(subMine.lockedRounds[0], subMine.lockedRounds[subMine.lockedRounds.length - 1])} {subMine.lockedUnseen}問</b></p>
+          {subPreview && (
+            <div className="lp-card pw-sub-q" data-qid={subPreview.id}>
+              <p className="lp-src">第{subPreview.exam}回 {subPreview.session} 問{subPreview.no}・{short(subPreview.subject)}(完全版の問題)</p>
+              <p className="lp-stem">{subPreview.stem}</p>
+              <p className="lp-hidden"><ILock size={15} />選択肢({subPreview.choices.length}つ)・正解・解説は完全版で</p>
+            </div>
+          )}
+        </section>
+      )}
       {growth && (
         <section className="card pw-mine" data-upsell="paywall-mine">
           <p className="pw-mine-title">あなたの記録では</p>
@@ -108,7 +164,7 @@ export function Paywall(p: {
         {owned ? (
           <p className="pw-owned">{EXAM.name}の完全版は購入済みです</p>
         ) : p.billing.status === 'ready' && set ? (
-          <div className="pw-opts" data-set={set.id}>
+          <div className={`pw-opts${setFirst ? ' set-first' : ''}`} data-set={set.id}>
             <button className="pw-opt" disabled={busy || !canBuy(p.billing, EXAM)} onClick={buy} data-buy="single">
               <span className="pw-opt-name"><b>{EXAM.name}だけ</b><small>{EXAM.name}の完全版</small></span>
               <span className="pw-opt-price">{busy ? '処理中…' : price || '完全版'}</span>

@@ -597,3 +597,23 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .full-progress li { display: flex; justify-content: space-between; gap: 8px; color: var(--ink-2); }
 .full-progress b { color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .hero-alt { margin-top: 8px; }
+
+/* 2026-10-31 購入画面: 看護師の必修・社会福祉士のセット・管理栄養士の時期 */
+.pw-season { margin: 0 64px 10px 0; }
+.pw-season-days { margin: 0; font-size: 1.05em; font-weight: 900; color: var(--red-d); }
+.pw-season-sub { margin: 2px 0 0; font-size: .78em; color: var(--ink-2); line-height: 1.5; }
+.pw-season-sub span { white-space: nowrap; }
+.pw-sub { margin-bottom: 12px; }
+.pw-sub .pw-mine-row:first-of-type { border-top: 0; }
+.pw-sub-q { margin-top: 8px; }
+.pw-setfirst { margin-bottom: 12px; border: 2px solid var(--red); }
+.pw-setfirst h3 { margin: 0 0 6px; font-size: 1.05em; font-weight: 900; }
+.pw-set-row { padding: 7px 0; border-top: 1px solid var(--line); }
+.pw-set-row p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; margin: 0; font-size: .9em; }
+.pw-set-row b { color: var(--red-d); white-space: nowrap; }
+.pw-set-row small { display: block; margin-top: 2px; font-size: .76em; color: var(--ink-2); line-height: 1.5; }
+.pw-setfirst-note { margin: 6px 0 0; }
+.pw-opts.set-first .pw-opt.set { order: -1; background: var(--red); color: #fff; }
+.pw-opts.set-first .pw-opt.set .pw-opt-price { color: #fff; }
+.pw-opts.set-first .pw-opt:not(.set) { background: var(--sheet); color: var(--ink); }
+.pw-opts.set-first .pw-opt:not(.set) .pw-opt-price { color: var(--red-d); }

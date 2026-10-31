@@ -103,6 +103,13 @@ export interface ExamConfig {
   /** 収録した問題の数と回(scripts/use-multi.mjs が数えて入れる) */
   count?: number;
   rounds?: number[];
+  /** 午前・午後ごとの問題の数(scripts/use-multi.mjs が数えて入れる。精神保健福祉士は午前=共通科目・午後=専門科目) */
+  sessionCounts?: Partial<Record<'午前' | '午後', number>>;
+  /**
+   * 購入画面の見出しに出す、この時期の事実(管理栄養士: 次の試験までの日数と願書の受付期間)。
+   * 日数は examDate とその日の日付から数える。受付期間は from〜to の間だけ・from より前は「〜から」で出し、過ぎたら出さない
+   */
+  paywallSeason?: { examLabel: string; apply?: { from: string; to: string; note?: string; source?: string } };
   /** RevenueCat の公開APIキー(アプリに埋め込む物。秘密ではない) */
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */

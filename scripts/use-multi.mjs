@@ -20,7 +20,9 @@ const exams = multi.exams.map((dir) => {
   const rounds = [...new Set(qs.map((q) => q.exam))].sort((a, b) => a - b);
   // 単体のアプリ用の項目(アプリID・RevenueCat のキー)は、まとめアプリでは使わないので落とす
   const { appId: _a, appName: _n, revenuecat: _r, launcherName: _l, ...rest } = e;
-  return { ...rest, ...(multi.products[dir] ?? {}), count: qs.length, rounds };
+  const sessionCounts = {};
+  for (const q of qs) sessionCounts[q.session] = (sessionCounts[q.session] ?? 0) + 1;
+  return { ...rest, ...(multi.products[dir] ?? {}), count: qs.length, rounds, sessionCounts };
 });
 if (exams[0].dir !== multi.appExam) throw new Error('exams の先頭は appExam(はじめて開いたときの試験)にする');
 const keys = new Set(exams.map((e) => e.key));
