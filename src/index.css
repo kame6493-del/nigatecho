@@ -484,6 +484,14 @@ img { max-width: 100%; }
 .links { list-style: none; padding: 0 14px; margin: 0; background: var(--sheet); border: 1px solid var(--line); border-radius: var(--r); }
 .links li + li { border-top: 1px solid var(--line); }
 .links a { display: block; padding: 12px 2px; color: var(--navy); }
+/* 設定の下の「作者のほかのアプリ」(Android だけ)。設定の links と同じ白い札に、アイコンと ひと言 */
+.more-apps { margin: 14px 0 0; }
+.more-apps h2 { margin: 0 0 6px 4px; font-size: .8em; font-weight: 700; color: var(--ink-3); letter-spacing: .04em; }
+.links a.more-app { display: flex; align-items: center; gap: 12px; padding: 10px 2px; color: var(--ink); text-decoration: none; }
+.more-app img { width: 44px; height: 44px; border-radius: 10px; flex: none; border: 1px solid var(--line); }
+.more-app span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.more-app b { font-size: .95em; }
+.more-app small { font-size: .78em; color: var(--ink-2); line-height: 1.45; }
 .sources .card p { font-size: .9em; }
 .src-list { list-style: none; padding: 0; margin: 8px 0; font-size: .88em; }
 .src-list li { padding: 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }

@@ -209,4 +209,5 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 出す場面は 1.4.6 のまま(結果の画面で 苦手ノートから消せた・練習5問以上で正答率が前の回より上がって6割以上・模試で合格点超え。最後の問題が正解・購入画面から30分以上)
 - 変えた所: 前のお願いから1年 → 30日。1人に最大3回(asks を端末に記録。1.4.6〜1.4.7 でお願い済みの人は1回と数える)。使い始めて3日以上・5回以上は同じ
 - 試験: src/domain/review.test.ts(22件)。npx vitest run 144 passed / 6 skipped
+- 11/3 夜 追加: 設定の一番下に「作者のほかのアプリ」(パスダン・タベドキ。Android だけ)。リンクは Play の referrer=utm_source=nigatecho_matome / utm_medium=crosspromo / utm_campaign=settings。<a target="_blank"> を Capacitor が Play ストアのアプリへ渡す(評価のリンクと同じ)。設計は ios_release/promo/cross_promo_1103/DESIGN.md。試験 src/domain/moreApps.test.ts・src/ui/MoreApps.test.tsx、npx vitest run 151 passed / 6 skipped。画面 ios_release/promo/cross_promo_1103/shots/matome_settings_360x640.png
 - AAB: releases/nigatecho-kanri-1.4.8-vc16-r8.aab(R8・mapping あり)。iOS は出し直さない。Play には未提出(ios_release/play/upload_matome_vc16_1103.py・prod_release_matome_1103.py は未実行)

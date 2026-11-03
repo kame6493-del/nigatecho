@@ -7,6 +7,7 @@ import { storeReviewUrl } from '../domain/review';
 import { restore, resetMock } from '../platform/billing';
 import { setDailyReminder } from '../platform/native';
 import { TopBar } from './parts';
+import { MoreApps } from './MoreApps';
 
 const SITE = APP.site;
 /** ストアの評価を書くページ(見返りは無し。押したい人だけ) */
@@ -75,6 +76,7 @@ export function SettingsPage(p: {
         <li><a href={`${SITE}privacy.html`} target="_blank" rel="noreferrer">プライバシーポリシー</a></li>
         <li><a href={`${SITE}terms.html`} target="_blank" rel="noreferrer">利用規約</a></li>
       </ul>
+      <MoreApps />
       <p className="credit">{EXAM.credit}</p>
       <p className="credit">{disclaimerOf(EXAM)}</p>
 
