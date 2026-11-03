@@ -203,3 +203,10 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 試験: src/domain/review.test.ts を条件ごとに書き直し(19件)。npm run test:all 全部通過、npm run build 通過
 - 版: iOS MARKETING_VERSION 1.4.6 / Android versionCode 12・1.4.6。1.4.5(枝 ios-multi-1.4.5 ee58deb・ビルド38)には混ぜていない。iOS の 1.4.6 は 1.4.5 の審査が終わってから、この枝で TestFlight ビルドを作る
 - Android: releases/nigatecho-kanri-1.4.6-vc12.aab(署名済み)を alpha(クローズドテスト)に上げた(ios_release/play/upload_multi_vc12_1028.py、10/28 11:05 commit)。製品版(vc10 / 1.4.3)には触っていない
+
+## 1.4.8(Android vc16) 評価のお願いの間を30日・最大3回に(2026-11-03)
+- 持ち主 11/3「ダウンロード中々増えません」「良い感じにして」。窓は今までどおり OS の物(@capacitor-community/in-app-review)だけ。星を選ばせる画面・特典との引き換えは無し
+- 出す場面は 1.4.6 のまま(結果の画面で 苦手ノートから消せた・練習5問以上で正答率が前の回より上がって6割以上・模試で合格点超え。最後の問題が正解・購入画面から30分以上)
+- 変えた所: 前のお願いから1年 → 30日。1人に最大3回(asks を端末に記録。1.4.6〜1.4.7 でお願い済みの人は1回と数える)。使い始めて3日以上・5回以上は同じ
+- 試験: src/domain/review.test.ts(22件)。npx vitest run 144 passed / 6 skipped
+- AAB: releases/nigatecho-kanri-1.4.8-vc16-r8.aab(R8・mapping あり)。iOS は出し直さない。Play には未提出(ios_release/play/upload_matome_vc16_1103.py・prod_release_matome_1103.py は未実行)

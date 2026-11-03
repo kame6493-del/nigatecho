@@ -1,5 +1,5 @@
 /**
- * ストアの評価をお願いする時機(1.4.6 から。出す条件はこのファイルの reviewOnSessionEnd と canCallStoreReview の2つだけ)。
+ * ストアの評価をお願いする時機(1.4.6 から。1.4.8 で間を30日・最大3回に。出す条件はこのファイルの reviewOnSessionEnd と canCallStoreReview の2つだけ)。
  * 出すのは OS の評価の画面(iOS は SKStoreReviewController、Android は Google Play In-App Review)だけで、
  * 自前の「星をつけて」「気に入りましたか?」の画面は作らない。評価と見返り(解放・完全版など)は結びつけない(App Store 5.6.1・Play の決まり)。
  *
@@ -8,7 +8,7 @@
  * - 最後に解いた問題が正解だった(間違えた直後には出さない)
  * - 使い始めてから3日以上たち、解き終えた回がこの回を含めて5回以上(最初の起動・使い始めたばかりの人には出さない)
  * - 購入画面を開いてから30分以上たっている(課金の画面の直後には出さない)
- * - 前にお願いしてから1年以上(こちらからは1年に1回。Apple の上限は年3回、Google も回数を絞る。出すかどうかは最後に OS が決める)
+ * - 前にお願いしてから30日以上・これまでのお願いが3回未満(1人に最大3回。Apple の上限は年3回、Google も回数を絞る。出すかどうかは最後に OS が決める)
  * 解いている途中・開いただけの時には判断しない。記録は試験をまたいで1つ(端末に1つ)。
  */
 import { dayKey } from './study';
@@ -32,6 +32,8 @@ export interface ReviewState {
   lastRate: number;
   /** 最後に購入画面を開いた時刻(ms)。0 = まだ */
   paywallAt: number;
+  /** これまでにお願いした回数(1.4.8 から。前の版でお願い済みの人は 1 から数える) */
+  asks: number;
 }
 
 export interface SessionEnd {
@@ -51,12 +53,14 @@ export interface SessionEnd {
   answered?: number;
 }
 
-export const EMPTY_REVIEW: ReviewState = { sessions: 0, askedAt: 0, cleared: 0, firstAt: 0, lastOpenDay: '', openStreak: 0, openDays: 0, lastRate: -1, paywallAt: 0 };
+export const EMPTY_REVIEW: ReviewState = { sessions: 0, askedAt: 0, cleared: 0, firstAt: 0, lastOpenDay: '', openStreak: 0, openDays: 0, lastRate: -1, paywallAt: 0, asks: 0 };
 
 const DAY = 86400000;
 const MIN = 60000;
-/** お願いの間は1年あける(Apple の上限は年3回。こちらからは1年に1回だけ呼ぶ) */
-export const REVIEW_GAP_DAYS = 365;
+/** お願いの間は30日あける(一度出したら30日は出さない) */
+export const REVIEW_GAP_DAYS = 30;
+/** 1人にお願いする回数の上限 */
+export const REVIEW_MAX_ASKS = 3;
 /** 使い始めてから何日たったらお願いしてよいか */
 export const REVIEW_MIN_DAYS = 3;
 /** 解き終えた回が何回以上ならお願いしてよいか(この回を含む) */
@@ -90,13 +94,14 @@ export function reviewOnPaywall(s: ReviewState, now: number): ReviewState {
   return { ...s, paywallAt: now };
 }
 
-/** いまお願いしてよい人・間か(使い始めて3日以上・5回以上解いた・購入画面の直後でない・前のお願いから1年)。sessions はこの回を含めた数 */
+/** いまお願いしてよい人・間か(使い始めて3日以上・5回以上解いた・購入画面の直後でない・前のお願いから30日・3回未満)。sessions はこの回を含めた数 */
 export function reviewRested(s: ReviewState, now: number): boolean {
   const oldEnough = s.firstAt > 0 && now - s.firstAt >= REVIEW_MIN_DAYS * DAY;
   const usedEnough = s.sessions >= REVIEW_MIN_SESSIONS;
   const notAfterPaywall = !s.paywallAt || now - s.paywallAt >= REVIEW_PAYWALL_QUIET_MIN * MIN;
   const rested = !s.askedAt || now - s.askedAt >= REVIEW_GAP_DAYS * DAY;
-  return oldEnough && usedEnough && notAfterPaywall && rested;
+  const underCap = s.asks < REVIEW_MAX_ASKS;
+  return oldEnough && usedEnough && notAfterPaywall && rested && underCap;
 }
 
 /** 1回解き終えたときに呼ぶ。次の記録と、いまお願いするかを返す */
@@ -117,7 +122,7 @@ export function reviewOnSessionEnd(s0: ReviewState, e: SessionEnd, now: number):
   const rateWin = practice && s.lastRate >= 0 && rate > s.lastRate && rate >= REVIEW_RATE_FLOOR;
   const lastRate = practice ? rate : s.lastRate;
   const ask = reviewRested({ ...s, sessions }, now) && happy && (clearedWin || mockWin || rateWin);
-  return { state: { ...s, sessions, askedAt: ask ? now : s.askedAt, cleared, lastRate }, ask };
+  return { state: { ...s, sessions, askedAt: ask ? now : s.askedAt, asks: ask ? s.asks + 1 : s.asks, cleared, lastRate }, ask };
 }
 
 /** OS の評価の画面を呼んでよい所か。iOS・Android のアプリだけ。ブラウザ版・開発用の表示(vite dev)・審査用の録画ビルドでは呼ばない */
@@ -135,6 +140,8 @@ export function normalizeReview(x: unknown): ReviewState {
     openDays: day ? Math.floor(n(o.openDays)) : 0,
     lastRate: typeof o.lastRate === 'number' && o.lastRate >= 0 && o.lastRate <= 1 ? o.lastRate : -1,
     paywallAt: n(o.paywallAt),
+    // 1.4.6〜1.4.7 でお願い済みの人(回数の記録が無い)は1回と数える
+    asks: Math.min(REVIEW_MAX_ASKS, Math.floor(n(o.asks)) || (n(o.askedAt) > 0 ? 1 : 0)),
   };
 }
 
