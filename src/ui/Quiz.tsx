@@ -8,6 +8,7 @@ import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 import { ART } from './look';
 import { LockedPreview, Ring, TopBar } from './parts';
+import { ThanksNote } from './Thanks';
 import { freeLeft, lockedPreview, resultPreviewSubjects, subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
 import { IArrow, IBookmark, IBulb, ICheck, IChevron, IDoc, IRepeat, IX, IBook } from './Icons';
 
@@ -112,6 +113,7 @@ function Practice(p: Props & { qs: Question[] }) {
           <button className="btn soft-red" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}><IRepeat size={20} />もう一度同じ問題で解く</button>
           <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
+        <ThanksNote />
       </div>
     );
   }
@@ -426,6 +428,7 @@ function MockRun(p: Props & { qs: Question[] }) {
           <button className="btn soft-red" onClick={p.onNigate}><IDoc size={20} />間違えた{wrong.length}問を苦手から解く</button>
           <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
+        <ThanksNote />
       </div>
     );
   }

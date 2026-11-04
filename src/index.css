@@ -383,6 +383,8 @@ img { max-width: 100%; }
 .result-list .subj { color: var(--ink-3); }
 .result-actions { display: grid; gap: 10px; }
 .result-actions .btn { min-height: 54px; }
+/* 結果の画面のいちばん下のお礼の一言(小さく・押せない) */
+.thanks-note { margin: 18px 0 4px; text-align: center; font-size: calc(12px * var(--fs, 1)); color: var(--ink-3); }
 .full-note { margin-top: 18px; padding: 14px 16px; border: 1.5px solid #f3d8b8; border-radius: var(--r); background: linear-gradient(135deg, #fff6e6, #fff0ef); display: grid; gap: 10px; }
 .full-note p { margin: 0; font-size: .9em; color: var(--ink-2); line-height: 1.6; }
 .subject-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 14px; padding: 6px 12px; font-size: .9em; }

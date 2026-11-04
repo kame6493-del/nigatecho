@@ -203,3 +203,10 @@ powershell -File scripts/build-android.ps1 -Exam <試験>
 - 試験: src/domain/review.test.ts を条件ごとに書き直し(19件)。npm run test:all 全部通過、npm run build 通過
 - 版: iOS MARKETING_VERSION 1.4.6 / Android versionCode 12・1.4.6。1.4.5(枝 ios-multi-1.4.5 ee58deb・ビルド38)には混ぜていない。iOS の 1.4.6 は 1.4.5 の審査が終わってから、この枝で TestFlight ビルドを作る
 - Android: releases/nigatecho-kanri-1.4.6-vc12.aab(署名済み)を alpha(クローズドテスト)に上げた(ios_release/play/upload_multi_vc12_1028.py、10/28 11:05 commit)。製品版(vc10 / 1.4.3)には触っていない
+
+## 1.4.7(iOS) 評価の窓の回数と、結果の画面のお礼の一言(2026-11-04)
+- 持ち主 11/4「『遊んでいただいてありがとうございます。レビューで★5お願いします』みたいなのが出るように」(まとめ版)。星の数を指定するお願い・自前のお願いの画面は 5.6.1 と評価の操作の禁止に当たるので入れない。代わりに下の2つ
+- 評価の窓: Android 1.4.8(vc16、枝 android-multi-1.4.8-review 1dd39da)の src/domain/review.ts・review.test.ts をそのまま取り込んだ。前のお願いから1年 → 30日、1人に最大3回(asks を端末に記録、1.4.6〜1.4.7 でお願い済みの人は1回と数える)。出す場面・条件は 1.4.6 のまま。iOS は SKStoreReviewController(@capacitor-community/in-app-review)だけで、Apple の側でも365日に3回まで
+- お礼の一言: 練習の結果と模試の結果の画面のいちばん下(「ホームへ戻る」の下)に「いつも使っていただき、ありがとうございます」を小さく出す(src/domain/thanks.ts・src/ui/Thanks.tsx・.thanks-note)。ただの文で押せない。星・レビュー・評価には触れない。Android は次の版で入れる
+- 試験: src/ui/thanks.test.tsx(7件: 文・星やレビューの言葉が無い・押せない・2つの結果の画面の最後・自前のお願いの文が無い・OS の窓の呼び出しは1か所)。npm run test:all 全部通過(まとめ 151 passed / 6 skipped、単体3本 各116 passed)、npm run build・npx cap sync ios 通過
+- 版: iOS MARKETING_VERSION 1.4.7 のまま。Android の build.gradle は変えていない(この枝の Android は vc15)
