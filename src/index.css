@@ -619,3 +619,8 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .pw-opts.set-first .pw-opt.set .pw-opt-price { color: #fff; }
 .pw-opts.set-first .pw-opt:not(.set) { background: var(--sheet); color: var(--ink); }
 .pw-opts.set-first .pw-opt:not(.set) .pw-opt-price { color: var(--red-d); }
+
+/* 結果のあとの「この試験の続き」(ui/AfterResult.tsx)。下のタブより上に出す */
+.after-result-backdrop { z-index: 40; }
+.after-result .full-progress { margin: 0 0 16px; padding: 12px 14px; border: 1.5px solid #f3d8b8; border-radius: var(--r); background: linear-gradient(135deg, #fff6e6, #fff0ef); gap: 8px; }
+.after-result .full-progress li span { min-width: 0; }

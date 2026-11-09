@@ -42,6 +42,8 @@ interface Props {
   onPaywall: (where: string) => void;
   /** 出典と参考文献の画面へ */
   onSources?: () => void;
+  /** 結果の画面から「もう一度同じ問題で解く」を押した(続けて解く人。結果のあとの案内を出さない) */
+  onRestart?: () => void;
 }
 
 interface Done { id: string; ok: boolean; wasNigate: boolean }
@@ -110,7 +112,7 @@ function Practice(p: Props & { qs: Question[] }) {
         </ol>
         <div className="result-actions">
           {nigateLeft > 0 && <button className="btn soft-red" onClick={p.onNigate}><IDoc size={20} />間違えた問題を復習する(苦手を解く {nigateLeft}問)</button>}
-          <button className="btn soft-red" onClick={() => { setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}><IRepeat size={20} />もう一度同じ問題で解く</button>
+          <button className="btn soft-red" onClick={() => { p.onRestart?.(); setOrder(order.slice()); setI(0); setPicked(null); setSel([]); setDone([]); setFinished(false); }}><IRepeat size={20} />もう一度同じ問題で解く</button>
           <button className="btn" onClick={p.onHome}><IBook size={20} />ホームへ戻る</button>
         </div>
         <ThanksNote />

@@ -3,6 +3,7 @@ import type { AppData } from '../domain/types';
 import { emptyData, normalize } from '../domain/data';
 import { EXAM, EXAMS } from '../domain/exam';
 import { EMPTY_REVIEW, normalizeReview, type ReviewState } from '../domain/review';
+import { EMPTY_AFTER_RESULT, normalizeAfterResult, type AfterResultState } from '../domain/afterResult';
 
 /**
  * 記録の保存先は試験ごと。nigatecho.<試験の key>.v1(管理栄養士は nigatecho.kanri-eiyoushi.v1)。
@@ -107,5 +108,25 @@ export async function bumpPaywallOpened(): Promise<number> {
     return n + 1;
   } catch {
     return 0;
+  }
+}
+
+/** 結果のあとの「この試験の続き」を出した日・続けて閉じた回数。試験をまたいで端末に1つ */
+const AFTER_RESULT_KEY = 'nigatecho.afterResult';
+
+export async function loadAfterResult(): Promise<AfterResultState> {
+  try {
+    const { value } = await Preferences.get({ key: AFTER_RESULT_KEY });
+    return value ? normalizeAfterResult(JSON.parse(value)) : EMPTY_AFTER_RESULT;
+  } catch {
+    return EMPTY_AFTER_RESULT;
+  }
+}
+
+export async function saveAfterResult(s: AfterResultState): Promise<void> {
+  try {
+    await Preferences.set({ key: AFTER_RESULT_KEY, value: JSON.stringify(s) });
+  } catch (e) {
+    console.error('[nigatecho] save afterResult', e);
   }
 }

@@ -27,6 +27,8 @@ export const ATTR = {
 export const PAYWALL_FROM = [
   'home', 'search', 'note', 'note-preview', 'stats', 'exam', 'subject', 'settings',
   'result', 'result-preview', 'mock-result', 'quiz', 'date-plan',
+  // 結果の画面を出たあとの「この試験の続き」(domain/afterResult.ts)
+  'after-result',
 ] as const;
 
 export function fromOf(from: string): string {
