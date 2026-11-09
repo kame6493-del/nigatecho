@@ -231,6 +231,20 @@ export function partRows(all: Question[], cfg: ExamConfig): { key: 'sub' | 'gene
 }
 
 /**
+ * 採点対象外の問題(厚生労働省が採点から外した問題)の数。free は無料の回の分、full は全部の回の分。
+ * 区分の表(partRows)は採点される問題だけを数えるので、表の合計に足すと問題データの数(購入画面の見出しの数)になる。
+ */
+export function excludedCount(all: Question[], cfg: ExamConfig): { free: number; full: number } {
+  let free = 0, full = 0;
+  for (const q of all) {
+    if (!q.excluded) continue;
+    full++;
+    if (cfg.freeExams.includes(q.exam)) free++;
+  }
+  return { free, full };
+}
+
+/**
  * 無料の回の必修問題(subPass が科目で決まる試験)を、全部解き終えたか。終えたら本人の記録(最後の答えで何問正解か)を返す。
  * 看護師が「第115回の必修50問を解き終えた」ときの案内に使う。まだ残りがある・基準の無い試験は null
  */

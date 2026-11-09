@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { EXAMS } from './exam';
 import { emptyData } from './data';
 import { record } from './study';
-import { partRows, seasonFacts, subFreeDone } from './upsell';
+import { excludedCount, partRows, seasonFacts, subFreeDone } from './upsell';
 import { afterResultView } from './afterResult';
 import type { ExamConfig, Question } from './types';
 
@@ -73,5 +73,25 @@ describe.skipIf(!HAS_NURSE)('看護師: 結果のあとの「この試験の続�
     const kAll = JSON.parse(readFileSync(`exams/kaigo/data/questions.json`, 'utf-8')) as Question[];
     const kv = afterResultView(kAll, kAll.filter((q) => q.exam === 38), emptyData(), kaigo, new Date(2026, 10, 9).getTime())!;
     expect(kv.caseGrowth).toBeNull();
+  });
+});
+
+describe.skipIf(!HAS_NURSE)('看護師: 画面の問題数を1つにそろえる(11/9)', () => {
+  it('区分の表の合計 + 採点対象外 = 問題データの数(見出しの 1,200問・無料の 240問)', () => {
+    const rows = partRows(realAll, nurse)!;
+    const ex = excludedCount(realAll, nurse);
+    expect(ex).toEqual({ free: 1, full: 3 });
+    expect(rows.reduce((a, r) => a + r.full, 0) + ex.full).toBe(realAll.length);
+    expect(rows.reduce((a, r) => a + r.free, 0) + ex.free).toBe(realAll.filter((q) => q.exam === 115).length);
+    expect(realAll.length).toBe(nurse.count);
+    expect(nurse.count).toBe(1200);
+  });
+  it('結果のあとの案内の数は「まだ解いていない」問題(採点される問題で、解いた分だけ減る)', () => {
+    const open = realAll.filter((q) => q.exam === 115);
+    let d = emptyData();
+    for (const q of open.filter((x) => !x.excluded).slice(0, 10)) d = record(d, q, true, 1);
+    const v = afterResultView(realAll, open, d, nurse, new Date(2026, 10, 9).getTime())!;
+    expect(v.plan!.unseenFull).toBe(1197 - 10);
+    expect(v.lockedCount).toBe(960);
   });
 });

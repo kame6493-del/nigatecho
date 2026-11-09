@@ -111,7 +111,7 @@ def check_plan(pg, exam, e, qs, premium=False):
     if premium:
         check(pg.locator("[data-upsell=date-plan]").count() == 0, f"{exam}: 買った人には完全版の目安を出さない")
     else:
-        check(f"完全版の {un_full}問なら" in t and f"1日 {math.ceil(un_full / days)}問で1周" in t,
+        check(f"完全版の残り {un_full:,}問なら" in t and f"1日 {math.ceil(un_full / days)}問で1周" in t,
               f"{exam}: 完全版の目安の数が合う({un_full}問 → 1日 {math.ceil(un_full / days)}問) [{t}]")
     check("¥" not in t and "円" not in t and not PUSHY.search(t), f"{exam}: 目安に値段・急がせる文が無い")
     return un_now, un_full, days

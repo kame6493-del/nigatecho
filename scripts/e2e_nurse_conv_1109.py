@@ -106,13 +106,27 @@ def check_paywall(pg, tag):
     if ap["from"] <= today <= ap["to"]:
         to = datetime.date.fromisoformat(ap["to"])
         check(f"願書の受付は {to.month}月{to.day}日まで" in t, f"{tag}: 願書の受付の締め切り")
-    rows = pg.locator("[data-upsell=paywall-parts] tr[data-part]")
+    rows = pg.locator("[data-upsell=paywall-parts] tbody tr[data-part]")
     check(rows.count() == 3, f"{tag}: 区分の表が3行 ({rows.count()})")
     for k, label in [("sub", "必修問題"), ("general", "一般問題"), ("case", "状況設定問題")]:
         r = pg.locator(f"[data-upsell=paywall-parts] tr[data-part={k}]").inner_text()
         f, a = C[k]
         nums = re.findall(r"(\d+)問", r)
         check(label in r and nums == [str(f), str(a)], f"{tag}: {label} の数が問題データと同じ {f}→{a} [{r}]")
+    # 11/9 数をそろえる: 見出し・表の合計・比べる表は、どれも問題データの数(採点対象外も含む 1,200問)
+    n_all, n_free = len(QS), len([q for q in QS if q["exam"] in FREE])
+    x_all, x_free = len([q for q in QS if q.get("excluded")]), len([q for q in QS if q.get("excluded") and q["exam"] in FREE])
+    tot = pg.locator("[data-upsell=paywall-parts] tr[data-part=total]").inner_text()
+    check(re.findall(r"([\d,]+)問", tot) == [f"{n_free:,}", f"{n_all:,}"], f"{tag}: 表の合計 {n_free}・{n_all} [{tot}]")
+    check(sum(C[k][1] for k in C) + x_all == n_all and sum(C[k][0] for k in C) + x_free == n_free, f"{tag}: 区分の合計+採点対象外 = 問題データの数")
+    note = pg.locator("[data-upsell=paywall-parts] [data-part=excluded]").inner_text()
+    check(f"無料{x_free}問・完全版{x_all}問" in note, f"{tag}: 採点対象外の数 [{note}]")
+    check(f"{len(E.get('rounds', [])) or len(set(q['exam'] for q in QS))}年分 {n_all:,}問で" in t, f"{tag}: 見出しの数 {n_all:,}")
+    tb = pg.locator(".pw-table tbody tr").first.inner_text()
+    check(f"{n_free:,}問" in tb and f"{n_all:,}問" in tb, f"{tag}: 比べる表の数 [{tb}]")
+    check(f"の過去問 {n_all - n_free:,}問が増える" in t, f"{tag}: 増える数 {n_all - n_free}")
+    nums_all = {int(x.replace(",", "")) for x in re.findall(r"([\d,]{4,})問", t)}
+    check(nums_all <= {n_all}, f"{tag}: 4桁の問題数は {n_all:,} だけ {nums_all}")
     cs = pg.locator("[data-upsell=paywall-case]").inner_text()
     check(f"{C['case'][0]}問 → {C['case'][1]}問" in cs, f"{tag}: 状況設定の行 [{cs}]")
     check(not PUSHY.search(t), f"{tag}: 急がせる言い回しが無い")
