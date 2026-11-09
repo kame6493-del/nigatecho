@@ -29,6 +29,8 @@ export const PAYWALL_FROM = [
   'result', 'result-preview', 'mock-result', 'quiz', 'date-plan',
   // 結果の画面を出たあとの「この試験の続き」(domain/afterResult.ts)
   'after-result',
+  // 看護師: 無料の回の必修問題を全部解いたときのホームの1枚(2026-11-09)
+  'home-sub-done',
 ] as const;
 
 export function fromOf(from: string): string {

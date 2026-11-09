@@ -3,7 +3,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, daysLeft, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
-import { freeLeft, homeUpsell, studyPlan, subPassGrowth, subSeen } from '../domain/upsell';
+import { freeLeft, homeUpsell, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
@@ -25,6 +25,8 @@ interface Props {
   onSubjects: () => void;
   onMock: () => void;
   onPaywall: () => void;
+  /** 無料の回の必修問題を解き終えた案内から購入画面へ(看護師) */
+  onPaywallSub?: () => void;
   onSettings: () => void;
   onSources: () => void;
   /** 試験を切り替える画面へ */
@@ -73,6 +75,10 @@ export function Home(p: Props) {
   const lockedRange = examRange(exams[exams.length - 1], exams.find((e) => !free.includes(e)) ?? exams[0]);
   /** 看護師の必修問題のように別の基準がある試験は、増える分のうちの数も書く */
   const sub = subPassGrowth(p.all, EXAM);
+  /** 看護師: 無料の回の必修問題を全部解き終えたら、その記録と、完全版で増える必修・状況設定の数を1枚で出す */
+  const subDone2 = !p.premium && lockedCount > 0 && upsell !== 'finished' ? subFreeDone(p.open, p.data, EXAM) : null;
+  const subRest = subDone2 && sub ? sub.full - sub.now : 0;
+  const caseRow = subDone2 ? partRows(p.all, EXAM)?.find((r) => r.key === 'case') : undefined;
   const band = (
     <button className={`unlock ${upsell === 'raised' ? 'raised' : ''}`} onClick={p.onPaywall} data-upsell={`home-${upsell}`}>
       <span className="unlock-title">完全版で、あと{lockedCount}問</span>
@@ -119,6 +125,15 @@ export function Home(p: Props) {
           <p className="done-title">第{free.join('・')}回は、すべて解きました</p>
           <p className="done-sub">{lockedRange}の{lockedCount}問と、その回の本番形式の模試は完全版で解けます。解いた分は苦手ノートと予想点にも入ります。</p>
           <button className="btn primary wide" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
+        </section>
+      )}
+
+      {subDone2 && subRest > 0 && (
+        <section className="card done-card sub-done" data-upsell="home-sub-done">
+          <p className="done-title">第{subDone2.rounds.join('・')}回の{EXAM.subPass!.label}を、全部解きました</p>
+          <p className={`done-score ${subDone2.ok >= subDone2.need ? 'good' : 'bad'}`}>最後の答えで {subDone2.ok}/{subDone2.total}問 正解(基準の目安 {subDone2.need}問){subDone2.ok >= subDone2.need ? '' : ` あと${subDone2.need - subDone2.ok}問`}</p>
+          <p className="done-sub">{lockedRange}の{EXAM.subPass!.label} {subRest}問{caseRow && caseRow.full > caseRow.free ? `と${caseRow.label} ${caseRow.full - caseRow.free}問` : ''}は、完全版で解けます。間違えた{EXAM.subPass!.label}は、このまま苦手ノートから解けます。</p>
+          <button className="btn primary wide" onClick={p.onPaywallSub ?? p.onPaywall}>完全版の{EXAM.subPass!.label}を見る<IChevron size={16} /></button>
         </section>
       )}
 

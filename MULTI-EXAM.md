@@ -112,3 +112,11 @@ RevenueCat の 10/24〜30 で、まとめ版で売れたのは介護だけ(看�
 - 管理栄養士: 見出しに「第41回の試験まで あと◯日」(その日の日付から)・試験日・願書の受付 11月2日〜12月4日(消印有効。受付中は「12月4日まで」、過ぎたら出さない)。exam.json の paywallSeason。中身の並びは介護と同じ(本人の記録・表・ボタン)
 - 確かめ: npm run test:all(src/domain/paywall1031.test.ts を足した)・e2e_redesign 830/0・e2e_nurse_all 505/0・e2e_sales_1027 70/0・e2e_paywall_1022 376/0(臨床を足した並びに直した)。写真は ios_release/promo/rc_1031/after(after_shots.py、390x844 と 360x640)
 - Android vc14(1.4.7)を alpha にだけ上げた(ios_release/play/upload_multi_vc14_1031.py)。iOS は 1.4.7 のまま、この枝でビルドする
+
+## 看護師の買う割合(2026-11-09・nurse-conv-1109 / android-nurse-conv-1109 ブランチ)
+持ち主 11/9「看護の買う割合上げるようにして」。値段・商品・無料の範囲(第115回)は変えていない。介護・ほかの試験の画面は前のまま(区分の表・状況設定の行・時期の見出しは exam.json に設定のある看護師だけ)。
+- 購入画面: 見出しに「第116回の試験まで あと◯日」・試験日・願書の受付(11月6日〜27日 消印有効、過ぎたら出さない。exam.json の paywallSeason)。「本番と同じ3つの区分で」の表(必修 50→249・一般 129→648・状況設定 60→300。問題データから数える。upsell.ts の partRows、exam.json の paywallParts)。チェックの行に状況設定問題 60→300
+- ホーム: 第115回の必修問題を全部解いたら1枚(最後の答えで何問正解か・基準の目安 40問・完全版で増える必修 199問と状況設定 240問)。押すと購入画面(paywall_from=home-sub-done)。無料の回を全部解いた人は前からの1枚だけ
+- 結果: 最後の必修を解いた回の結果に「第115回の必修問題 50問を、全部解きました。最後の答えで ◯/50問正解(基準の目安 40問)」
+- 結果のあとの「この試験の続き」に状況設定問題の行
+- 確かめ: npm run test:all(src/domain/nurse1109.test.ts を足した)・e2e_nurse_conv_1109.py 38/0・e2e_after_result_1109 72/0・e2e_nurse_all 505/0・e2e_sales_1027 70/0・e2e_paywall_1022 376/0。写真 scripts/e2e_out/nurse_conv_1109/

@@ -57,8 +57,8 @@ describe.skipIf(SINGLE)('管理栄養士: 購入画面の見出しの時期(ま�
     expect(seasonFacts(kanri, new Date(2027, 1, 28, 9).getTime())).toMatchObject({ days: 0 });
     expect(seasonFacts(kanri, new Date(2027, 2, 1).getTime())).toBeNull();
   });
-  it('ほかの試験(介護福祉士など)には出さない', () => {
-    for (const e of EXAMS.filter((x) => x.dir !== 'kanri')) expect(seasonFacts(e, T0)).toBeNull();
+  it('ほかの試験(介護福祉士など)には出さない(看護師は 2026-11-09 から第116回の時期を出す。nurse1109.test.ts)', () => {
+    for (const e of EXAMS.filter((x) => x.dir !== 'kanri' && x.dir !== 'nurse')) expect(seasonFacts(e, T0)).toBeNull();
   });
   it('日付の書き方', () => {
     expect(jpDate('2026-11-02', T0)).toBe('11月2日');

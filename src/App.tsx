@@ -325,6 +325,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onSubjects={() => push({ name: 'subjects' })}
           onMock={() => push({ name: 'exams', mock: true })}
           onPaywall={() => push({ name: 'paywall', from: 'home' })}
+          onPaywallSub={() => push({ name: 'paywall', from: 'home-sub-done' })}
           onSettings={() => goTab('settings')}
           onNote={() => goTab('note')}
           onStats={() => goTab('stats')}
