@@ -1,0 +1,38 @@
+{
+ "kaigo": [
+  {
+   "file": "01_first_day_home.png",
+   "note": "はじめて入れた日: 10問のあとのホーム(案内なし)"
+  },
+  {
+   "file": "02_after_result_sheet.png",
+   "note": "戻ってきた人: 10問のあとホームへ戻ったときの「介護福祉士の続き」"
+  },
+  {
+   "file": "03_closed.png",
+   "note": "閉じたあとのホーム"
+  },
+  {
+   "file": "04_paywall_from_sheet.png",
+   "note": "案内から開いた購入画面"
+  }
+ ],
+ "nurse": [
+  {
+   "file": "01_after_result_sheet.png",
+   "note": "看護師: 必修10問のあとの「看護師の続き」"
+  }
+ ],
+ "kanri": [
+  {
+   "file": "01_after_result_sheet.png",
+   "note": "管理栄養士: 10問のあとの案内"
+  }
+ ],
+ "shakai": [
+  {
+   "file": "01_after_result_sheet.png",
+   "note": "社会福祉士: 10問のあとの案内"
+  }
+ ]
+}

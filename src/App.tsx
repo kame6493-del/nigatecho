@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
-import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
-import { bumpPaywallOpened, hasAnyRecord, loadData, loadExamChoice, loadReview, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, lockedSummary, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
+import { bumpPaywallOpened, hasAnyRecord, loadAfterResult, loadData, loadExamChoice, loadReview, saveAfterResult, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnPaywall, reviewOnSessionEnd, type SessionEnd } from './domain/review';
+import { afterResultClosed, afterResultDecide, afterResultOpened, afterResultShown, type AfterResultState } from './domain/afterResult';
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
 import { examAttrs, firstExamAttrs, paywallAttrs } from './domain/track';
 import { askReview } from './platform/native';
@@ -19,6 +20,7 @@ import { ExamSwitch } from './ui/ExamSwitch';
 import { Search } from './ui/Search';
 import { NoteBook } from './ui/NoteBook';
 import { Stats } from './ui/Stats';
+import { AfterResultSheet } from './ui/AfterResult';
 import { TabBar, type Tab } from './ui/parts';
 import { setDailyReminder } from './platform/native';
 
@@ -38,6 +40,13 @@ export type Route =
 
 /** 評価のお願いの記録は読んで書くまでを1本ずつ(続けて解き終えても数え漏れない) */
 let reviewChain: Promise<void> = Promise.resolve();
+
+/** 結果のあとの案内の記録も、読んで書くまでを1本ずつ */
+let afterChain: Promise<void> = Promise.resolve();
+function afterResultSave(f: (s: AfterResultState) => AfterResultState) {
+  afterChain = afterChain.then(async () => { await saveAfterResult(f(await loadAfterResult())); })
+    .catch((err) => console.error('[nigatecho] afterResult', err));
+}
 
 /** 開いた日を数える(初めて開いた日・何日続けて開いたか)。ここではお願いしない */
 function markOpened() {
@@ -166,10 +175,20 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   /** 年度別と科目別の切り替え(戻る先は同じ) */
   const swapTop = useCallback((r: Route) => setStack((s) => [...s.slice(0, -1), r]), []);
   const [remindMsg, setRemindMsg] = useState('');
+  /** 結果のあとの「この試験の続き」を出しているか(出す条件は domain/afterResult.ts) */
+  const [afterSheet, setAfterSheet] = useState(false);
+  const afterSheetRef = useRef(false);
+  afterSheetRef.current = afterSheet;
+  // 案内を出す前に別の問題・購入画面へ進んだら、案内はそのまま消す(あとから出し直さない)
+  useEffect(() => { if (route.name === 'quiz' || route.name === 'paywall') setAfterSheet(false); }, [route]);
+  /** 解き終えた回(結果の画面を出ているところ)。結果の画面から出るときに見る。続けて解いたら消す */
+  const ended = useRef<{ mock: boolean; answered: number; completed: boolean; reviewAsked: boolean } | null>(null);
 
   // Android の戻るボタン
   useEffect(() => {
     const h = CapApp.addListener('backButton', () => {
+      // 結果のあとの案内が出ていたら、まずそれを閉じる
+      if (afterSheetRef.current) { closeAfterRef.current(); return; }
       setStack((s) => {
         if (s.length > 1) return s.slice(0, -1);
         // ホーム以外のタブからは、ホームへ戻る
@@ -232,12 +251,47 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
 
   /** 解き終えたとき。良い体験の直後にだけ評価をお願いする(条件は domain/review.ts。出すかどうかは OS が決める) */
   const onSessionEnd = useCallback((e: SessionEnd) => {
+    const end = { mock: e.nigateLeft < 0, answered: e.answered ?? 0, completed: e.completed === true, reviewAsked: false };
+    ended.current = end;
     reviewChain = reviewChain.then(async () => {
       const { state, ask } = reviewOnSessionEnd(await loadReview(), e, Date.now());
       await saveReview(state);
-      if (ask) askReview();
+      if (ask) { end.reviewAsked = true; askReview(); }
     }).catch((err) => console.error('[nigatecho] review', err));
   }, []);
+
+  /**
+   * 結果の画面(または解いている途中)から出るとき。how: home = ホームへ戻る・×、study = 続けて解く、paywall = 購入画面へ。
+   * 解き終えた回から「ホームへ戻る」で出たときだけ、条件を見て「この試験の続き」を出す
+   */
+  const leaveQuiz = (how: 'home' | 'study' | 'paywall') => {
+    const end = ended.current;
+    ended.current = null;
+    if (!end || how !== 'home' || premium || !all || !lockedSummary(all, EXAM) || billing.status !== 'ready') return;
+    reviewChain.then(async () => {
+      const rv = await loadReview();
+      const st = await loadAfterResult();
+      const now = Date.now();
+      const show = afterResultDecide(st, {
+        premium, hasLocked: true, canBuy: true, mock: end.mock, answered: end.answered, completed: end.completed, leave: how,
+        firstAt: rv.firstAt, paywallAt: rv.paywallAt, reviewAsked: end.reviewAsked,
+      }, now);
+      if (!show) return;
+      afterResultSave((s) => afterResultShown(s, now));
+      setAfterSheet(true);
+    }).catch((err) => console.error('[nigatecho] afterResult', err));
+  };
+  const closeAfter = () => {
+    setAfterSheet(false);
+    afterResultSave((s) => afterResultClosed(s, Date.now()));
+  };
+  const closeAfterRef = useRef(closeAfter);
+  closeAfterRef.current = closeAfter;
+  const openAfter = () => {
+    setAfterSheet(false);
+    afterResultSave((s) => afterResultOpened(s));
+    push({ name: 'paywall', from: 'after-result' });
+  };
 
   if (loadError) return <div className="fatal">{loadError}</div>;
   if (!data || !all) return <div className="splash"><span>ニガテ帳</span></div>;
@@ -358,12 +412,13 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onMark={(id) => update((d) => toggleMark(d, id))}
           onMockDone={finishMock}
           onEnd={onSessionEnd}
-          onClose={back}
-          onHome={home}
-          onNigate={() => { back(); starters.nigate(); }}
+          onClose={() => { leaveQuiz('home'); back(); }}
+          onHome={() => { leaveQuiz('home'); home(); }}
+          onNigate={() => { leaveQuiz('study'); back(); starters.nigate(); }}
           // 結果の画面から開いた購入画面は、閉じたら問題の前の画面へ(同じ問題の1問目に戻さない)
-          onPaywall={(where) => setStack((s) => [...s.slice(0, -1), { name: 'paywall', from: where }])}
+          onPaywall={(where) => { leaveQuiz('paywall'); setStack((s) => [...s.slice(0, -1), { name: 'paywall', from: where }]); }}
           onSources={() => push({ name: 'sources' })}
+          onRestart={() => { ended.current = null; }}
         />
       )}
       {route.name === 'paywall' && (
@@ -390,6 +445,9 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
       {route.name === 'mocks' && <MockHistory data={data} onBack={back} />}
       {route.name === 'sources' && <SourcesPage exams={[...new Set(all.map((q) => q.exam))]} onBack={back} />}
       {onTab && <TabBar tab={route.name as Tab} onTab={goTab} badge={nigateCount} />}
+      {afterSheet && (
+        <AfterResultSheet all={all} open={open} data={data} onClose={closeAfter} onOpen={openAfter} />
+      )}
     </div>
   );
 
