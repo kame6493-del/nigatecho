@@ -9,7 +9,7 @@ import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
 import { ART } from './look';
 import { LockedPreview, Ring, TopBar } from './parts';
 import { ThanksNote } from './Thanks';
-import { freeLeft, lockedPreview, resultPreviewSubjects, subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
+import { freeLeft, lockedPreview, resultPreviewSubjects, subFreeDone, subPassGrowth, weakSubjectGrowth } from '../domain/upsell';
 import { IArrow, IBookmark, IBulb, ICheck, IChevron, IDoc, IRepeat, IX, IBook } from './Icons';
 
 export { TopBar } from './parts';
@@ -526,11 +526,14 @@ function FullVersionNote(p: Props & { qs: Question[]; mock?: boolean; done?: { s
   const leftFree = !p.mock && p.done && p.done.length > 0 ? freeLeft(openQs, p.data, EXAM) : null;
   const sub = !p.mock && p.done?.some((d) => EXAM.subPass?.subjects?.includes(d.subject)) ? subPassGrowth(all, EXAM) : null;
   const subGrowth = sub && growth?.subject !== EXAM.subPass?.subjects?.[0] ? sub : null;
+  // 看護師: この回で必修を解き、無料の回の必修を全部解き終えたら、その記録を一番上に(最後の答えで何問正解か・基準の目安)
+  const subDone = didSub && !p.mock ? subFreeDone(openQs, p.data, EXAM) : null;
   return (
     <section className="full-note" data-upsell={p.mock ? 'mock-result' : 'result'}>
       <p>{p.mock
         ? `ほかの回(${examRange(s.from, s.to)})の本番形式の模試と過去問${n}問は、完全版で解けます。`
         : `${EXAM.name}の${examRange(s.from, s.to)}(${n}問)と、その回の本番形式の模試は、完全版で解けます。`}</p>
+      {subDone && <p className="sub-done-line" data-row="sub-done">第{subDone.rounds.join('・')}回の{EXAM.subPass!.label} {subDone.total}問を、全部解きました。最後の答えで <b>{subDone.ok}/{subDone.total}問正解</b>(基準の目安 {subDone.need}問)</p>}
       {(leftFree !== null || growth || subGrowth) && (
         <ul className="full-progress" data-upsell="result-progress">
           {leftFree !== null && <li><span>第{EXAM.freeExams.join('・')}回(無料)の残り</span><b>あと {leftFree}問</b></li>}

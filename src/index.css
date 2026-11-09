@@ -624,3 +624,17 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .after-result-backdrop { z-index: 40; }
 .after-result .full-progress { margin: 0 0 16px; padding: 12px 14px; border: 1.5px solid #f3d8b8; border-radius: var(--r); background: linear-gradient(135deg, #fff6e6, #fff0ef); gap: 8px; }
 .after-result .full-progress li span { min-width: 0; }
+
+/* 2026-11-09 看護師: 必修・一般・状況設定の区分ごとの数(購入画面)と、必修を解き終えたときの案内(ホーム・結果) */
+.pw-parts { margin-bottom: 12px; }
+.pw-parts-table { width: 100%; border-collapse: collapse; font-size: .88em; }
+.pw-parts-table th, .pw-parts-table td { padding: 8px 4px; border-top: 1px solid var(--line); text-align: center; vertical-align: middle; }
+.pw-parts-table thead th { border-top: 0; font-weight: 700; color: var(--ink-2); font-size: .9em; }
+.pw-parts-table td:first-child { text-align: left; font-weight: 700; }
+.pw-parts-table td:last-child { color: var(--red-d); }
+.pw-parts-table small, .pw-parts-table th small { display: block; font-size: .78em; font-weight: 500; color: var(--ink-2); }
+.sub-done .done-score { margin: 0 0 6px; font-size: .95em; font-weight: 800; }
+.sub-done .done-score.good { color: var(--green); }
+.sub-done .done-score.bad { color: var(--red-d); }
+.sub-done-line { margin: 8px 0 0; font-size: .9em; line-height: 1.6; }
+.sub-done-line b { color: var(--red-d); }

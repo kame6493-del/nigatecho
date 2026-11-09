@@ -204,3 +204,41 @@ export function jpDate(iso: string, now?: number): string {
   const md = `${Number(m[2])}月${Number(m[3])}日`;
   return now !== undefined && new Date(now).getFullYear() === Number(m[1]) ? md : `${Number(m[1])}年${md}`;
 }
+
+/**
+ * 出題の区分ごとの問題数(cfg.paywallParts がある試験だけ。看護師の必修問題・一般問題・状況設定問題)。
+ * - 必修: subPass の科目 / 状況設定: 事例文(case)のある問題 / 一般: それ以外
+ * - free は無料の回の数、full は全部の回の数。採点対象外は数えない
+ * 設定の無い試験・完全版で増えない試験は null
+ */
+export function partRows(all: Question[], cfg: ExamConfig): { key: 'sub' | 'general' | 'case'; label: string; ratio?: number; free: number; full: number }[] | null {
+  const pp = cfg.paywallParts;
+  if (!pp || !cfg.subPass?.subjects) return null;
+  const rows = {
+    sub: { key: 'sub' as const, label: cfg.subPass.label, ratio: cfg.subPass.ratio, free: 0, full: 0 },
+    general: { key: 'general' as const, label: pp.general, free: 0, full: 0 },
+    case: { key: 'case' as const, label: pp.case, free: 0, full: 0 },
+  };
+  for (const q of all) {
+    if (q.excluded) continue;
+    const k = inSubPass(q, cfg) ? 'sub' : q.case ? 'case' : 'general';
+    const isFree = cfg.freeExams.includes(q.exam);
+    rows[k].full++;
+    if (isFree) rows[k].free++;
+  }
+  const out = [rows.sub, rows.general, rows.case];
+  return out.some((r) => r.full > r.free) ? out : null;
+}
+
+/**
+ * 無料の回の必修問題(subPass が科目で決まる試験)を、全部解き終えたか。終えたら本人の記録(最後の答えで何問正解か)を返す。
+ * 看護師が「第115回の必修50問を解き終えた」ときの案内に使う。まだ残りがある・基準の無い試験は null
+ */
+export function subFreeDone(open: Question[], data: AppData, cfg: ExamConfig): { rounds: number[]; total: number; ok: number; need: number } | null {
+  const sp = cfg.subPass;
+  if (!sp?.subjects) return null;
+  const free = open.filter((q) => !q.excluded && inSubPass(q, cfg) && cfg.freeExams.includes(q.exam));
+  if (free.length === 0 || free.some((q) => !data.records[q.id])) return null;
+  const ok = free.filter((q) => (data.records[q.id]?.streak ?? 0) > 0).length;
+  return { rounds: [...new Set(free.map((q) => q.exam))].sort((a, b) => a - b), total: free.length, ok, need: Math.ceil(free.length * sp.ratio) };
+}

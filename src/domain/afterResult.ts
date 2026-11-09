@@ -16,7 +16,7 @@
  */
 import type { AppData, ExamConfig, Question } from './types';
 import { dayKey, daysLeft, examRange, lockedSummary, unseen } from './study';
-import { freeLeft, subPassGrowth, weakSubjectGrowth } from './upsell';
+import { freeLeft, partRows, subPassGrowth, weakSubjectGrowth } from './upsell';
 
 export interface AfterResultState {
   /** 最後に出した日(YYYY-MM-DD、端末の暦)。'' = まだ */
@@ -118,6 +118,8 @@ export interface AfterResultView {
   weak: { subject: string; nigate: number; now: number; full: number } | null;
   /** 総得点とは別の基準の問題(看護師の必修問題)が、完全版で何問になるか */
   sub: { label: string; ratio: number; now: number; full: number } | null;
+  /** 事例を読んで答える問題(看護師の状況設定問題)が、完全版で何問になるか(cfg.paywallParts のある試験だけ) */
+  caseGrowth: { label: string; now: number; full: number } | null;
   /** 試験日までの日数と、完全版でまだ解いていない問題を試験の前日までに1周する1日の数 */
   plan: { days: number; unseenFull: number; perDay: number } | null;
 }
@@ -138,6 +140,12 @@ export function afterResultView(all: Question[], open: Question[], data: AppData
     freeLeft: freeLeft(open, data, cfg),
     weak,
     sub,
+    caseGrowth: caseOf(all, cfg),
     plan: days !== null && days > 0 && unseenFull > 0 ? { days, unseenFull, perDay: Math.ceil(unseenFull / days) } : null,
   };
+}
+
+function caseOf(all: Question[], cfg: ExamConfig): { label: string; now: number; full: number } | null {
+  const r = partRows(all, cfg)?.find((x) => x.key === 'case');
+  return r && r.full > r.free ? { label: r.label, now: r.free, full: r.full } : null;
 }

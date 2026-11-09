@@ -110,6 +110,11 @@ export interface ExamConfig {
    * 日数は examDate とその日の日付から数える。受付期間は from〜to の間だけ・from より前は「〜から」で出し、過ぎたら出さない
    */
   paywallSeason?: { examLabel: string; apply?: { from: string; to: string; note?: string; source?: string } };
+  /**
+   * 購入画面で、出題の区分ごとに無料と完全版の問題数を並べる(看護師: 必修問題・一般問題・状況設定問題)。
+   * 必修は subPass の科目、状況設定は事例文(case)のある問題、一般はそれ以外。数は問題データから数える
+   */
+  paywallParts?: { general: string; case: string };
   /** RevenueCat の公開APIキー(アプリに埋め込む物。秘密ではない) */
   revenuecat?: { ios: string; android: string };
   /** RevenueCat の entitlement */

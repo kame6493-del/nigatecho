@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
 import { dayKey, examRange, isLocked } from '../domain/study';
-import { jpDate, lockedPreview, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
+import { jpDate, lockedPreview, partRows, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
 import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
@@ -45,7 +45,10 @@ export function Paywall(p: {
   const subPreview = subMine
     ? lockedPreview(p.all, (q) => isLocked(q, false, EXAM) && !p.data!.records[q.id], EXAM.subPass?.subjects ?? [], dayKey(Date.now()))
     : null;
-  /** 管理栄養士: 試験までの日数と願書の受付期間(その日の日付から) */
+  /** 看護師: 必修問題・一般問題・状況設定問題が、無料と完全版でそれぞれ何問か(問題データから数える) */
+  const parts = !owned ? partRows(p.all, EXAM) : null;
+  const caseRow = parts?.find((r) => r.key === 'case');
+  /** 管理栄養士・看護師: 試験までの日数と願書の受付期間(その日の日付から) */
   const season = !owned ? seasonFacts(EXAM, Date.now()) : null;
   /** 社会福祉士: セットを上に出す(セットが買えるときだけ) */
   const setFirst = !!set && !!set.first?.includes(EXAM.dir);
@@ -125,10 +128,28 @@ export function Paywall(p: {
         <ul className="checks">
           <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${p.all.length - free}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
           {sub && <li data-upsell="paywall-subpass"><ICheck size={16} />{sub.label}({Math.round(sub.ratio * 10)}割が基準)が {sub.now}問 → {sub.full}問に</li>}
+          {caseRow && caseRow.full > caseRow.free && <li data-upsell="paywall-case"><ICheck size={16} />{caseRow.label}(事例つき)が {caseRow.free}問 → {caseRow.full}問に</li>}
           <li><ICheck size={16} />本番形式の模試が{exams.length}回分に</li>
           <li><ICheck size={16} />増えた分も解説・苦手ノート・予想点に入る</li>
         </ul>
       </section>
+      {parts && (
+        <section className="card pw-parts" data-upsell="paywall-parts">
+          <p className="pw-mine-title">本番と同じ3つの区分で</p>
+          <table className="pw-parts-table">
+            <thead><tr><th></th><th>無料<br /><small>第{freeRounds.join('・')}回</small></th><th>完全版<br /><small>{examRange(exams[0], exams[exams.length - 1])}</small></th></tr></thead>
+            <tbody>
+              {parts.map((r) => (
+                <tr key={r.key} data-part={r.key}>
+                  <td>{r.label}{r.ratio ? <small>{Math.round(r.ratio * 10)}割が基準</small> : r.key === 'case' ? <small>事例を読んで答える</small> : null}</td>
+                  <td>{r.free}問</td>
+                  <td><b>{r.full}問</b></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
       {subMine && (
         <section className="card pw-sub" data-upsell="paywall-subpass-mine">
           <p className="pw-mine-title">あなたの{subMine.label}({Math.round(subMine.ratio * 10)}割が基準)</p>
