@@ -20,7 +20,7 @@ export function AfterResultSheet(p: { all: Question[]; open: Question[]; data: A
           {v.weak && <li data-row="weak"><span>{v.weak.nigate > 0 ? '苦手の多い' : '正答率の低い'} {short(v.weak.subject)}</span><b>{v.weak.now}問 → 完全版 {v.weak.full}問</b></li>}
           {v.sub && <li data-row="sub"><span>{v.sub.label}(基準 {Math.round(v.sub.ratio * 10)}割)</span><b>{v.sub.now}問 → 完全版 {v.sub.full}問</b></li>}
           {v.caseGrowth && <li data-row="case"><span>{v.caseGrowth.label}</span><b>{v.caseGrowth.now}問 → 完全版 {v.caseGrowth.full}問</b></li>}
-          {v.plan && <li data-row="plan"><span>試験まで {v.plan.days}日</span><b>完全版 {v.plan.unseenFull.toLocaleString('ja-JP')}問 → 1日 {v.plan.perDay}問</b></li>}
+          {v.plan && <li data-row="plan"><span>試験まで {v.plan.days}日</span><b>完全版の残り {v.plan.unseenFull.toLocaleString('ja-JP')}問 → 1日 {v.plan.perDay}問</b></li>}
         </ul>
         <div className="sheet-actions">
           <button className="btn" onClick={p.onClose} data-after-result="close">閉じる</button>

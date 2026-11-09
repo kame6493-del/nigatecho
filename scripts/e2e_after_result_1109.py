@@ -159,7 +159,7 @@ def check_rows(pg, exam, e, qs):
     days = (datetime.date.fromisoformat(e["examDate"]) - datetime.date.today()).days
     un_full = len([q for q in qs if not q.get("excluded") and q["id"] not in rec])
     if days > 0:
-        check(f"試験まで {days}日" in t and f"完全版 {un_full:,}問 → 1日 {math.ceil(un_full / days)}問" in t,
+        check(f"試験まで {days}日" in t and f"完全版の残り {un_full:,}問 → 1日 {math.ceil(un_full / days)}問" in t,
               f"{exam}: 試験日までの行が合う({days}日・{un_full}問・1日 {math.ceil(un_full / days)}問) [{t}]")
     check("¥" not in t and "円" not in t and "無料で" not in t.replace("(無料)", ""), f"{exam}: 値段の文字が無い [{t}]")
     check(not PUSHY.search(t), f"{exam}: 急がせる言い回しが無い")

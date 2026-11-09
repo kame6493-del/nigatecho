@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
 import { dayKey, examRange, isLocked } from '../domain/study';
-import { jpDate, lockedPreview, partRows, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
+import { excludedCount, jpDate, lockedPreview, partRows, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
 import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
 import { TopBar } from './parts';
@@ -48,6 +48,8 @@ export function Paywall(p: {
   /** 看護師: 必修問題・一般問題・状況設定問題が、無料と完全版でそれぞれ何問か(問題データから数える) */
   const parts = !owned ? partRows(p.all, EXAM) : null;
   const caseRow = parts?.find((r) => r.key === 'case');
+  /** 区分の表は採点される問題だけ。採点対象外を合計の下に書いて、見出しの数(問題データの数)とそろえる */
+  const excl = excludedCount(p.all, EXAM);
   /** 管理栄養士・看護師: 試験までの日数と願書の受付期間(その日の日付から) */
   const season = !owned ? seasonFacts(EXAM, Date.now()) : null;
   /** 社会福祉士: セットを上に出す(セットが買えるときだけ) */
@@ -104,7 +106,7 @@ export function Paywall(p: {
             <div className="pw-set-row" key={r.dir} data-exam={r.dir}>
               <p><span>{r.name}</span><b>{r.range} {r.count.toLocaleString('ja-JP')}問</b></p>
               {r.dir === 'seishin' && r.am > 0 && <small>共通科目{r.am}問は社会福祉士の第37・38回と同じ問題です。新しく解けるのは専門科目{r.pm}問です</small>}
-              {r.dir === EXAM.dir && lockedRounds.length > 0 && <small>第{freeRounds.join('・')}回は無料、{examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の{p.all.length - free}問が開きます</small>}
+              {r.dir === EXAM.dir && lockedRounds.length > 0 && <small>第{freeRounds.join('・')}回は無料、{examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の{(p.all.length - free).toLocaleString('ja-JP')}問が開きます</small>}
             </div>
           ))}
           <p className="muted small pw-setfirst-note">{EXAM.name}だけの完全版も、下で選べます</p>
@@ -124,9 +126,9 @@ export function Paywall(p: {
             )}
           </div>
         )}
-        <h2>{exams.length}年分 {p.all.length}問で、<br />苦手を本番までに0へ。</h2>
+        <h2>{exams.length}年分 {p.all.length.toLocaleString('ja-JP')}問で、<br />苦手を本番までに0へ。</h2>
         <ul className="checks">
-          <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${p.all.length - free}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
+          <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${(p.all.length - free).toLocaleString('ja-JP')}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
           {sub && <li data-upsell="paywall-subpass"><ICheck size={16} />{sub.label}({Math.round(sub.ratio * 10)}割が基準)が {sub.now}問 → {sub.full}問に</li>}
           {caseRow && caseRow.full > caseRow.free && <li data-upsell="paywall-case"><ICheck size={16} />{caseRow.label}(事例つき)が {caseRow.free}問 → {caseRow.full}問に</li>}
           <li><ICheck size={16} />本番形式の模試が{exams.length}回分に</li>
@@ -147,7 +149,11 @@ export function Paywall(p: {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr data-part="total"><td>合計</td><td>{free.toLocaleString('ja-JP')}問</td><td><b>{p.all.length.toLocaleString('ja-JP')}問</b></td></tr>
+            </tfoot>
           </table>
+          {excl.full > 0 && <p className="pw-parts-note" data-part="excluded">合計には、厚生労働省が採点から外した問題(無料{excl.free}問・完全版{excl.full}問)も入っています。解説つきで読めますが、正解の数には数えません。</p>}
         </section>
       )}
       {subMine && (
@@ -176,7 +182,7 @@ export function Paywall(p: {
       <table className="pw-table">
         <thead><tr><th></th><th>無料</th><th>完全版</th></tr></thead>
         <tbody>
-          <tr><td>過去問</td><td>第{freeRounds.join('・')}回 {free}問</td><td>{examRange(exams[0], exams[exams.length - 1])} {p.all.length}問</td></tr>
+          <tr><td>過去問</td><td>第{freeRounds.join('・')}回 {free.toLocaleString('ja-JP')}問</td><td>{examRange(exams[0], exams[exams.length - 1])} {p.all.length.toLocaleString('ja-JP')}問</td></tr>
           <tr><td>本番形式の模試</td><td>{freeRounds.length}回分<br /><small>(第{freeRounds.join("・")}回)</small></td><td>{exams.length}回分</td></tr>
           <tr><td>解説・苦手の自動復習・予想点・広告なし</td><td colSpan={2} className="pw-both">どちらも同じ</td></tr>
         </tbody>

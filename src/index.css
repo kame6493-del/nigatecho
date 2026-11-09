@@ -638,3 +638,6 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 .sub-done .done-score.bad { color: var(--red-d); }
 .sub-done-line { margin: 8px 0 0; font-size: .9em; line-height: 1.6; }
 .sub-done-line b { color: var(--red-d); }
+.pw-parts-table tfoot td { border-top: 2px solid var(--line); font-weight: 800; }
+.pw-parts-note { margin: 8px 0 0; font-size: .8em; line-height: 1.6; color: var(--ink-2); }
+.after-result [data-row=plan] span { white-space: nowrap; }

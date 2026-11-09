@@ -166,7 +166,7 @@ export function ExamDateCard({ data, onSet, plan, onPlanFull }: {
           {plan.unseenNow > 0 && <p><span>まだ解いていない {plan.unseenNow}問</span><b>1日 {plan.perDay}問で1周</b></p>}
           {plan.perDayFull !== null && plan.unseenFull !== null && (
             <button className="date-plan-full" onClick={onPlanFull} data-upsell="date-plan">
-              <span>完全版の {plan.unseenFull}問なら</span><b>1日 {plan.perDayFull}問で1周</b><IChevron size={14} />
+              <span>完全版の残り {plan.unseenFull.toLocaleString('ja-JP')}問なら</span><b>1日 {plan.perDayFull}問で1周</b><IChevron size={14} />
             </button>
           )}
         </div>
