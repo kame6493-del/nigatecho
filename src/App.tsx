@@ -9,6 +9,7 @@ import { afterResultClosed, afterResultDecide, afterResultOpened, afterResultSho
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
 import { examAttrs, firstExamAttrs, paywallAttrs } from './domain/track';
 import { askReview } from './platform/native';
+import { todaySet } from './domain/today';
 import { Home } from './ui/Home';
 import { Quiz, type Session } from './ui/Quiz';
 import { ExamPicker, SubjectPicker } from './ui/Pickers';
@@ -224,6 +225,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   const starters = useMemo(() => ({
     nigate: (limit = 20) => data && start(withHalf('苦手を解く'), nigateOrder(openAmPm, data).slice(0, limit)),
     unseen: () => data && start(withHalf('まだ解いていない問題'), shuffle(unseen(openAmPm, data), rng(Date.now())).slice(0, 20)),
+    /** 今日の10問: 苦手を先に、残りをまだ解いていない問題で(domain/today.ts) */
+    today: () => data && start(withHalf('今日の10問'), todaySet(openAmPm, data, Date.now())),
     random: () => start(withHalf('ランダム10問'), shuffle(openAmPm.filter((q) => !q.excluded), rng(Date.now())).slice(0, 10)),
     /** 必修問題だけ10問(看護師)。まだ解いていない問題を先に */
     sub: () => {
@@ -318,6 +321,7 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onNigate={() => starters.nigate()}
           onUnseen={starters.unseen}
           onRandom={starters.random}
+          onToday={starters.today}
           onSub={EXAM.subPass?.separate ? starters.sub : undefined}
           onPaywallPlan={() => push({ name: 'paywall', from: 'date-plan' })}
           onMarks={starters.marks}

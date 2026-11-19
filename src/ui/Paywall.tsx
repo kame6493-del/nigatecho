@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { AppData, Question } from '../domain/types';
-import { EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
-import { dayKey, examRange, isLocked } from '../domain/study';
+import { APP, EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
+import { dayKey, daysLeft, examRange, isLocked } from '../domain/study';
+import { fullPlan } from '../domain/today';
 import { excludedCount, jpDate, lockedPreview, partRows, seasonFacts, subPassGrowth, subPassMine, weakSubjectGrowth } from '../domain/upsell';
 import { canBuy, canBuyBundle, purchase, purchaseBundle, restore, setAttrs, type BillingState } from '../platform/billing';
 import { boughtAttrs } from '../domain/track';
@@ -50,6 +51,8 @@ export function Paywall(p: {
   const caseRow = parts?.find((r) => r.key === 'case');
   /** 区分の表は採点される問題だけ。採点対象外を合計の下に書いて、見出しの数(問題データの数)とそろえる */
   const excl = excludedCount(p.all, EXAM);
+  /** 本人の試験日までに、完全版のまだ解いていない問題を1周するなら1日何問か(本人の記録と問題データから) */
+  const plan = growth && p.data ? fullPlan(p.all, p.data, daysLeft(p.data.settings.examDate, Date.now())) : null;
   /** 管理栄養士・看護師: 試験までの日数と願書の受付期間(その日の日付から) */
   const season = !owned ? seasonFacts(EXAM, Date.now()) : null;
   /** 社会福祉士: セットを上に出す(セットが買えるときだけ) */
@@ -177,6 +180,7 @@ export function Paywall(p: {
           <p className="pw-mine-title">あなたの記録では</p>
           <p className="pw-mine-row"><span>{growth.nigate > 0 ? '苦手の多い' : '正答率の低い'} {short(growth.subject)}</span><b>いま {growth.now}問 → 完全版で {growth.full}問</b></p>
           <p className="pw-mine-row"><span>本番形式の模試</span><b>いま {freeRounds.length}回分 → 完全版で {exams.length}回分</b></p>
+          {plan && <p className="pw-mine-row" data-upsell="paywall-plan"><span>試験日まで {plan.days}日</span><b>完全版の残り {plan.left.toLocaleString('ja-JP')}問 → 1日 {plan.perDay}問で1周</b></p>}
         </section>
       )}
       <table className="pw-table">
@@ -215,6 +219,11 @@ export function Paywall(p: {
       {EXAM.paywallNote && <p className="muted small">{EXAM.paywallNote}</p>}
       {!SINGLE && <p className="muted small">{set ? `「${EXAM.name}だけ」で開くのは${EXAM.name}の問題だけです。「${setNames.length}つセット」は1回の購入で${setNames.join('・')}の${setNames.length}つの完全版が開きます。` : `この完全版で開くのは${EXAM.name}の問題だけです。ほかの試験の完全版は、それぞれの試験の画面から別に購入できます。`}</p>}
       <p className="muted small">一度買えば、同じストアのアカウントの機種変更後も「購入の復元」で使えます。解いた記録はこの端末の中だけに保存し、外へ送りません。購入の管理には、選んだ試験・購入画面を開いた場所と回数・解いた問題の数だけを匿名の識別子と一緒に送ります(個人を特定する情報は送りません)。</p>
+      <p className="pw-legal" data-paywall="legal">
+        <a href={`${APP.site}terms.html`} target="_blank" rel="noreferrer">利用規約</a>
+        <span aria-hidden>・</span>
+        <a href={`${APP.site}privacy.html`} target="_blank" rel="noreferrer">プライバシーポリシー</a>
+      </p>
     </div>
   );
 }
