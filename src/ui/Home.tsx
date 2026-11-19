@@ -4,6 +4,7 @@ import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, daysLeft, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
 import { freeLeft, homeUpsell, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
+import { TODAY_GOAL, todayMix } from '../domain/today';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
 import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
@@ -16,6 +17,8 @@ interface Props {
   onNigate: () => void;
   onUnseen: () => void;
   onRandom: () => void;
+  /** 今日の10問(苦手→まだ解いていない問題)。1問でも解いた人のホームに出す */
+  onToday?: () => void;
   /** 必修問題(別の基準がある問題)だけを10問。基準の無い試験では渡さない */
   onSub?: () => void;
   /** 試験日の目安から購入画面へ */
@@ -58,6 +61,9 @@ export function Home(p: Props) {
   const today = p.data.daily[dayKey(now)] ?? 0;
   const lockedCount = p.all.length - p.open.length;
   const exams = useMemo(() => [...new Set(p.all.map((q) => q.exam))].sort((a, b) => b - a), [p.all]);
+  /** 今日の10問の中身(範囲の中の苦手→まだ解いていない問題)と、済んだか */
+  const mix = todayMix(openIn, p.data);
+  const todayDone = today >= TODAY_GOAL;
   const week = lastDays(p.data.daily, now, 7);
   const weekSum = week.reduce((s, d) => s + d.n, 0);
   const weekMax = Math.max(1, ...week.map((d) => d.n));
@@ -118,7 +124,8 @@ export function Home(p: Props) {
       </section>
       )}
 
-      {p.ampm && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} note="苦手を解く・未回答・ランダム10問・模試に効きます" />}
+      {/* はじめての人には出さない(まず10問。範囲は解いてから選べば足りる) */}
+      {p.ampm && seen > 0 && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} note="苦手を解く・未回答・ランダム10問・模試に効きます" />}
 
       {upsell === 'finished' && (
         <section className="card done-card" data-upsell="home-finished">
@@ -166,11 +173,24 @@ export function Home(p: Props) {
             </span>
             <IChevron />
           </button>
+          {mix.nigate + mix.fresh > 0 && p.onToday && (
+            <section className={`card today-card ${todayDone ? 'done' : ''}`} data-home="today">
+              <p className="today-head">
+                <b>今日の{TODAY_GOAL}問{half ? `・${half}` : ''}</b>
+                <span className="today-count"><b>{Math.min(today, TODAY_GOAL)}</b> / {TODAY_GOAL}問</span>
+              </p>
+              <span className="mini-bar"><i style={{ width: `${(Math.min(today, TODAY_GOAL) / TODAY_GOAL) * 100}%` }} /></span>
+              <p className="today-sub">{todayDone
+                ? `今日の分は済みました。${streak >= 2 ? `${streak}日続いています。` : ''}明日も苦手から続きが出ます。`
+                : [mix.nigate > 0 ? `苦手ノートの${mix.nigate}問` : '', mix.fresh > 0 ? `まだ解いていない${mix.fresh}問` : ''].filter(Boolean).join('と') + '。苦手から先に出します。'}</p>
+              <button className={`btn wide big ${todayDone ? '' : 'primary'}`} onClick={p.onToday} data-home="today-start">{todayDone ? `もう${TODAY_GOAL}問解く` : today > 0 ? '今日の続きを解く' : `今日の${TODAY_GOAL}問を解く`}<IArrow size={18} /></button>
+            </section>
+          )}
           {nigateIn > 0
-            ? <button className="btn primary wide big" onClick={p.onNigate} data-home="nigate">苦手を解く{half ? `・${half}` : ''}({nigateIn}問)<IArrow size={18} /></button>
+            ? <button className={`btn wide ${p.onToday ? '' : 'primary big'}`} onClick={p.onNigate} data-home="nigate">苦手だけを解く{half ? `・${half}` : ''}({nigateIn}問)<IArrow size={18} /></button>
             : nigate > 0
-              ? <button className="btn primary wide big" disabled data-home="nigate">{half}の苦手はありません</button>
-              : freshIn > 0 && <button className="btn primary wide big" onClick={p.onUnseen}>まだ解いていない問題へ<IArrow size={18} /></button>}
+              ? <button className="btn wide" disabled data-home="nigate">{half}の苦手はありません</button>
+              : freshIn > 0 && !p.onToday && <button className="btn primary wide big" onClick={p.onUnseen}>まだ解いていない問題へ<IArrow size={18} /></button>}
         </>
       )}
 

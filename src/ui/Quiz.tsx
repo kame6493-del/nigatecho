@@ -3,6 +3,7 @@ import type { AppData, MockResult, Question } from '../domain/types';
 import { EXAM, short, yearOf } from '../domain/exam';
 import { CLEAR_STREAK, dayKey, examRange, halfName, inSubPass, isAnswered, isCorrect, isLocked, isNigate, calcText, lockedSummary, mockPassLine, pickCount, pointsOf, zeroGroups } from '../domain/study';
 import { splitExplanation } from '../domain/explain';
+import { sessionWeak } from '../domain/today';
 import { buzz } from '../platform/native';
 import type { SessionEnd } from '../domain/review';
 import { isMhlw, orgOf, sourceLabelOf, sourcePageFor } from '../domain/sources';
@@ -76,6 +77,8 @@ function Practice(p: Props & { qs: Question[] }) {
     const nigateLeft = Object.values(p.data.records).filter(isNigate).length;
     const skipped = order.length - done.length;
     const rate = done.length ? ok / done.length : 0;
+    /** 科目ごとの間違い(5問以上解いた回だけ。少ないと科目で分けても読めない) */
+    const weak = done.length >= 5 ? sessionWeak(done.map((d) => ({ subject: p.byId.get(d.id)?.subject ?? '', ok: d.ok }))) : [];
     return (
       <div className="page result">
         <TopBar title={`${p.session.title} 結果`} onClose={p.onClose} close="x" />
@@ -97,6 +100,19 @@ function Practice(p: Props & { qs: Question[] }) {
           <li><span>新しく苦手に入った</span><b className="bad">{fresh}問</b></li>
           <li><span>残りの苦手</span><b>{nigateLeft}問</b></li>
         </ul>
+        {weak.length > 0 && (
+          <section className="card result-weak" data-result="weak">
+            <p className="result-weak-title">今回 間違えた科目</p>
+            {weak.map((r) => (
+              <p className="result-weak-row" key={r.subject}>
+                <span>{short(r.subject)}</span>
+                <span className="result-weak-bar" aria-hidden><i style={{ width: `${(r.ng / r.total) * 100}%` }} /></span>
+                <b>{r.total}問中 {r.ng}問</b>
+              </p>
+            ))}
+            <p className="result-weak-note">間違えた問題は苦手ノートの科目ごとに残っています。</p>
+          </section>
+        )}
         <FullVersionNote {...p} qs={qs} done={done.map((d) => ({ subject: p.byId.get(d.id)?.subject ?? '', ok: d.ok }))} />
         <ol className="result-list card">
           {done.map((d, k) => {
