@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AppData, Question } from '../domain/types';
 import { APP, EXAM, EXAMS, SINGLE, bundleOffer, short } from '../domain/exam';
 import { dayKey, daysLeft, examRange, isLocked } from '../domain/study';
@@ -21,6 +21,10 @@ export function Paywall(p: {
 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  /** 上のボタンで買ったか(セットのときは上のボタンで選ぶ所へ移ってから買ったか)。購入管理の bought_button に入れる */
+  const viaTop = useRef(false);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const button = () => (viaTop.current ? 'top' : 'bottom') as 'top' | 'bottom';
   const exams = [...new Set(p.all.map((q) => q.exam))].sort((a, b) => a - b);
   const free = p.all.filter((q) => EXAM.freeExams.includes(q.exam)).length;
   const price = p.billing.status === 'ready' ? p.billing.prices[EXAM.productId] ?? '' : '';
@@ -64,11 +68,12 @@ export function Paywall(p: {
     return { dir: d, name: e?.name ?? d, range, count: e?.count ?? 0, am: e?.sessionCounts?.['午前'] ?? 0, pm: e?.sessionCounts?.['午後'] ?? 0 };
   }) : [];
 
-  const buy = async () => {
+  const buy = async (top = false) => {
+    if (top) viaTop.current = true;
     setBusy(true); setMsg('');
     try {
       if (await purchase(p.billing, EXAM)) {
-        setAttrs(boughtAttrs(EXAM.dir, p.from ?? 'other'));
+        setAttrs(boughtAttrs(EXAM.dir, p.from ?? 'other', button()));
         p.onBought();
       }
     } catch (e) {
@@ -80,7 +85,7 @@ export function Paywall(p: {
     setBusy(true); setMsg('');
     try {
       if (await purchaseBundle(p.billing, set)) {
-        setAttrs(boughtAttrs(`set_${set.id}`, p.from ?? 'other'));
+        setAttrs(boughtAttrs(`set_${set.id}`, p.from ?? 'other', button()));
         p.onBought();
       }
     } catch (e) {
@@ -130,6 +135,22 @@ export function Paywall(p: {
           </div>
         )}
         <h2>{exams.length}年分 {p.all.length.toLocaleString('ja-JP')}問で、<br />苦手を本番までに0へ。</h2>
+        {/* 見出しのすぐ下にも買うボタン(下の比べる表まで何画面もスクロールしなくてよいように。2026-11-22) */}
+        {!owned && p.billing.status === 'ready' && (
+          <div className="pw-top-cta" data-paywall="top-cta">
+            {set ? (
+              <button className="btn primary wide" disabled={busy} data-buy="top-choose"
+                onClick={() => { viaTop.current = true; ctaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>
+                買い方を選ぶ(2通り)
+              </button>
+            ) : (
+              <button className="btn primary wide big" disabled={busy || !canBuy(p.billing, EXAM)} onClick={() => buy(true)} data-buy="top">
+                {busy ? '処理中…' : `${price || '完全版'} で買う(1回だけ)`}
+              </button>
+            )}
+            <small>{set ? 'どちらも買い切り(1回だけ)です' : '押すとストアの確認が出ます'}</small>
+          </div>
+        )}
         <ul className="checks">
           <li><ICheck size={16} />{lockedRounds.length ? `${examRange(lockedRounds[0], lockedRounds[lockedRounds.length - 1])}の過去問 ${(p.all.length - free).toLocaleString('ja-JP')}問が増える` : `${examRange(exams[0], exams[exams.length - 1])}の過去問すべて`}</li>
           {sub && <li data-upsell="paywall-subpass"><ICheck size={16} />{sub.label}({Math.round(sub.ratio * 10)}割が基準)が {sub.now}問 → {sub.full}問に</li>}
@@ -191,12 +212,12 @@ export function Paywall(p: {
           <tr><td>解説・苦手の自動復習・予想点・広告なし</td><td colSpan={2} className="pw-both">どちらも同じ</td></tr>
         </tbody>
       </table>
-      <div className="pw-cta">
+      <div className="pw-cta" ref={ctaRef}>
         {owned ? (
           <p className="pw-owned">{EXAM.name}の完全版は購入済みです</p>
         ) : p.billing.status === 'ready' && set ? (
           <div className={`pw-opts${setFirst ? ' set-first' : ''}`} data-set={set.id}>
-            <button className="pw-opt" disabled={busy || !canBuy(p.billing, EXAM)} onClick={buy} data-buy="single">
+            <button className="pw-opt" disabled={busy || !canBuy(p.billing, EXAM)} onClick={() => buy()} data-buy="single">
               <span className="pw-opt-name"><b>{EXAM.name}だけ</b><small>{EXAM.name}の完全版</small></span>
               <span className="pw-opt-price">{busy ? '処理中…' : price || '完全版'}</span>
             </button>
@@ -207,7 +228,7 @@ export function Paywall(p: {
             <p className="muted small pw-opts-note">どちらも買い切り(1回だけ)。押すとストアの確認が出ます</p>
           </div>
         ) : p.billing.status === 'ready' ? (
-          <button className="btn primary wide big" disabled={busy || !canBuy(p.billing, EXAM)} onClick={buy}>
+          <button className="btn primary wide big" disabled={busy || !canBuy(p.billing, EXAM)} onClick={() => buy()} data-buy="bottom">
             {busy ? '処理中…' : `${price || '完全版'} で買う(1回だけ)`}
           </button>
         ) : (

@@ -3,11 +3,11 @@ import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, lockedSummary, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
-import { bumpPaywallOpened, hasAnyRecord, loadAfterResult, loadData, loadExamChoice, loadReview, saveAfterResult, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { bumpPaywallFrom, bumpPaywallOpened, closeNear, hasAnyRecord, loadNearClosed, loadAfterResult, loadData, loadExamChoice, loadReview, saveAfterResult, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnPaywall, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { afterResultClosed, afterResultDecide, afterResultOpened, afterResultShown, type AfterResultState } from './domain/afterResult';
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
-import { examAttrs, firstExamAttrs, paywallAttrs } from './domain/track';
+import { examAttrs, firstExamAttrs, fromCountsAttrs, paywallAttrs } from './domain/track';
 import { askReview } from './platform/native';
 import { todaySet } from './domain/today';
 import { Home } from './ui/Home';
@@ -120,6 +120,9 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   // 画面が替わったら上から見せる(前の画面のスクロールの位置を持ち越さない)
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
   const dataRef = useRef<AppData | null>(null);
+  /** ホームの「無料の残りが少ない」知らせを閉じたか(試験ごと) */
+  const [nearClosed, setNearClosed] = useState(true);
+  useEffect(() => { loadNearClosed().then((l) => setNearClosed(l.includes(EXAM.dir))); }, []);
 
   useEffect(() => {
     loadData().then((loaded) => {
@@ -145,7 +148,12 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   useEffect(() => {
     if (route.name !== 'paywall') return;
     const seen = Object.keys(dataRef.current?.records ?? {}).length;
-    bumpPaywallOpened().then((n) => setAttrs(paywallAttrs(EXAM.dir, route.from, n, seen)));
+    // 入り口ごとの回数も残す(paywall_from は最後の1回だけなので、どの入り口から買う人が多いかを数えるため。2026-11-22)
+    const from = route.from;
+    bumpPaywallOpened().then(async (n) => {
+      const f = await bumpPaywallFrom(from);
+      await setAttrs({ ...paywallAttrs(EXAM.dir, from, n, seen), ...fromCountsAttrs(f.counts, f.first && n === 1, from) });
+    }).catch((err) => console.error('[nigatecho] paywall attrs', err));
     // 購入画面の直後には評価をお願いしない(しばらくあける)
     reviewChain = reviewChain.then(async () => {
       await saveReview(reviewOnPaywall(await loadReview(), Date.now()));
@@ -330,6 +338,11 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onMock={() => push({ name: 'exams', mock: true })}
           onPaywall={() => push({ name: 'paywall', from: 'home' })}
           onPaywallSub={() => push({ name: 'paywall', from: 'home-sub-done' })}
+          onPaywallFinished={() => push({ name: 'paywall', from: 'home-finished' })}
+          onPaywallUnseen={() => push({ name: 'paywall', from: 'home-unseen' })}
+          onPaywallNear={() => push({ name: 'paywall', from: 'home-near' })}
+          nearClosed={nearClosed}
+          onNearClose={() => { setNearClosed(true); closeNear(EXAM.dir); }}
           onSettings={() => goTab('settings')}
           onNote={() => goTab('note')}
           onStats={() => goTab('stats')}

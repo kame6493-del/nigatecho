@@ -108,7 +108,9 @@ def no_pushy(pg, exam, where):
 
 
 SET_EXAMS = ["kaigo", "shakai", "seishin"]
-ALLOWED_ATTRS = {"exam", "exam_first", "paywall_from", "paywall_exam", "paywall_opened", "paywall_seen", "bought_exam", "bought_from"}
+ALLOWED_ATTRS = {"exam", "exam_first", "paywall_from", "paywall_exam", "paywall_opened", "paywall_seen", "bought_exam", "bought_from",
+                 # 2026-11-22: 買ったボタン・入り口ごとの回数・初めての入り口
+                 "bought_button", "paywall_froms", "paywall_first_from"}
 
 
 def attrs(pg):
@@ -119,7 +121,7 @@ def check_attrs(pg, exam, where):
     a = attrs(pg)
     check(set(a) <= ALLOWED_ATTRS, f"{exam} {where}: 属性は決めた名前だけ {sorted(a)}")
     check(not any(k.startswith("$") for k in a), f"{exam} {where}: $ で始まる属性を使わない")
-    check(all(re.fullmatch(r"[a-z0-9_-]{1,40}", str(v)) for v in a.values() if v is not None), f"{exam} {where}: 値は英数字だけ(個人の情報なし) {a}")
+    check(all(re.fullmatch(r"[a-z0-9_-]{1,40}", str(v)) or (k == "paywall_froms" and re.fullmatch(r"([a-z0-9_-]{1,40}:\d{1,6})(,[a-z0-9_-]{1,40}:\d{1,6})*", str(v))) for k, v in a.items() if v is not None), f"{exam} {where}: 値は英数字だけ(個人の情報なし) {a}")
     return a
 
 

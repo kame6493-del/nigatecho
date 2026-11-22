@@ -3,11 +3,11 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, daysLeft, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
-import { freeLeft, homeUpsell, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
+import { freeLeft, homeUpsell, nearFree, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
 import { TODAY_GOAL, todayMix } from '../domain/today';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
-import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow } from './Icons';
+import { IBook, IChart, IChevron, IClip, IDoc, IGear, ILayers, IRepeat, IShuffle, IStar, IArrow, IX } from './Icons';
 
 interface Props {
   data: AppData;
@@ -30,6 +30,13 @@ interface Props {
   onPaywall: () => void;
   /** 無料の回の必修問題を解き終えた案内から購入画面へ(看護師) */
   onPaywallSub?: () => void;
+  /** 無料の回を解き終えた1枚・未回答のボタン(解き終えたあと)・無料の残りが少ない知らせから購入画面へ(入り口を分けて数える) */
+  onPaywallFinished?: () => void;
+  onPaywallUnseen?: () => void;
+  onPaywallNear?: () => void;
+  /** 無料の残りが少ない知らせを閉じたか(試験ごと)と、閉じる */
+  nearClosed?: boolean;
+  onNearClose?: () => void;
   onSettings: () => void;
   onSources: () => void;
   /** 試験を切り替える画面へ */
@@ -72,6 +79,11 @@ export function Home(p: Props) {
   const left = freeLeft(p.open, p.data, EXAM);
   const subDone = subSeen(p.open, p.data, EXAM);
   const upsell = homeUpsell({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0, subSeen: subDone });
+  /** 無料の残りが20問を切ったら、上に小さく1行(閉じたらこの試験ではもう出さない) */
+  const near = nearFree({ premium: p.premium, lockedCount, seen, freeLeft: left, hasFree: free.length > 0, closed: p.nearClosed ?? true });
+  /** 未回答が0で、完全版にまだ解いていない問題があるときは、未回答のボタンを完全版の案内にする(押せないままにしない) */
+  const lockedIn = byAmPm(p.all, ampm).length - openIn.length;
+  const unseenToFull = freshIn === 0 && !p.premium && free.length > 0 && lockedIn > 0;
   /** 試験日までに1周する1日の数。買っていない人には完全版の分も(実際の問題数だけ) */
   const plan = studyPlan({
     days: daysLeft(p.data.settings.examDate, now),
@@ -127,11 +139,22 @@ export function Home(p: Props) {
       {/* はじめての人には出さない(まず10問。範囲は解いてから選べば足りる) */}
       {p.ampm && seen > 0 && <AmPmSwitch value={p.ampm} onChange={p.onAmPm} note="苦手を解く・未回答・ランダム10問・模試に効きます" />}
 
+      {near && (
+        <div className="near-note" data-upsell="home-near">
+          <button className="near-main" onClick={p.onPaywallNear ?? p.onPaywall}>
+            <span>第{free.join('・')}回(無料)は 残り<b>{left}</b>問</span>
+            <small>その先の{lockedRange} {lockedCount.toLocaleString('ja-JP')}問は完全版で</small>
+          </button>
+          <button className="near-x" onClick={p.onNearClose} aria-label="この知らせを閉じる" data-near="close"><IX size={16} /></button>
+        </div>
+      )}
+
       {upsell === 'finished' && (
         <section className="card done-card" data-upsell="home-finished">
           <p className="done-title">第{free.join('・')}回は、すべて解きました</p>
-          <p className="done-sub">{lockedRange}の{lockedCount}問と、その回の本番形式の模試は完全版で解けます。解いた分は苦手ノートと予想点にも入ります。</p>
-          <button className="btn primary wide" onClick={p.onPaywall}>完全版を見る<IChevron size={16} /></button>
+          <p className="done-left">完全版なら 残り<b>{lockedCount.toLocaleString('ja-JP')}</b>問</p>
+          <p className="done-sub">{lockedRange}の過去問と、その回の本番形式の模試が解けます。解いた分は苦手ノートと予想点にも入ります。</p>
+          <button className="btn primary wide" onClick={p.onPaywallFinished ?? p.onPaywall}>完全版を見る<IChevron size={16} /></button>
         </section>
       )}
 
@@ -200,7 +223,9 @@ export function Home(p: Props) {
       <section className="quick menu">
         <button onClick={p.onExams}><IBook className="c-red" /><b>年度別</b><span>{examRange(exams[exams.length - 1], exams[0])}</span></button>
         <button onClick={p.onSubjects}><ILayers className="c-blue" /><b>科目別</b><span>{EXAM.subjects.length}科目</span></button>
-        <button onClick={p.onUnseen} disabled={freshIn === 0}><IDoc className="c-green" /><b>未回答</b><span>まだ解いていない {freshIn}問</span></button>
+        {unseenToFull
+          ? <button onClick={p.onPaywallUnseen ?? p.onPaywall} className="to-full" data-upsell="home-unseen"><IDoc className="c-green" /><b>未回答</b><span>完全版なら残り {lockedIn.toLocaleString('ja-JP')}問</span></button>
+          : <button onClick={p.onUnseen} disabled={freshIn === 0}><IDoc className="c-green" /><b>未回答</b><span>まだ解いていない {freshIn}問</span></button>}
         <button onClick={p.onRandom}><IShuffle className="c-teal" /><b>ランダム10問</b><span>{half ? `${half}から` : 'すきま時間に'}</span></button>
         <button onClick={p.onMarks} disabled={p.data.marks.length === 0}><IStar className="c-yellow" /><b>しるし</b><span>{p.data.marks.length}問</span></button>
         <button onClick={p.onMock}><IClip className="c-purple" /><b>模試</b><span>{half ? `本番形式・${half}` : `本番形式 ${EXAM.perExam}問`}</span></button>

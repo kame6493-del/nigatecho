@@ -79,7 +79,7 @@ img { max-width: 100%; }
 .btn.small.primary { box-shadow: none; }
 .btn.wide { width: 100%; }
 .btn.big { min-height: 54px; font-size: 1.05em; }
-.link { color: var(--navy); padding: 10px 0; display: inline-flex; align-items: center; gap: 2px; }
+.link { color: var(--navy); padding: 10px 0; }
 .more-link { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; margin-top: 10px; padding: 8px; color: var(--red); font-weight: 700; font-size: .9em; }
 
 /* ---- カード ---- */
@@ -672,3 +672,19 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 /* 購入画面の下: 利用規約・プライバシーポリシー */
 .pw-legal { text-align: center; font-size: .82em; margin: 4px 0 24px; color: var(--ink-2); }
 .pw-legal a { color: var(--ink-2); }
+
+/* ---- 2026-11-22 無料の残りの知らせ・解き終えた1枚・未回答から完全版へ ---- */
+.near-note { display: flex; align-items: stretch; gap: 4px; margin: 0 0 12px; background: #fff8ec; border: 1px solid #f3d8b8; border-radius: 12px; }
+.near-main { flex: 1; text-align: left; display: grid; gap: 1px; padding: 8px 4px 8px 12px; background: none; border: 0; }
+.near-main span { font-size: .86em; font-weight: 700; color: var(--ink); }
+.near-main span b { color: var(--red-d); font-size: 1.15em; margin: 0 1px; }
+.near-main small { font-size: .74em; color: var(--ink-2); }
+.near-x { width: 40px; display: grid; place-items: center; background: none; border: 0; color: var(--ink-3); }
+.done-left { margin: 2px 0 6px; font-weight: 800; color: var(--ink); }
+.done-left b { font-size: 1.5em; color: var(--red-d); margin: 0 2px; font-variant-numeric: tabular-nums; }
+.quick button.to-full { border-color: #f3c9a0; background: #fffaf2; }
+.quick button.to-full span { color: var(--red-d); font-weight: 700; }
+
+.pw-top-cta { display: grid; gap: 2px; justify-items: center; margin: 0 0 12px; }
+.pw-top-cta .btn { margin: 0; }
+.pw-top-cta small { font-size: .74em; color: var(--ink-2); }

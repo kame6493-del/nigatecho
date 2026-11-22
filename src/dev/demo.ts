@@ -24,6 +24,14 @@ export async function installDemo(params: URLSearchParams) {
     const day = Math.floor((n - i) / 40);
     d = record(d, q, rand() < acc + bias, now - day * 86400000 - (n - i) * 1000);
   }
+  // left=N: 無料の回を、採点される問題が N問だけ残るまで解いた状態にする(無料の残りの知らせ・解き終えた画面の写真用。2026-11-22)
+  if (params.get('left') !== null) {
+    const keep = Number(params.get('left'));
+    const free = qs.filter((q) => !q.excluded && EXAM.freeExams.includes(q.exam));
+    free.forEach((q, i) => {
+      if (i < free.length - keep && !d.records[q.id]) d = record(d, q, rand() < acc, now - 86400000 - i * 1000);
+    });
+  }
   // warm=1: 苦手をすべて「あと1回正解すれば外れる」状態にする(結果画面の写真用。苦手は続けて正解した数の少ない順に出るため、全部そろえる)
   if (params.get('warm') === '1') {
     for (const r of Object.values(d.records)) if (r.missed && r.streak < 2) r.streak = 1;
