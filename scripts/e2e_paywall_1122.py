@@ -8,6 +8,7 @@
    入り口ごとの回数 paywall_froms に3つとも残る。
  3 購入画面: 見出しのすぐ下の買うボタンが最初の画面に入る。押すと買える(疑似購入)・bought_button=top。セットのある試験は
    「買い方を選ぶ」で下の選ぶ所へ移り、そこで買っても bought_button=top。
+ 4 解き終えた1枚は×で閉じられ、開き直しても出ない(未回答のボタンは残る。2026-11-25)。
  console のエラー 0・横にはみ出さない。画面写真は --out(既定 scripts/e2e_out/paywall_1122)。"""
 import json
 import os
@@ -140,7 +141,7 @@ def run(pg, tag, exam):
         check(attrs(pg).get("paywall_from") == "home-unseen", f"{tag}/{exam}: 未回答から paywall_from=home-unseen")
         close_paywall(pg)
     if fin.count():
-        pg.click("[data-upsell=home-finished] button")
+        pg.click("[data-upsell=home-finished] .btn.primary")
         pg.wait_for_selector(".paywall")
         pg.wait_for_timeout(300)
         a = attrs(pg)
@@ -172,6 +173,26 @@ def run(pg, tag, exam):
           f"{tag}/{exam}: 買ったらホームの案内は消える")
 
 
+
+def run_close(pg, tag, exam):
+    # ---------- 4 解き終えた1枚は×で閉じられる(2026-11-25) ----------
+    fresh(pg, exam, 0)
+    x = pg.locator("[data-finished=close]")
+    check(x.count() == 1, f"{tag}/{exam}: 解き終えた1枚に×")
+    if x.count():
+        check(in_first_view(pg, "[data-finished=close]"), f"{tag}/{exam}: ×は最初の画面")
+        x.click()
+        pg.wait_for_timeout(200)
+        check(pg.locator("[data-upsell=home-finished]").count() == 0, f"{tag}/{exam}: ×で1枚が消える")
+        pg.goto(URL)
+        pg.wait_for_selector(".home")
+        pg.wait_for_timeout(300)
+        check(pg.locator("[data-upsell=home-finished]").count() == 0, f"{tag}/{exam}: 閉じたら開き直しても出ない")
+        check(pg.locator("[data-upsell=home-unseen]").count() == 1, f"{tag}/{exam}: 閉じても未回答のボタンから完全版を見られる")
+        check(no_overflow(pg), f"{tag}/{exam}: 閉じたあとのホームが横にはみ出さない")
+        shot(pg, tag, exam, "7_home_finished_closed")
+
+
 with sync_playwright() as p:
     b = p.chromium.launch(channel="msedge", headless=True)
     for tag, w, h in SIZES:
@@ -182,6 +203,7 @@ with sync_playwright() as p:
         pg.on("response", lambda r: errors.append(f"{r.status} {r.url}") if r.status >= 400 else None)
         for ex in EXAMS:
             run(pg, tag, ex)
+            run_close(pg, tag, ex)
         ctx.close()
     b.close()
 check(not errors, f"console のエラー 0 {errors[:3]}")

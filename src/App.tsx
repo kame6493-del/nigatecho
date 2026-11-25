@@ -3,7 +3,7 @@ import { App as CapApp } from '@capacitor/app';
 import type { AppData, MockResult, Question, Settings } from './domain/types';
 import { EXAM, SINGLE, selectExam } from './domain/exam';
 import { ampmOf, byAmPm, halfName, hasAmPm, inSubPass, isLocked, isNigate, lockedSummary, setUnlockedSubjects, nigateOrder, record, rng, shuffle, toggleMark, unseen, type AmPm } from './domain/study';
-import { bumpPaywallFrom, bumpPaywallOpened, closeNear, hasAnyRecord, loadNearClosed, loadAfterResult, loadData, loadExamChoice, loadReview, saveAfterResult, saveData, saveExamChoice, saveReview } from './platform/storage';
+import { bumpPaywallFrom, bumpPaywallOpened, closeFinished, closeNear, hasAnyRecord, loadFinishedClosed, loadNearClosed, loadAfterResult, loadData, loadExamChoice, loadReview, saveAfterResult, saveData, saveExamChoice, saveReview } from './platform/storage';
 import { reviewOnOpen, reviewOnPaywall, reviewOnSessionEnd, type SessionEnd } from './domain/review';
 import { afterResultClosed, afterResultDecide, afterResultOpened, afterResultShown, type AfterResultState } from './domain/afterResult';
 import { EMPTY_ACCESS, loadBilling, setAttrs, type BillingState } from './platform/billing';
@@ -123,6 +123,9 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
   /** ホームの「無料の残りが少ない」知らせを閉じたか(試験ごと) */
   const [nearClosed, setNearClosed] = useState(true);
   useEffect(() => { loadNearClosed().then((l) => setNearClosed(l.includes(EXAM.dir))); }, []);
+  /** ホームの「すべて解きました」の1枚を閉じたか(試験ごと。2026-11-25) */
+  const [finishedClosed, setFinishedClosed] = useState(true);
+  useEffect(() => { loadFinishedClosed().then((l) => setFinishedClosed(l.includes(EXAM.dir))); }, []);
 
   useEffect(() => {
     loadData().then((loaded) => {
@@ -343,6 +346,8 @@ function App({ carry, onSwitchExam }: { carry: Carry | null; onSwitchExam: (dir:
           onPaywallNear={() => push({ name: 'paywall', from: 'home-near' })}
           nearClosed={nearClosed}
           onNearClose={() => { setNearClosed(true); closeNear(EXAM.dir); }}
+          finishedClosed={finishedClosed}
+          onFinishedClose={() => { setFinishedClosed(true); closeFinished(EXAM.dir); }}
           onSettings={() => goTab('settings')}
           onNote={() => goTab('note')}
           onStats={() => goTab('stats')}

@@ -37,6 +37,9 @@ interface Props {
   /** 無料の残りが少ない知らせを閉じたか(試験ごと)と、閉じる */
   nearClosed?: boolean;
   onNearClose?: () => void;
+  /** 「すべて解きました」の1枚を閉じたか(試験ごと)と、閉じる。閉じても未回答のボタンからは完全版を見られる */
+  finishedClosed?: boolean;
+  onFinishedClose?: () => void;
   onSettings: () => void;
   onSources: () => void;
   /** 試験を切り替える画面へ */
@@ -149,8 +152,9 @@ export function Home(p: Props) {
         </div>
       )}
 
-      {upsell === 'finished' && (
+      {upsell === 'finished' && !p.finishedClosed && (
         <section className="card done-card" data-upsell="home-finished">
+          <button className="done-x" onClick={p.onFinishedClose} aria-label="この案内を閉じる" data-finished="close"><IX size={16} /></button>
           <p className="done-title">第{free.join('・')}回は、すべて解きました</p>
           <p className="done-left">完全版なら 残り<b>{lockedCount.toLocaleString('ja-JP')}</b>問</p>
           <p className="done-sub">{lockedRange}の過去問と、その回の本番形式の模試が解けます。解いた分は苦手ノートと予想点にも入ります。</p>
