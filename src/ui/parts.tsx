@@ -4,6 +4,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, short } from '../domain/exam';
 import { daysLeft, estimate, examView, halfName, mainView, subEstimate, subjectStats, subjectWeights, type AmPm } from '../domain/study';
 import { ART, fmtDate, subjectColor } from './look';
+import { jpDate, type admitFacts } from '../domain/upsell';
 import { IBack, IChart, IChevron, IGear, IHome, ILock, INote, ISearch, ITarget, IX, ICalendar } from './Icons';
 
 export function TopBar({ title, onClose, right, close = 'back' }: { title: string; onClose: () => void; right?: React.ReactNode; close?: 'back' | 'x' }) {
@@ -141,12 +142,14 @@ export function SubjectBars(p: { data: AppData; open: Question[]; onSubject: (s:
 }
 
 /** 試験日まで あと N日(チューリップの絵) */
-export function ExamDateCard({ data, onSet, plan, onPlanFull }: {
+export function ExamDateCard({ data, onSet, plan, onPlanFull, admit }: {
   data: AppData; onSet: () => void;
   /** 試験日までに、まだ解いていない問題を1周する1日の数(studyPlan)。無ければ出さない */
   plan?: StudyPlan | null;
   /** 完全版の分の目安を押したとき(購入画面へ)。買った人には渡さない */
   onPlanFull?: () => void;
+  /** 受験票の発送(admitFacts)。ホームだけで渡す。無ければ出さない */
+  admit?: ReturnType<typeof admitFacts>;
 }) {
   const left = daysLeft(data.settings.examDate, Date.now());
   return (
@@ -161,6 +164,15 @@ export function ExamDateCard({ data, onSet, plan, onPlanFull }: {
         </span>
         <img className="date-art" src={ART.tulip} alt="" />
       </button>
+      {admit && left !== null && (
+        <p className="date-admit" data-admit={admit.kind}>
+          {admit.kind === 'about'
+            ? <span>受験票は<b>{admit.about}</b>に発送の予定</span>
+            : admit.days === 0
+              ? <span>受験票は<b>今日</b>発送({jpDate(admit.send, Date.now())})</span>
+              : <><span>受験票の発送まで</span><span className="date-admit-num">あと <b>{admit.days}</b> 日<small>{jpDate(admit.send, Date.now())}</small></span></>}
+        </p>
+      )}
       {plan && left !== null && (
         <div className="date-plan" data-plan>
           {plan.unseenNow > 0 && <p><span>まだ解いていない {plan.unseenNow}問</span><b>1日 {plan.perDay}問で1周</b></p>}

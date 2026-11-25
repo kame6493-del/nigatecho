@@ -54,6 +54,12 @@ export interface ExamConfig {
   /** 次の本番 "2027-02-28" */
   examDate: string;
   examDateNote: string;
+  /**
+   * 受験票の発送(公式の発表どおり。2026-11-25)。send は発送(投函)の日が決まっている試験、
+   * about は「1月中旬」のように月の上中下旬だけ発表されている試験(until はそれまでに届かなければ問い合わせる日。過ぎたら出さない)。
+   * ホームの試験日の1枚に「受験票の発送まであと N 日」を出す。設定の試験日を自分で替えた人には出さない
+   */
+  admitCard?: { send?: string; about?: string; until?: string; source: string };
   /** いちばん新しい回とその年 */
   latestExam: number;
   latestYear: number;

@@ -594,6 +594,11 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 /* 試験日カードの学習の目安(1.4.5) */
 .date-card-wrap { padding: 0; overflow: hidden; }
 .date-card-wrap > .date-card { width: 100%; text-align: left; background: none; border: 0; }
+.date-admit { margin: 0; border-top: 1px dashed #efd9d4; padding: 8px 16px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: .88em; color: var(--ink-2); }
+.date-admit b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.date-admit-num { white-space: nowrap; }
+.date-admit-num b { color: var(--red-d); font-size: 1.15em; }
+.date-admit small { margin-left: 6px; color: var(--ink-3, #8a7f7b); font-size: .9em; }
 .date-plan { border-top: 1px dashed #efd9d4; padding: 8px 16px 12px; display: grid; gap: 4px; }
 .date-plan p, .date-plan-full { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85em; color: var(--ink-2); }
 .date-plan b { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
