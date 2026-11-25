@@ -3,7 +3,7 @@ import type { AppData, Question } from '../domain/types';
 import { EXAM, SINGLE } from '../domain/exam';
 import { byAmPm, dayKey, daysLeft, examRange, halfName, isNigate, streakDays, unseen, type AmPm } from '../domain/study';
 import { lastDays } from '../domain/summary';
-import { freeLeft, homeUpsell, nearFree, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
+import { admitFacts, freeLeft, homeUpsell, nearFree, partRows, studyPlan, subFreeDone, subPassGrowth, subSeen } from '../domain/upsell';
 import { TODAY_GOAL, todayMix } from '../domain/today';
 import { ART, lookOf, weekday } from './look';
 import { AmPmSwitch, ExamDateCard, ForecastCard } from './parts';
@@ -217,7 +217,7 @@ export function Home(p: Props) {
         </>
       )}
 
-      <ExamDateCard data={p.data} onSet={p.onSettings} plan={seen > 0 ? plan : null} onPlanFull={p.onPaywallPlan ?? p.onPaywall} />
+      <ExamDateCard data={p.data} onSet={p.onSettings} plan={seen > 0 ? plan : null} onPlanFull={p.onPaywallPlan ?? p.onPaywall} admit={admitFacts(EXAM, p.data.settings.examDate, now)} />
 
       <h2 className="sec-title">クイックメニュー</h2>
       <section className="quick menu">

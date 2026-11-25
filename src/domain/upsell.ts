@@ -264,3 +264,22 @@ export function subFreeDone(open: Question[], data: AppData, cfg: ExamConfig): {
   const ok = free.filter((q) => (data.records[q.id]?.streak ?? 0) > 0).length;
   return { rounds: [...new Set(free.map((q) => q.exam))].sort((a, b) => a - b), total: free.length, ok, need: Math.ceil(free.length * sp.ratio) };
 }
+
+/**
+ * ホームの試験日の1枚に出す、受験票の発送(cfg.admitCard がある試験だけ。2026-11-25)。
+ * - 設定の試験日がこの試験の公式の日(cfg.examDate)と同じときだけ(自分で替えた人・試験日を消した人には出さない)
+ * - send があれば、その日まで何日か(当日は 0)。過ぎたら出さない
+ * - about だけなら「1月中旬に発送の予定」。until を過ぎたら出さない
+ * - 試験日を過ぎたら出さない
+ */
+export function admitFacts(cfg: ExamConfig, settingsExamDate: string, now: number):
+  { kind: 'days'; days: number; send: string } | { kind: 'about'; about: string } | null {
+  const a = cfg.admitCard;
+  if (!a || settingsExamDate !== cfg.examDate || daysLeft(cfg.examDate, now) === null) return null;
+  if (a.send) {
+    const days = daysLeft(a.send, now);
+    return days === null ? null : { kind: 'days', days, send: a.send };
+  }
+  if (a.about && (!a.until || daysLeft(a.until, now) !== null)) return { kind: 'about', about: a.about };
+  return null;
+}

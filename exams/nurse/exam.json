@@ -8,6 +8,7 @@
   "site": "https://kame6493-del.github.io/nigatecho-site/",
   "examDate": "2027-02-14",
   "examDateNote": "第116回 看護師国家試験(令和9年2月14日 日曜日)。出典: 厚生労働省「看護師国家試験の施行」https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/kangoshi/(2026-10-19 確認)",
+  "admitCard": { "about": "1月中旬", "until": "2027-01-29", "source": "厚生労働省「看護師国家試験の施行」受験票は令和9年1月中旬発送予定・1月29日(金曜日)までに届かなければ問い合わせ https://www.mhlw.go.jp/kouseiroudoushou/shikaku_shiken/kangoshi/(2026-11-25 確認)" },
   "latestExam": 115,
   "latestYear": 2026,
   "perExam": 240,

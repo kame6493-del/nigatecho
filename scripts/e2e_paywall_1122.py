@@ -25,7 +25,7 @@ for i, a in enumerate(sys.argv):
         OUT = sys.argv[i + 1]
     if a == "--exams":
         EXAMS = sys.argv[i + 1].split(",")
-SIZES = [("390", 390, 844), ("360", 360, 640), ("pc", 1280, 800)]
+SIZES = [("390", 390, 844), ("375", 375, 667), ("360", 360, 640), ("pc", 1280, 800)]
 ok_n = 0
 ng = []
 errors = []
