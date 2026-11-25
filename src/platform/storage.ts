@@ -3,6 +3,7 @@ import type { AppData } from '../domain/types';
 import { emptyData, normalize } from '../domain/data';
 import { EXAM, EXAMS } from '../domain/exam';
 import { EMPTY_REVIEW, normalizeReview, type ReviewState } from '../domain/review';
+import { bumpFrom } from '../domain/track';
 import { EMPTY_AFTER_RESULT, normalizeAfterResult, type AfterResultState } from '../domain/afterResult';
 
 /**
@@ -109,6 +110,38 @@ export async function bumpPaywallOpened(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/** 入り口ごとに購入画面を開いた回数(試験をまたいだ合計)。1つ足したあとの表と、初めて開いたかを返す */
+const PAYWALL_FROMS_KEY = 'nigatecho.paywallFroms';
+export async function bumpPaywallFrom(from: string): Promise<{ counts: Record<string, number>; first: boolean }> {
+  try {
+    const raw = (await Preferences.get({ key: PAYWALL_FROMS_KEY })).value;
+    let cur: Record<string, number> = {};
+    try { const v = JSON.parse(raw ?? '{}'); if (v && typeof v === 'object' && !Array.isArray(v)) cur = v; } catch { /* 壊れていたら数え直す */ }
+    const counts = bumpFrom(cur, from);
+    await Preferences.set({ key: PAYWALL_FROMS_KEY, value: JSON.stringify(counts) });
+    return { counts, first: !raw };
+  } catch {
+    return { counts: {}, first: false };
+  }
+}
+
+/** ホームの「無料の残りが少ない」知らせを閉じた試験(exams の dir)。閉じたらその試験ではもう出さない */
+const NEAR_CLOSED_KEY = 'nigatecho.nearClosed';
+export async function loadNearClosed(): Promise<string[]> {
+  try {
+    const v = JSON.parse((await Preferences.get({ key: NEAR_CLOSED_KEY })).value ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+export async function closeNear(dir: string): Promise<void> {
+  try {
+    const cur = await loadNearClosed();
+    if (!cur.includes(dir)) await Preferences.set({ key: NEAR_CLOSED_KEY, value: JSON.stringify([...cur, dir]) });
+  } catch { /* 保存できなくても画面は動かす */ }
 }
 
 /** 結果のあとの「この試験の続き」を出した日・続けて閉じた回数。試験をまたいで端末に1つ */

@@ -32,6 +32,14 @@ export function homeUpsell(o: { premium: boolean; lockedCount: number; seen: num
   return 'bottom';
 }
 
+/** 無料の回の残りがこれより少なくなったら、ホームに小さく知らせる(閉じたらその試験ではもう出さない) */
+export const NEAR_FREE = 20;
+
+/** ホームの「無料の残りが少ない」知らせを出すか。無料の回を解き終えたら別の1枚(finished)に替わるので出さない */
+export function nearFree(o: { premium: boolean; lockedCount: number; seen: number; freeLeft: number; hasFree: boolean; closed: boolean }): boolean {
+  return !o.premium && !o.closed && o.lockedCount > 0 && o.hasFree && o.seen > 0 && o.freeLeft > 0 && o.freeLeft < NEAR_FREE;
+}
+
 /**
  * 本人の記録でいちばん手を入れたい科目と、その科目の問題が完全版で何問になるか。
  * 苦手の多い科目(同じなら正答率の低い方)。苦手が無ければ、3問以上解いた中で正答率の低い科目。
