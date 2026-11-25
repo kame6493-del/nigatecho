@@ -553,7 +553,9 @@ html[data-app="rinsho"] .exam-row.locked { background: #f4f8fa; }
 
 /* 完全版の案内(2026-10-22): 見える所と区切りに出す。押したときだけ購入画面へ */
 .unlock.raised { margin-top: -2px; }
-.done-card { background: linear-gradient(135deg, #fff6e6, #fff0ef); border: 1.5px solid #f3d8b8; }
+.done-card { background: linear-gradient(135deg, #fff6e6, #fff0ef); border: 1.5px solid #f3d8b8; position: relative; }
+.done-card .done-title { padding-right: 32px; }
+.done-x { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 0; color: var(--ink-3); }
 .done-title { margin: 0 0 4px; font-weight: 800; color: var(--red-d); }
 .done-sub { margin: 0 0 12px; font-size: .88em; color: var(--ink-2); line-height: 1.6; }
 .upsell-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 14px; padding: 10px 12px; border-radius: var(--r); background: #fff6e6; border: 1px solid #f3d8b8; font-size: .84em; color: var(--ink-2); line-height: 1.55; }

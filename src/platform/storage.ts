@@ -144,6 +144,23 @@ export async function closeNear(dir: string): Promise<void> {
   } catch { /* 保存できなくても画面は動かす */ }
 }
 
+/** ホームの「第N回は、すべて解きました」の1枚を閉じた試験(exams の dir)。閉じたらその試験ではもう出さない(2026-11-25) */
+const FINISHED_CLOSED_KEY = 'nigatecho.finishedClosed';
+export async function loadFinishedClosed(): Promise<string[]> {
+  try {
+    const v = JSON.parse((await Preferences.get({ key: FINISHED_CLOSED_KEY })).value ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+export async function closeFinished(dir: string): Promise<void> {
+  try {
+    const cur = await loadFinishedClosed();
+    if (!cur.includes(dir)) await Preferences.set({ key: FINISHED_CLOSED_KEY, value: JSON.stringify([...cur, dir]) });
+  } catch { /* 保存できなくても画面は動かす */ }
+}
+
 /** 結果のあとの「この試験の続き」を出した日・続けて閉じた回数。試験をまたいで端末に1つ */
 const AFTER_RESULT_KEY = 'nigatecho.afterResult';
 
